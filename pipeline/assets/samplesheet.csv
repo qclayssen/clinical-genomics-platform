@@ -1,0 +1,2 @@
+sample,fastq_1,fastq_2
+HG002_chr20,s3://your-bucket/raw/HG002_chr20_R1.fastq.gz,s3://your-bucket/raw/HG002_chr20_R2.fastq.gz

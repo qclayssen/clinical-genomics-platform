@@ -1,0 +1,38 @@
+# Nextflow
+.nextflow/
+.nextflow.log*
+work/
+results/
+pipeline/assets/reference/*
+pipeline/assets/truth/*
+pipeline/assets/testdata/*
+!pipeline/assets/reference/.gitkeep
+!pipeline/assets/truth/.gitkeep
+!pipeline/assets/testdata/.gitkeep
+
+# Large data / models
+*.fastq.gz
+*.bam
+*.bai
+*.vcf.gz
+*.tbi
+*.fa
+*.fa.*
+ai-report/checkpoints/
+ai-report/data/*.jsonl
+
+# CDK
+infra/node_modules/
+infra/cdk.out/
+infra/*.js
+infra/*.d.ts
+!infra/jest.config.js
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# OS
+.DS_Store

@@ -1,0 +1,37 @@
+process PARQUET_EXPORT {
+    tag   { meta.id }
+    label 'process_low'
+    container 'quay.io/biocontainers/pyarrow:15.0.0'
+
+    publishDir "${params.outdir}/${meta.id}/export", mode: 'copy'
+
+    input:
+    tuple val(meta), path(json)
+
+    output:
+    tuple val(meta), path("${meta.id}.metrics.parquet"), emit: parquet
+
+    script:
+    """
+    python3 - <<'PY'
+    import json, pyarrow as pa, pyarrow.parquet as pq
+    with open("${json}") as fh:
+        rec = json.load(fh)
+    # Flatten one level for a tabular, dashboard-friendly Parquet row
+    flat = {}
+    for k, v in rec.items():
+        if isinstance(v, dict):
+            for kk, vv in v.items():
+                flat[f"{k}.{kk}"] = vv
+        else:
+            flat[k] = v
+    table = pa.table({k: [v] for k, v in flat.items()})
+    pq.write_table(table, "${meta.id}.metrics.parquet")
+    PY
+    """
+
+    stub:
+    """
+    touch ${meta.id}.metrics.parquet
+    """
+}

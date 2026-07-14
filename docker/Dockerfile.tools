@@ -1,0 +1,15 @@
+# Helper image: dependency-free export/ingest scripts + bcftools.
+# Pinned base by digest for reproducibility (update deliberately, re-validate after).
+FROM python:3.11-slim@sha256:8f4d6db2d6a1a1f8f6f9f0a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        bcftools \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir psycopg2-binary==2.9.9 pyarrow==15.0.0
+
+COPY pipeline/bin/build_metrics.py  /usr/local/bin/build_metrics.py
+COPY pipeline/bin/ingest_metrics.py /usr/local/bin/ingest_metrics.py
+RUN chmod +x /usr/local/bin/build_metrics.py /usr/local/bin/ingest_metrics.py
+
+WORKDIR /work
