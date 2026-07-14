@@ -5,6 +5,10 @@ on:
     paths: ['infra/**', '.github/workflows/infra-ci.yml']
   pull_request:
 
+# Least privilege: these jobs only read the repo.
+permissions:
+  contents: read
+
 jobs:
   synth-and-test:
     runs-on: ubuntu-latest
