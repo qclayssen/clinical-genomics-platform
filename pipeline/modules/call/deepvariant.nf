@@ -3,7 +3,7 @@ process DEEPVARIANT {
     label 'process_high'
     container 'google/deepvariant:1.6.1'
 
-    publishDir "${params.outdir}/${meta.id}/variants", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/variants" }, mode: 'copy'
 
     input:
     tuple val(meta), path(bam)

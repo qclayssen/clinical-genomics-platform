@@ -3,7 +3,7 @@ process FASTP {
     label 'process_medium'
     container 'quay.io/biocontainers/fastp:0.23.4--hadf994f_2'
 
-    publishDir "${params.outdir}/${meta.id}/qc/fastp", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/qc/fastp" }, mode: 'copy'
 
     input:
     tuple val(meta), path(reads)

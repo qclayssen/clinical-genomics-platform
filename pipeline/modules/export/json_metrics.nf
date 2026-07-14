@@ -3,7 +3,7 @@ process JSON_METRICS {
     label 'process_low'
     container 'quay.io/biocontainers/python:3.11'
 
-    publishDir "${params.outdir}/${meta.id}/export", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/export" }, mode: 'copy'
 
     input:
     tuple val(meta), path(dup_metrics), path(happy_summary)

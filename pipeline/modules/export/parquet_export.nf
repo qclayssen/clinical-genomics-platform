@@ -3,7 +3,7 @@ process PARQUET_EXPORT {
     label 'process_low'
     container 'quay.io/biocontainers/pyarrow:15.0.0'
 
-    publishDir "${params.outdir}/${meta.id}/export", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/export" }, mode: 'copy'
 
     input:
     tuple val(meta), path(json)

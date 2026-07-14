@@ -23,17 +23,17 @@ include { JSON_METRICS    } from './modules/export/json_metrics.nf'
 include { PARQUET_EXPORT  } from './modules/export/parquet_export.nf'
 include { DB_INGEST       } from './modules/export/db_ingest.nf'
 
-// ── Provenance stamp captured once, threaded into every export ──────────────
-def provenance = [
-    pipeline_version : workflow.manifest.version,
-    git_commit       : workflow.commitId ?: 'local-dev',
-    run_id           : workflow.runName,
-    started_at       : workflow.start.toString(),
-    reference_build  : params.reference_build,
-    truth_version    : params.truth_version
-]
-
 workflow {
+
+    // ── Provenance stamp captured once, threaded into every export ──────────
+    def provenance = [
+        pipeline_version : workflow.manifest.version,
+        git_commit       : workflow.commitId ?: 'local-dev',
+        run_id           : workflow.runName,
+        started_at       : workflow.start.toString(),
+        reference_build  : params.reference_build,
+        truth_version    : params.truth_version
+    ]
 
     // ── Input: sample sheet -> [ meta, [fastq_1, fastq_2] ] ─────────────────
     Channel
@@ -97,14 +97,5 @@ workflow {
     )
 }
 
-workflow.onComplete {
-    log.info """
-    ── Pipeline complete ────────────────────────────────────────────
-      run name    : ${workflow.runName}
-      status      : ${workflow.success ? 'SUCCESS' : 'FAILED'}
-      duration    : ${workflow.duration}
-      results     : ${params.outdir}
-      provenance  : git ${provenance.git_commit}, ref ${params.reference_build}
-    ─────────────────────────────────────────────────────────────────
-    """.stripIndent()
-}
+// A completion summary is captured in results/provenance/ (timeline, report, trace, dag);
+// the run's git commit + reference build are also stamped into each metrics.json.

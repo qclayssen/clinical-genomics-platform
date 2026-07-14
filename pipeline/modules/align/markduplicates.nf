@@ -3,7 +3,7 @@ process MARKDUPLICATES {
     label 'process_medium'
     container 'quay.io/biocontainers/gatk4:4.5.0.0--py36hdfd78af_0'
 
-    publishDir "${params.outdir}/${meta.id}/align", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/align" }, mode: 'copy'
 
     input:
     tuple val(meta), path(bam)

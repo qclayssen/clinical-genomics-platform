@@ -3,7 +3,7 @@ process HAPLOTYPECALLER {
     label 'process_high'
     container 'quay.io/biocontainers/gatk4:4.5.0.0--py36hdfd78af_0'
 
-    publishDir "${params.outdir}/${meta.id}/variants", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/variants" }, mode: 'copy'
 
     input:
     tuple val(meta), path(bam)

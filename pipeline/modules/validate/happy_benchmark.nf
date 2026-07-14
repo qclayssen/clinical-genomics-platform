@@ -3,7 +3,7 @@ process HAPPY_BENCHMARK {
     label 'process_medium'
     container 'quay.io/biocontainers/hap.py:0.3.15--py27h5c5a762_0'
 
-    publishDir "${params.outdir}/${meta.id}/validation", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/validation" }, mode: 'copy'
 
     input:
     tuple val(meta), path(vcf), path(tbi)

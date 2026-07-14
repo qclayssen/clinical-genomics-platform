@@ -3,7 +3,7 @@ process BWAMEM2_ALIGN {
     label 'process_high'
     container 'quay.io/biocontainers/mulled-v2-e5d375990341c5aef3c9aff74f96f66f65375ef6:2cdf6bf1e92acbeb9b2834b1c58754167173a410-0'
 
-    publishDir "${params.outdir}/${meta.id}/align", mode: 'copy', pattern: '*.log'
+    publishDir { "${params.outdir}/${meta.id}/align" }, mode: 'copy', pattern: '*.log'
 
     input:
     tuple val(meta), path(reads)
