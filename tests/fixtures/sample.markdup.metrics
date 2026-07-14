@@ -1,0 +1,5 @@
+## htsjdk.samtools.metrics.StringHeader
+# MarkDuplicates example metrics (trimmed) for tests
+## METRICS CLASS	picard.sam.DuplicationMetrics
+LIBRARY	UNPAIRED_READS_EXAMINED	READ_PAIRS_EXAMINED	PERCENT_DUPLICATION	ESTIMATED_LIBRARY_SIZE
+HG002_chr20	1200	480000	0.061	9500000

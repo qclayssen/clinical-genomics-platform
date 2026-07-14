@@ -25,7 +25,10 @@ Each milestone produces something you can screen-share, not just code that compi
 | Postgres schema (insert-only + triggers) | ✅ implemented, demo seed |
 | Metabase dashboard definitions | ✅ documented + SQL provided |
 | AI reporting (offline + fine-tune paths) | ✅ implemented, offline path tested |
-| CI (pipeline + infra) | ✅ workflows in place |
+| ML fine-tuning (PyTorch QLoRA + CPU smoke test) | ✅ smoke test verified running on CPU |
+| Architecture Decision Records (9 ADRs) | ✅ written |
+| Small committed test data + fixtures | ✅ pipeline stub + ML both self-contained |
+| CI (pipeline + infra + ML smoke) | ✅ workflows in place |
 
 > "Scaffolded" = structure and logic are in place and the dependency-free parts run
 > and are tested. Running the full pipeline end-to-end needs Nextflow + Docker + the

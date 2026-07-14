@@ -82,10 +82,21 @@ acceptance criteria.
 | `infra/` | AWS CDK app: S3 data lake, Batch compute, scoped IAM, CloudWatch |
 | `db/` | Postgres schema + migrations (samples, runs, QC, provenance, audit) |
 | `dashboards/metabase/` | Version-controlled dashboard + question definitions |
-| `ai-report/` | QLoRA fine-tune + inference for AI-drafted summaries |
+| `ai-report/` | **PyTorch** QLoRA fine-tune + inference for AI-drafted summaries ([model card](ai-report/MODEL_CARD.md)) |
 | `docker/` | One pinned Dockerfile per pipeline stage |
 | `docs/` | **Beginner's guide + glossary**, validation report, SOP, milestones |
-| `.github/workflows/` | CI: nf-core lint, pipeline test profile, CDK synth |
+| `docs/adr/` | **Architecture Decision Records** — why each choice was made |
+| `tests/` | Unit tests + small committed fixtures (`tests/fixtures/`) |
+| `.github/workflows/` | CI: nf-core lint, pipeline test profile, CDK synth, ML smoke test |
+
+## Documentation map
+
+- **New to the domain?** → [Beginner's Guide](docs/BEGINNERS-GUIDE.md) + [Glossary](docs/GLOSSARY.md)
+- **Recruiter / hiring manager?** → [For Recruiters](docs/FOR-RECRUITERS.md)
+- **Why these choices?** → [Architecture Decision Records](docs/adr/)
+- **How accurate is it?** → [Validation Report](docs/VALIDATION.md)
+- **The ML component?** → [Model Card](ai-report/MODEL_CARD.md) + [ADR-0007](docs/adr/0007-qlora-small-open-model.md)
+- **How do I operate it?** → [SOP](docs/SOP-run-pipeline.md)
 
 ## Milestones
 

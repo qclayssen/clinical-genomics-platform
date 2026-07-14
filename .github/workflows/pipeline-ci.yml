@@ -57,3 +57,15 @@ jobs:
           assert 'Provenance:' in out, 'provenance line missing'
           print('guardrails OK')
           PY
+
+  ml-finetune-smoke:
+    # Proves the PyTorch LoRA fine-tuning loop runs end-to-end on CPU (tiny model).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install CPU ML stack
+        run: pip install --quiet torch transformers datasets peft --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+      - name: Run LoRA fine-tuning smoke test
+        run: python ai-report/train_smoke.py

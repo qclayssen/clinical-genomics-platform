@@ -1,0 +1,27 @@
+{
+  "sample": "HG002_chr20",
+  "schema_version": "1.0",
+  "qc": {
+    "percent_duplication": 0.061
+  },
+  "validation": {
+    "snp": { "precision": 0.9985, "recall": 0.9971, "f1": 0.9978 },
+    "indel": { "precision": 0.9929, "recall": 0.9911, "f1": 0.9920 }
+  },
+  "validation_pass": true,
+  "provenance": {
+    "pipeline_version": "0.3.0",
+    "git_commit": "abc1234",
+    "run_id": "run_2026_0301_a",
+    "caller": "gatk",
+    "reference_build": "GRCh38.p14",
+    "truth_version": "GIAB-v4.2.1",
+    "n_variants": 61234,
+    "started_at": "2026-03-01T09:00:00Z",
+    "exported_at": "2026-03-01T10:12:00Z",
+    "input_checksums": {
+      "HG002_chr20.markdup.metrics": "943f06a03b3d8ee556a1ac269406378d941bb1d2704300221d32f4d2c942c2af",
+      "HG002_chr20.happy.summary.csv": "c471a7b25a29b4f5eeb85d5dc0d32e522b12d15f774fa2dfb87896d1b233b580"
+    }
+  }
+}

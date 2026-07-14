@@ -69,6 +69,32 @@ def test_report_always_has_banner_and_provenance():
     assert "validation.snp.precision" in report
 
 
+def test_committed_fixtures_parse():
+    """The small committed fixtures must stay valid so CI/demos work offline."""
+    fx = ROOT / "tests" / "fixtures"
+    happy = bm.parse_happy(str(fx / "sample.happy.summary.csv"))
+    assert happy["snp"]["f1"] == 0.9978
+    dup = bm.parse_dup_metrics(str(fx / "sample.markdup.metrics"))
+    assert dup["percent_duplication"] == 0.061
+
+    metrics = json.loads((fx / "HG002_chr20.metrics.json").read_text())
+    report = infer.enforce_guardrails(infer.render_offline(metrics), metrics)
+    assert report.startswith("AI-DRAFTED — REQUIRES CLINICIAN REVIEW")
+    assert "61,234 variants" in report  # n_variants rendered from the fixture
+
+
+def test_curated_training_pairs_are_wellformed():
+    """Every committed training pair must have a compliant target summary."""
+    path = ROOT / "ai-report" / "data" / "report_pairs.sample.jsonl"
+    lines = [l for l in path.read_text().splitlines() if l.strip()]
+    assert len(lines) >= 10
+    for line in lines:
+        rec = json.loads(line)
+        json.loads(rec["input"])  # input is valid JSON
+        assert rec["output"].startswith("AI-DRAFTED — REQUIRES CLINICIAN REVIEW")
+        assert "Provenance:" in rec["output"]
+
+
 def test_guardrails_reinsert_banner_if_model_drops_it():
     metrics = {"provenance": {"git_commit": "deadbee", "truth_version": "GIAB-v4.2.1"}}
     hostile = "Sample looks great. We recommend treatment with drug X."

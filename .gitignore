@@ -21,6 +21,13 @@ pipeline/assets/testdata/*
 ai-report/checkpoints/
 ai-report/data/*.jsonl
 
+# ...but DO commit the tiny placeholder test data + curated ML sample (small, needed for CI)
+!pipeline/assets/testdata/tiny_ref.fa
+!pipeline/assets/testdata/tiny_truth.vcf.gz
+!pipeline/assets/testdata/tiny_truth.bed
+!pipeline/assets/testdata/*.fastq.gz
+!ai-report/data/report_pairs.sample.jsonl
+
 # CDK
 infra/node_modules/
 infra/cdk.out/
