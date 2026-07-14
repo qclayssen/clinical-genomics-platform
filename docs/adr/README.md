@@ -33,6 +33,7 @@ Each ADR follows the same tiny structure:
 | [0007](0007-qlora-small-open-model.md) | Fine-tune a small open model with QLoRA (PyTorch) | Accepted |
 | [0008](0008-guardrails-human-in-the-loop.md) | Enforce AI guardrails + human-in-the-loop in code | Accepted |
 | [0009](0009-docker-pinned-by-digest.md) | Containerise every step, pin images by digest | Accepted |
+| [0010](0010-ga4gh-standards-alignment.md) | Align with GA4GH standards; implement the refget/VRS digest primitive | Accepted |
 
 ## Conventions
 

@@ -97,6 +97,8 @@ acceptance criteria.
 - **How accurate is it?** → [Validation Report](docs/VALIDATION.md)
 - **The ML component?** → [Model Card](ai-report/MODEL_CARD.md) + [ADR-0007](docs/adr/0007-qlora-small-open-model.md)
 - **How do I operate it?** → [SOP](docs/SOP-run-pipeline.md)
+- **How do I run it for real numbers?** → [Runbook](docs/RUNBOOK.md)
+- **Standards interoperability?** → [GA4GH alignment](docs/GA4GH-ALIGNMENT.md)
 
 ## Milestones
 
