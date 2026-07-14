@@ -14,6 +14,11 @@ so a single person can finish it.
 > accredited clinical test and must not be used for clinical decision-making. Wherever this
 > project references ISO 15189, it means "built the patterns the standard asks for," not "certified."
 
+> 🟢 **New to any of this?** Start with the plain-language
+> **[Beginner's Guide](docs/BEGINNERS-GUIDE.md)** (what the whole thing does, no background
+> assumed), and keep the **[Glossary](docs/GLOSSARY.md)** open — it defines every term below
+> (FASTQ, VCF, hap.py, CDK, IAM, QLoRA…) in one line with an everyday analogy.
+
 ---
 
 ## Architecture
@@ -79,7 +84,7 @@ acceptance criteria.
 | `dashboards/metabase/` | Version-controlled dashboard + question definitions |
 | `ai-report/` | QLoRA fine-tune + inference for AI-drafted summaries |
 | `docker/` | One pinned Dockerfile per pipeline stage |
-| `docs/` | Validation report, SOP, architecture |
+| `docs/` | **Beginner's guide + glossary**, validation report, SOP, milestones |
 | `.github/workflows/` | CI: nf-core lint, pipeline test profile, CDK synth |
 
 ## Milestones
