@@ -1,0 +1,27 @@
+# Pinned dependencies for RAG reporter container (Requirement 12.6).
+# All versions are exact to ensure reproducible builds.
+# Regenerate with: pip-compile requirements.txt --output-file=requirements-lock.txt
+
+# Core ML / inference
+torch==2.4.1
+transformers==4.44.2
+datasets==2.20.0
+peft==0.12.0
+trl==0.9.6
+bitsandbytes==0.43.3
+accelerate==0.33.0
+
+# RAG layer
+sentence-transformers==2.7.0
+faiss-cpu==1.8.0.post1
+numpy==1.26.4
+
+# Ollama client (for RAG mode LLM calls)
+ollama==0.3.3
+
+# Transitive deps pinned for reproducibility
+huggingface-hub==0.24.7
+tokenizers==0.19.1
+safetensors==0.4.5
+tqdm==4.66.5
+requests==2.32.3
