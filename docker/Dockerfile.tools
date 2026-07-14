@@ -1,6 +1,13 @@
 # Helper image: dependency-free export/ingest scripts + bcftools.
-# Pinned base by digest for reproducibility (update deliberately, re-validate after).
-FROM python:3.11-slim@sha256:8f4d6db2d6a1a1f8f6f9f0a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2
+#
+# Reproducibility note: production builds MUST pin the base by immutable digest
+# (ADR-0009). Resolve the current digest and pin it deliberately, e.g.:
+#     docker pull python:3.11-slim
+#     docker inspect --format='{{index .RepoDigests 0}}' python:3.11-slim
+#     # -> FROM python:3.11-slim@sha256:<real-digest>   (then re-validate)
+# A version tag is used here rather than a fabricated digest so the image actually
+# builds; swap in the resolved @sha256 digest at release time.
+FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         bcftools \
