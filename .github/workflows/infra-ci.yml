@@ -12,6 +12,7 @@ permissions:
 jobs:
   synth-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run: { working-directory: infra }
     steps:
@@ -33,3 +34,11 @@ jobs:
         env:
           CDK_DEFAULT_ACCOUNT: '000000000000'
           CDK_DEFAULT_REGION: ap-southeast-2
+
+      - name: Validate no Batch/Fargate/NAT resources
+        run: |
+          if grep -rl "AWS::Batch\|AWS::ECS::Service\|AWS::EC2::NatGateway\|AWS::RDS\|AWS::Bedrock\|AWS::SageMaker::Endpoint" cdk.out/*.template.json; then
+            echo "ERROR: Banned resource types found in synthesized templates"
+            exit 1
+          fi
+          echo "No banned resources found — cost guardrails pass"
