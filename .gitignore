@@ -31,8 +31,8 @@ ai-report/data/*.jsonl
 # CDK
 infra/node_modules/
 infra/cdk.out/
-infra/*.js
-infra/*.d.ts
+infra/**/*.js
+infra/**/*.d.ts
 !infra/jest.config.js
 
 # Python
