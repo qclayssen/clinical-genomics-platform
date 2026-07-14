@@ -1,6 +1,6 @@
 # ADR-0005 — Store results in an insert-only PostgreSQL schema
 
-**Status:** Accepted · **Date:** 2026-05-14
+**Status:** Superseded by [ADR-0012](0012-dynamodb-primary-store.md) (DynamoDB becomes primary; Postgres retained as Metabase read-replica) · **Date:** 2026-05-14
 
 ## Context
 

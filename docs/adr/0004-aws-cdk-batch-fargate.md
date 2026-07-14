@@ -1,6 +1,6 @@
 # ADR-0004 — Deploy on AWS via CDK + Batch/Fargate
 
-**Status:** Accepted · **Date:** 2026-05-10
+**Status:** Superseded by [ADR-0011](0011-serverless-lambda-stepfunctions.md) (compute only; the CDK/IaC and S3 data-lake decisions stand) · **Date:** 2026-05-10
 
 ## Context
 
