@@ -1,0 +1,43 @@
+name: markduplicates
+description: Mark PCR/optical duplicate reads with GATK4 (Picard) MarkDuplicates
+keywords:
+  - duplicates
+  - markduplicates
+  - picard
+  - gatk
+  - bam
+tools:
+  - gatk4:
+      description: Genome Analysis Toolkit; MarkDuplicates (from Picard) flags duplicate reads and reports duplication metrics.
+      homepage: https://gatk.broadinstitute.org/
+      documentation: https://gatk.broadinstitute.org/hc/en-us/articles/360037052812-MarkDuplicates-Picard
+      tool_dev_url: https://github.com/broadinstitute/gatk
+      doi: 10.1101/gr.107524.110
+      licence: ["Apache-2.0", "BSD-3-Clause"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'gatk' ]`
+    - bam:
+        type: file
+        description: Coordinate-sorted BAM from alignment
+        pattern: "*.bam"
+output:
+  - bam:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.markdup.bam":
+            type: file
+            description: Duplicate-marked BAM (indexed via `--CREATE_INDEX`, yielding a `.bai`)
+            pattern: "*.markdup.bam"
+  - metrics:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.markdup.metrics":
+            type: file
+            description: Picard MarkDuplicates metrics (duplication rate; feeds MultiQC and metrics.json)
+            pattern: "*.markdup.metrics"
+authors:
+  - "Quentin Clayssen"

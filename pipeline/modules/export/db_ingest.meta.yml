@@ -1,0 +1,52 @@
+name: db_ingest
+description: Ingest metrics and the VCF reference into the insert-only Postgres schema
+keywords:
+  - database
+  - postgres
+  - ingest
+  - provenance
+  - insert-only
+tools:
+  - psycopg2:
+      description: PostgreSQL database adapter for Python; used by the repo helper to write run rows.
+      homepage: https://www.psycopg.org/
+      documentation: https://www.psycopg.org/docs/
+      tool_dev_url: https://github.com/psycopg/psycopg2
+      licence: ["LGPL-3.0-or-later"]
+  - ingest_metrics:
+      description: >
+        Repo helper (`pipeline/bin/ingest_metrics.py`) that inserts metrics.json + VCF reference
+        into the append-only `runs`/`qc_metrics`/`run_provenance`/`audit_log` tables (db/schema.sql).
+      homepage: https://github.com/qclayssen/clinical-genomics-platform
+      documentation: https://github.com/qclayssen/clinical-genomics-platform
+      licence: ["MIT"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'gatk' ]`
+    - json:
+        type: file
+        description: The metrics.json produced by JSON_METRICS
+        pattern: "*.metrics.json"
+  - - meta2:
+        type: map
+        description: Groovy Map with sample metadata for the VCF channel (same sample)
+    - vcf:
+        type: file
+        description: Called VCF whose reference is recorded during ingest
+        pattern: "*.vcf.gz"
+    - tbi:
+        type: file
+        description: Tabix index for the VCF
+        pattern: "*.vcf.gz.tbi"
+output:
+  - log:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.ingest.log":
+            type: file
+            description: Ingest log (kept in the work directory; not published to results/). Requires `--db_ingest`/`-profile aws`.
+            pattern: "*.ingest.log"
+authors:
+  - "Quentin Clayssen"

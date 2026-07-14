@@ -1,0 +1,48 @@
+name: deepvariant
+description: Call germline SNVs and indels with DeepVariant (selected via `--caller deepvariant`)
+keywords:
+  - variant calling
+  - germline
+  - snv
+  - indel
+  - deep learning
+  - deepvariant
+tools:
+  - deepvariant:
+      description: A deep-learning-based germline variant caller that calls variants from aligned reads.
+      homepage: https://github.com/google/deepvariant
+      documentation: https://github.com/google/deepvariant/tree/r1.6.1/docs
+      tool_dev_url: https://github.com/google/deepvariant
+      doi: 10.1038/nbt.4235
+      licence: ["BSD-3-Clause"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'deepvariant' ]`
+    - bam:
+        type: file
+        description: Duplicate-marked BAM from the alignment stage
+        pattern: "*.bam"
+  - - fasta:
+        type: file
+        description: Reference genome FASTA (`.fai` created in-process)
+        pattern: "*.{fa,fasta}"
+    - index:
+        type: file
+        description: FASTA index sidecar files (matched via `${reference}.*`)
+        pattern: "*.{fai}"
+output:
+  - vcf:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.dv.vcf.gz":
+            type: file
+            description: Bgzipped germline VCF (WGS model) over `--regions` (default `chr20`)
+            pattern: "*.dv.vcf.gz"
+        - "*.dv.vcf.gz.tbi":
+            type: file
+            description: Tabix index for the VCF
+            pattern: "*.dv.vcf.gz.tbi"
+authors:
+  - "Quentin Clayssen"

@@ -1,0 +1,67 @@
+name: happy_benchmark
+description: Benchmark a called VCF against the GIAB high-confidence truth set with hap.py
+keywords:
+  - benchmarking
+  - validation
+  - hap.py
+  - giab
+  - truth set
+  - precision
+  - recall
+tools:
+  - hap.py:
+      description: GA4GH-standard tool for comparing variant call sets and computing precision/recall/F1.
+      homepage: https://github.com/Illumina/hap.py
+      documentation: https://github.com/Illumina/hap.py/blob/master/doc/happy.md
+      tool_dev_url: https://github.com/Illumina/hap.py
+      doi: 10.1038/s41587-019-0054-x
+      licence: ["BSD-2-Clause"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'gatk' ]`
+    - vcf:
+        type: file
+        description: Query VCF produced by the variant caller
+        pattern: "*.vcf.gz"
+    - tbi:
+        type: file
+        description: Tabix index for the query VCF
+        pattern: "*.vcf.gz.tbi"
+  - - truth_vcf:
+        type: file
+        description: GIAB high-confidence truth VCF (`--truth_vcf`)
+        pattern: "*.vcf.gz"
+  - - truth_bed:
+        type: file
+        description: GIAB high-confidence region BED (`--truth_bed`), passed to `hap.py -f`
+        pattern: "*.bed"
+  - - fasta:
+        type: file
+        description: Reference genome FASTA (`.fai` created in-process)
+        pattern: "*.{fa,fasta}"
+    - index:
+        type: file
+        description: FASTA index sidecar files (matched via `${reference}.*`)
+        pattern: "*.{fai}"
+output:
+  - summary:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.happy.summary.csv":
+            type: file
+            description: Headline precision/recall/F1 by variant type (SNP, INDEL)
+            pattern: "*.happy.summary.csv"
+  - extended:
+      - "*.happy.extended.csv":
+          type: file
+          description: Stratified/extended hap.py metrics
+          pattern: "*.happy.extended.csv"
+  - all:
+      - "*.happy.*":
+          type: file
+          description: All remaining hap.py artefacts (e.g. ROC tables)
+          pattern: "*.happy.*"
+authors:
+  - "Quentin Clayssen"

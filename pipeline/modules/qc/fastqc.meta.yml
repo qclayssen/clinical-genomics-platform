@@ -1,0 +1,37 @@
+name: fastqc
+description: Per-sample read quality metrics with FastQC
+keywords:
+  - fastq
+  - quality control
+  - qc
+  - sequencing
+tools:
+  - fastqc:
+      description: A quality control tool for high-throughput sequence data.
+      homepage: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+      documentation: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/
+      licence: ["GPL-3.0-or-later"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'gatk' ]`
+    - reads:
+        type: file
+        description: Gzipped FASTQ files (typically the fastp-trimmed reads)
+        pattern: "*.{fastq,fq}.gz"
+output:
+  - zip:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.zip":
+            type: file
+            description: Zipped FastQC results (consumed by MultiQC)
+            pattern: "*_fastqc.zip"
+  - html:
+      - "*.html":
+          type: file
+          description: FastQC HTML report(s)
+          pattern: "*_fastqc.html"
+authors:
+  - "Quentin Clayssen"

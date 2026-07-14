@@ -1,0 +1,48 @@
+name: haplotypecaller
+description: Call germline SNVs and indels with GATK4 HaplotypeCaller (default caller)
+keywords:
+  - variant calling
+  - germline
+  - snv
+  - indel
+  - gatk
+  - haplotypecaller
+tools:
+  - gatk4:
+      description: Genome Analysis Toolkit; HaplotypeCaller performs local de novo assembly to call germline variants.
+      homepage: https://gatk.broadinstitute.org/
+      documentation: https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller
+      tool_dev_url: https://github.com/broadinstitute/gatk
+      doi: 10.1101/201178
+      licence: ["Apache-2.0", "BSD-3-Clause"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'gatk' ]`
+    - bam:
+        type: file
+        description: Duplicate-marked BAM from the alignment stage
+        pattern: "*.bam"
+  - - fasta:
+        type: file
+        description: Reference genome FASTA (`.fai` / sequence dictionary created in-process)
+        pattern: "*.{fa,fasta}"
+    - index:
+        type: file
+        description: FASTA index sidecar files (matched via `${reference}.*`)
+        pattern: "*.{fai}"
+output:
+  - vcf:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.gatk.vcf.gz":
+            type: file
+            description: Bgzipped germline VCF over `--intervals` (default `chr20`)
+            pattern: "*.gatk.vcf.gz"
+        - "*.gatk.vcf.gz.tbi":
+            type: file
+            description: Tabix index for the VCF
+            pattern: "*.gatk.vcf.gz.tbi"
+authors:
+  - "Quentin Clayssen"

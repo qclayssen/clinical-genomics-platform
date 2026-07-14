@@ -1,0 +1,53 @@
+name: bwamem2_align
+description: Align paired-end reads to a reference with bwa-mem2 and coordinate-sort with samtools
+keywords:
+  - alignment
+  - mapping
+  - bwa-mem2
+  - bam
+  - samtools
+tools:
+  - bwa-mem2:
+      description: The next version of the bwa-mem algorithm; aligns short reads to a large reference.
+      homepage: https://github.com/bwa-mem2/bwa-mem2
+      documentation: https://github.com/bwa-mem2/bwa-mem2
+      doi: 10.1109/IPDPS.2019.00041
+      licence: ["MIT"]
+  - samtools:
+      description: Tools for manipulating alignments in SAM/BAM/CRAM format; used here to sort and index.
+      homepage: https://www.htslib.org/
+      documentation: https://www.htslib.org/doc/samtools.html
+      doi: 10.1093/gigascience/giab008
+      licence: ["MIT"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'gatk' ]`
+    - reads:
+        type: file
+        description: Paired-end gzipped FASTQ files (R1, R2), typically fastp-trimmed
+        pattern: "*.{fastq,fq}.gz"
+  - - fasta:
+        type: file
+        description: Reference genome FASTA
+        pattern: "*.{fa,fasta}"
+    - index:
+        type: file
+        description: bwa-mem2 / FASTA index sidecar files (matched via `${reference}.*`)
+        pattern: "*.{amb,ann,bwt.2bit.64,pac,0123,fai}"
+output:
+  - bam:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.sorted.bam":
+            type: file
+            description: Coordinate-sorted BAM (indexed in-process; not published — superseded by the MarkDuplicates BAM)
+            pattern: "*.sorted.bam"
+  - log:
+      - "*.bwamem2.log":
+          type: file
+          description: bwa-mem2 stderr log (published)
+          pattern: "*.bwamem2.log"
+authors:
+  - "Quentin Clayssen"

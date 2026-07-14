@@ -1,0 +1,33 @@
+name: parquet_export
+description: Flatten metrics.json into a single-row Parquet record for dashboards/warehousing
+keywords:
+  - parquet
+  - export
+  - tabular
+  - pyarrow
+tools:
+  - pyarrow:
+      description: Python bindings for Apache Arrow; used here to write a flattened metrics row as Parquet.
+      homepage: https://arrow.apache.org/docs/python/
+      documentation: https://arrow.apache.org/docs/python/parquet.html
+      tool_dev_url: https://github.com/apache/arrow
+      licence: ["Apache-2.0"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'gatk' ]`
+    - json:
+        type: file
+        description: The metrics.json produced by JSON_METRICS
+        pattern: "*.metrics.json"
+output:
+  - parquet:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.metrics.parquet":
+            type: file
+            description: Single tabular row (metrics.json flattened one level) for dashboard/warehouse use
+            pattern: "*.metrics.parquet"
+authors:
+  - "Quentin Clayssen"

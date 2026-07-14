@@ -1,0 +1,45 @@
+name: fastp
+description: Adapter and quality trimming of paired-end WGS reads with fastp
+keywords:
+  - fastq
+  - trimming
+  - quality control
+  - adapters
+  - preprocessing
+tools:
+  - fastp:
+      description: An ultra-fast all-in-one FASTQ preprocessor (QC, adapter/quality trimming, filtering).
+      homepage: https://github.com/OpenGene/fastp
+      documentation: https://github.com/OpenGene/fastp
+      tool_dev_url: https://github.com/OpenGene/fastp
+      doi: 10.1093/bioinformatics/bty560
+      licence: ["MIT"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'gatk' ]`
+    - reads:
+        type: file
+        description: Paired-end gzipped FASTQ files (R1, R2)
+        pattern: "*.{fastq,fq}.gz"
+output:
+  - reads:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.trim_{1,2}.fastq.gz":
+            type: file
+            description: Adapter/quality-trimmed paired reads
+            pattern: "*.trim_{1,2}.fastq.gz"
+  - json:
+      - "*.fastp.json":
+          type: file
+          description: Machine-readable fastp report (consumed by MultiQC)
+          pattern: "*.fastp.json"
+  - html:
+      - "*.fastp.html":
+          type: file
+          description: Human-readable fastp HTML report
+          pattern: "*.fastp.html"
+authors:
+  - "Quentin Clayssen"

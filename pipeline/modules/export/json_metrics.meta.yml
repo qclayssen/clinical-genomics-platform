@@ -1,0 +1,45 @@
+name: json_metrics
+description: Build the canonical, provenance-stamped metrics.json from duplication and hap.py metrics
+keywords:
+  - provenance
+  - metrics
+  - json
+  - export
+  - traceability
+tools:
+  - build_metrics:
+      description: >
+        Repo helper (`pipeline/bin/build_metrics.py`, run in a Python container) that joins
+        MarkDuplicates and hap.py metrics with a provenance stamp (git commit, pipeline/reference/
+        truth versions, and SHA-256 checksums of every input) into a single metrics.json.
+      homepage: https://github.com/qclayssen/clinical-genomics-platform
+      documentation: https://github.com/qclayssen/clinical-genomics-platform
+      licence: ["MIT"]
+input:
+  - - meta:
+        type: map
+        description: Groovy Map with sample metadata, e.g. `[ id:'HG002_chr20', caller:'gatk' ]`
+    - dup_metrics:
+        type: file
+        description: Picard MarkDuplicates metrics file
+        pattern: "*.markdup.metrics"
+    - happy_summary:
+        type: file
+        description: hap.py summary CSV
+        pattern: "*.happy.summary.csv"
+  - - provenance:
+        type: map
+        description: >
+          Groovy Map (a value channel input) with run provenance — pipeline_version, git_commit,
+          run_id, started_at, reference_build, truth_version — serialised into the JSON.
+output:
+  - json:
+      - - meta:
+            type: map
+            description: Groovy Map with sample metadata
+        - "*.metrics.json":
+            type: file
+            description: Canonical metrics + provenance record; the only artefact the AI report consumes
+            pattern: "*.metrics.json"
+authors:
+  - "Quentin Clayssen"
