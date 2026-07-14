@@ -3,14 +3,13 @@ process JSON_METRICS {
     label 'process_low'
     container 'quay.io/biocontainers/python:3.11'
 
-    publishDir { "${params.outdir}/${meta.id}/export" }, mode: 'copy'
-
     input:
     tuple val(meta), path(dup_metrics), path(happy_summary)
     val   provenance
 
     output:
     tuple val(meta), path("${meta.id}.metrics.json"), emit: json
+    path  "versions.yml",                             emit: versions
 
     script:
     // provenance is a Groovy map — serialise to a shell-safe JSON string
@@ -23,10 +22,13 @@ process JSON_METRICS {
         --provenance '${prov_json}' \\
         --inputs '${dup_metrics},${happy_summary}' \\
         --output '${meta.id}.metrics.json'
+
+    printf '"%s":\\n    python: %s\\n' "${task.process}" "\$(python3 --version | sed 's/Python //')" > versions.yml
     """
 
     stub:
     """
     echo '{"sample":"${meta.id}","stub":true}' > ${meta.id}.metrics.json
+    printf '"%s":\\n    python: 3.11\\n' "${task.process}" > versions.yml
     """
 }

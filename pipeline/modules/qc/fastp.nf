@@ -3,8 +3,6 @@ process FASTP {
     label 'process_medium'
     container 'quay.io/biocontainers/fastp:0.23.4--hadf994f_2'
 
-    publishDir { "${params.outdir}/${meta.id}/qc/fastp" }, mode: 'copy'
-
     input:
     tuple val(meta), path(reads)
 
@@ -12,6 +10,7 @@ process FASTP {
     tuple val(meta), path("${meta.id}.trim_{1,2}.fastq.gz"), emit: reads
     path  "${meta.id}.fastp.json",                            emit: json
     path  "${meta.id}.fastp.html",                            emit: html
+    path  "versions.yml",                                     emit: versions
 
     script:
     """
@@ -24,6 +23,8 @@ process FASTP {
         --thread ${task.cpus} \\
         --json ${meta.id}.fastp.json \\
         --html ${meta.id}.fastp.html
+
+    printf '"%s":\\n    fastp: %s\\n' "${task.process}" "\$(fastp --version 2>&1 | sed 's/fastp //')" > versions.yml
     """
 
     stub:
@@ -31,5 +32,6 @@ process FASTP {
     touch ${meta.id}.trim_1.fastq.gz ${meta.id}.trim_2.fastq.gz
     echo '{"summary":{}}' > ${meta.id}.fastp.json
     touch ${meta.id}.fastp.html
+    printf '"%s":\\n    fastp: 0.23.4\\n' "${task.process}" > versions.yml
     """
 }

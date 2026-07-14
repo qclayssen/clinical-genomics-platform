@@ -25,6 +25,10 @@ include { DB_INGEST       } from './modules/export/db_ingest.nf'
 
 workflow {
 
+    // ── Software-version accumulator (nf-core pattern): each process emits a
+    //    versions.yml fragment; we mix them and collate into one document. ───
+    ch_versions = Channel.empty()
+
     // ── Provenance stamp captured once, threaded into every export ──────────
     def provenance = [
         pipeline_version : workflow.manifest.version,
@@ -52,18 +56,22 @@ workflow {
     // ── QC ──────────────────────────────────────────────────────────────────
     FASTP(ch_reads)
     FASTQC(FASTP.out.reads)
+    ch_versions = ch_versions.mix(FASTP.out.versions, FASTQC.out.versions)
 
     // ── Align + dedup ─────────────────────────────────────────────────────────
     BWAMEM2_ALIGN(FASTP.out.reads, ch_reference)
     MARKDUPLICATES(BWAMEM2_ALIGN.out.bam)
+    ch_versions = ch_versions.mix(BWAMEM2_ALIGN.out.versions, MARKDUPLICATES.out.versions)
 
     // ── Variant calling (caller selectable; default gatk) ─────────────────────
     if (params.caller == 'deepvariant') {
         DEEPVARIANT(MARKDUPLICATES.out.bam, ch_reference)
         ch_vcf = DEEPVARIANT.out.vcf
+        ch_versions = ch_versions.mix(DEEPVARIANT.out.versions)
     } else {
         HAPLOTYPECALLER(MARKDUPLICATES.out.bam, ch_reference)
         ch_vcf = HAPLOTYPECALLER.out.vcf
+        ch_versions = ch_versions.mix(HAPLOTYPECALLER.out.versions)
     }
 
     // ── Analytical validation vs. GIAB truth ──────────────────────────────────
@@ -73,6 +81,7 @@ workflow {
         file(params.truth_bed, checkIfExists: true),
         ch_reference
     )
+    ch_versions = ch_versions.mix(HAPPY_BENCHMARK.out.versions)
 
     // ── Structured export + provenance ────────────────────────────────────────
     JSON_METRICS(
@@ -81,9 +90,11 @@ workflow {
         provenance
     )
     PARQUET_EXPORT(JSON_METRICS.out.json)
+    ch_versions = ch_versions.mix(JSON_METRICS.out.versions, PARQUET_EXPORT.out.versions)
 
     if (params.db_ingest) {
         DB_INGEST(JSON_METRICS.out.json, ch_vcf)
+        ch_versions = ch_versions.mix(DB_INGEST.out.versions)
     }
 
     // ── Aggregate QC report ───────────────────────────────────────────────────
@@ -95,6 +106,20 @@ workflow {
             .map { it instanceof List ? it[1] : it }
             .collect()
     )
+    ch_versions = ch_versions.mix(MULTIQC.out.versions)
+
+    // ── Collate every per-process versions.yml into one document ──────────────
+    //    Done with the collectFile operator (not a process) so the stub DAG
+    //    stays at nine tasks; the merged file is published to pipeline_info/.
+    //    The pipeline/tool/Nextflow versions themselves are additionally
+    //    stamped into each metrics.json via the provenance block.
+    ch_collated_versions = ch_versions
+        .collectFile(
+            name: 'software_versions.yml',
+            storeDir: "${params.outdir}/pipeline_info",
+            sort: true,
+            newLine: false
+        )
 }
 
 // A completion summary is captured in results/provenance/ (timeline, report, trace, dag);
