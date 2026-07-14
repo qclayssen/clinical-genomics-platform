@@ -1,0 +1,3 @@
+# Prettier config — nf-core standard. Applies to Markdown, YAML, JSON, etc.
+printWidth: 120
+tabWidth: 4

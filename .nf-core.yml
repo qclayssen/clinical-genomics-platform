@@ -1,0 +1,39 @@
+repository_type: pipeline
+
+# nf-core tooling convention version this repo targets. This is a hand-written
+# portfolio pipeline, not one generated from the nf-core template, so the lint
+# waivers below disable checks that are genuinely not applicable here rather than
+# masking real problems. Each waiver is scoped and commented.
+nf_core_version: "3.2.0"
+
+lint:
+  # Template boilerplate files that a `nf-core pipelines create` scaffold ships but
+  # this repo deliberately does not (no nf-core logo assets, no template CI/community
+  # files). Their absence is intentional, not an oversight.
+  files_exist:
+    - assets/nf-core-clinical-genomics-platform_logo_light.png
+    - docs/images/nf-core-clinical-genomics-platform_logo_light.png
+    - docs/images/nf-core-clinical-genomics-platform_logo_dark.png
+    - .github/ISSUE_TEMPLATE/config.yml
+    - .github/workflows/branch.yml
+    - .github/workflows/linting.yml
+    - .github/workflows/linting_comment.yml
+    - CODE_OF_CONDUCT.md
+  # Not generated from the template, so there is no template baseline to diff against.
+  files_unchanged: false
+  # This project uses a hand-rolled `nextflow config` check in CI (see
+  # .github/workflows/pipeline-ci.yml), not the nf-core-standard GitHub Actions
+  # workflows, and does not run AWS full/CI test suites.
+  actions_ci: false
+  actions_awstest: false
+  actions_awsfulltest: false
+  # No nextflow_schema.json is shipped yet (params are documented in docs/usage.md
+  # and validated at runtime by assets/schema_input.json for the samplesheet).
+  schema_lint: false
+  schema_params: false
+  schema_description: false
+  actions_schema_validation: false
+  # README intentionally omits the nf-core Nextflow/CI badges — this is not an
+  # nf-core community pipeline and should not imply that it is.
+  readme:
+    - nextflow_badge

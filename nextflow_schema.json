@@ -1,0 +1,152 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/clinical-genomics-platform/pipeline/master/nextflow_schema.json",
+    "title": "clinical-genomics-platform pipeline parameters",
+    "description": "Germline SNV pipeline benchmarked against GIAB truth sets (GIAB HG002/NA24385, GRCh38 chr20).",
+    "type": "object",
+    "$defs": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data.",
+            "required": ["input", "outdir"],
+            "properties": {
+                "input": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "mimetype": "text/csv",
+                    "pattern": "^\\S+\\.csv$",
+                    "description": "Path to comma-separated sample sheet with columns 'sample,fastq_1,fastq_2'.",
+                    "help_text": "Each row is one sample; paired-end FASTQ paths must exist and be readable.",
+                    "fa_icon": "fas fa-file-csv"
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The output directory where results, provenance reports and pipeline_info are saved.",
+                    "fa_icon": "fas fa-folder-open"
+                }
+            }
+        },
+        "reference_genome_options": {
+            "title": "Reference genome options",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Reference genome used for alignment and calling.",
+            "properties": {
+                "reference": {
+                    "type": "string",
+                    "format": "file-path",
+                    "pattern": "^\\S+\\.(fa|fasta)$",
+                    "description": "Path to the reference FASTA (GRCh38 chr20 subset for the default scope).",
+                    "fa_icon": "fas fa-file"
+                },
+                "reference_build": {
+                    "type": "string",
+                    "default": "GRCh38.p14",
+                    "description": "Human-readable reference build label recorded in the provenance stamp.",
+                    "fa_icon": "fas fa-tag"
+                }
+            }
+        },
+        "truth_set_options": {
+            "title": "Truth set options",
+            "type": "object",
+            "fa_icon": "fas fa-check-double",
+            "description": "GIAB high-confidence truth set used for analytical validation with hap.py.",
+            "properties": {
+                "truth_vcf": {
+                    "type": "string",
+                    "format": "file-path",
+                    "pattern": "^\\S+\\.vcf\\.gz$",
+                    "description": "GIAB high-confidence truth VCF (bgzipped).",
+                    "fa_icon": "fas fa-file"
+                },
+                "truth_bed": {
+                    "type": "string",
+                    "format": "file-path",
+                    "pattern": "^\\S+\\.bed$",
+                    "description": "GIAB high-confidence regions BED restricting the benchmark.",
+                    "fa_icon": "fas fa-file"
+                },
+                "truth_version": {
+                    "type": "string",
+                    "default": "GIAB-v4.2.1",
+                    "description": "Truth-set version label recorded in the provenance stamp.",
+                    "fa_icon": "fas fa-tag"
+                }
+            }
+        },
+        "pipeline_behaviour_options": {
+            "title": "Pipeline behaviour options",
+            "type": "object",
+            "fa_icon": "fas fa-cogs",
+            "description": "Control which caller runs and whether results are written to Postgres.",
+            "properties": {
+                "caller": {
+                    "type": "string",
+                    "default": "gatk",
+                    "enum": ["gatk", "deepvariant"],
+                    "description": "Variant caller to use.",
+                    "fa_icon": "fas fa-code-branch"
+                },
+                "db_ingest": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Write the provenance-stamped metrics to the insert-only Postgres store.",
+                    "fa_icon": "fas fa-database"
+                },
+                "db_url": {
+                    "type": "string",
+                    "description": "Postgres connection URL used when db_ingest is enabled. Defaults to the CGP_DB_URL environment variable.",
+                    "hidden": true,
+                    "fa_icon": "fas fa-link"
+                },
+                "intervals": {
+                    "type": "string",
+                    "description": "Genomic interval string restricting calling/benchmarking (e.g. chr20:1000000-2000000).",
+                    "fa_icon": "fas fa-ruler-horizontal"
+                }
+            }
+        },
+        "max_resource_options": {
+            "title": "Max resource options",
+            "type": "object",
+            "fa_icon": "fas fa-microchip",
+            "description": "Ceilings applied to per-process resource requests (enforced via process.resourceLimits).",
+            "help_text": "Requests scale on retry and are clamped to these values by resourceLimits.",
+            "properties": {
+                "max_cpus": {
+                    "type": "integer",
+                    "default": 8,
+                    "minimum": 1,
+                    "description": "Maximum number of CPUs any single task may use.",
+                    "fa_icon": "fas fa-microchip"
+                },
+                "max_memory": {
+                    "type": "string",
+                    "default": "16.GB",
+                    "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
+                    "description": "Maximum memory any single task may use (e.g. '16.GB').",
+                    "fa_icon": "fas fa-memory"
+                },
+                "max_time": {
+                    "type": "string",
+                    "default": "8.h",
+                    "pattern": "^(\\d+(\\.\\d+)?\\.?\\s*(s|m|h|d|day)\\s*)+$",
+                    "description": "Maximum wall-clock time any single task may run (e.g. '8.h').",
+                    "fa_icon": "far fa-clock"
+                }
+            }
+        }
+    },
+    "allOf": [
+        { "$ref": "#/$defs/input_output_options" },
+        { "$ref": "#/$defs/reference_genome_options" },
+        { "$ref": "#/$defs/truth_set_options" },
+        { "$ref": "#/$defs/pipeline_behaviour_options" },
+        { "$ref": "#/$defs/max_resource_options" }
+    ]
+}

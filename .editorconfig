@@ -1,0 +1,26 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_size = 4
+indent_style = space
+
+[*.{md,yml,yaml,html,css,scss,js,json}]
+indent_size = 2
+
+# Nextflow (main.nf, modules, config) is 4-space; keep the default above.
+
+# assets/email templates are formatted by their tooling
+[/pipeline/assets/email*]
+indent_size = unset
+
+# Python is formatted by its own tooling (ruff/black); don't enforce indent here
+[*.{py,ipynb}]
+indent_style = unset
+
+# Markdown reflows; don't enforce indent
+[*.md]
+indent_style = unset
