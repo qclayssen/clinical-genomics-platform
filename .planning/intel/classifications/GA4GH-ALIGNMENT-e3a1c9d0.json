@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/GA4GH-ALIGNMENT.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GA4GH standards alignment",
+  "summary": "Maps the platform to relevant GA4GH interoperability standards and documents their implementation status.",
+  "scope": ["GA4GH", "refget", "VRS", "WES", "DRS", "Phenopackets", "htsget", "service-info", "Crypt4GH", "provenance"],
+  "cross_refs": ["pipeline/bin/ga4gh_ids.py", "tests/test_ga4gh_ids.py", "adr/0010-ga4gh-standards-alignment.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/GITHUB-SETUP.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Pushing this repo to GitHub",
+  "summary": "Guide for authenticating with GitHub and pushing the repo using a helper script and gh CLI.",
+  "scope": ["GitHub", "gh CLI", "scripts/push_to_github.sh", "repo visibility", "SSH/HTTPS auth"],
+  "cross_refs": ["scripts/push_to_github.sh"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

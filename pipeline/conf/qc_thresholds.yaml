@@ -1,0 +1,86 @@
+# QC Thresholds Configuration — Clinical Genomics Platform
+#
+# Bootstrap default thresholds for QC metric evaluation. These are used when
+# fewer than `adaptive.min_runs` historical data points are available. Once
+# enough history accumulates, adaptive thresholds (mean ± 2σ) take over.
+#
+# Threshold semantics:
+#   - "higher_is_worse" metrics (percent_duplication, reads_filtered_percent):
+#       warn if value > warn_threshold, fail if value > fail_threshold
+#   - "lower_is_worse" metrics (q30_rate, snp_f1, snp_precision, snp_recall):
+#       warn if value < warn_threshold, fail if value < fail_threshold
+
+metrics:
+  percent_duplication:
+    direction: higher_is_worse
+    warn: 0.20
+    fail: 0.40
+    unit: fraction
+
+  q30_rate:
+    direction: lower_is_worse
+    warn: 0.80
+    fail: 0.70
+    unit: fraction
+
+  reads_filtered_percent:
+    direction: higher_is_worse
+    warn: 0.30
+    fail: 0.50
+    unit: fraction
+
+  snp_f1:
+    direction: lower_is_worse
+    warn: 0.995
+    fail: 0.99
+    unit: score
+
+  snp_precision:
+    direction: lower_is_worse
+    warn: 0.995
+    fail: 0.99
+    unit: score
+
+  snp_recall:
+    direction: lower_is_worse
+    warn: 0.995
+    fail: 0.99
+    unit: score
+
+# Adaptive threshold configuration
+adaptive:
+  min_runs: 20
+  sigma_multiplier: 2.0
+
+# Retry profiles: progressively stricter fastp parameters per attempt
+retry_profiles:
+  attempt_1:
+    qualified_quality_phred: 15
+    length_required: 50
+    detect_adapter_for_pe: true
+    trim_poly_g: false
+    description: "Default parameters"
+
+  attempt_2:
+    qualified_quality_phred: 20
+    length_required: 60
+    detect_adapter_for_pe: true
+    trim_poly_g: true
+    description: "Stricter quality and length filters"
+
+  attempt_3:
+    qualified_quality_phred: 25
+    length_required: 75
+    detect_adapter_for_pe: true
+    trim_poly_g: true
+    cut_front: true
+    cut_tail: true
+    cut_window_size: 4
+    cut_mean_quality: 20
+    description: "Aggressive trimming with sliding window"
+
+# Quarantine rules
+quarantine:
+  consecutive_failures_for_hard: 2
+  auto_execute_timeout_minutes: 10
+  notification_channel: sns

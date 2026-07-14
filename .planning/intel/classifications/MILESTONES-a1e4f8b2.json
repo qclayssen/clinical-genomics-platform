@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/MILESTONES.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Build milestones — demoable at every stage",
+  "summary": "Milestone table (M0-M8) and current implementation status for the clinical genomics platform build.",
+  "scope": ["pipeline", "CDK infra", "Postgres schema", "Metabase dashboard", "AI reporting", "ML fine-tuning", "ADRs", "CI"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

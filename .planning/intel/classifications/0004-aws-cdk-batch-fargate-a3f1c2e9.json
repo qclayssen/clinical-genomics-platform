@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0004-aws-cdk-batch-fargate.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0004 — Deploy on AWS via CDK + Batch/Fargate",
+  "summary": "Decision to describe AWS infrastructure as code via CDK split into data lake, compute (Batch/Fargate), IAM, and observability stacks.",
+  "scope": ["AWS CDK", "Batch", "Fargate", "S3 data lake", "IAM", "CloudWatch observability", "Nextflow aws profile"],
+  "cross_refs": ["0011-serverless-lambda-stepfunctions.md", ".github/workflows/infra-ci.yml"],
+  "locked": false,
+  "precedence": null,
+  "notes": "Status is Superseded by ADR-0011 (compute portion only; CDK/IaC and S3 data-lake decisions still stand), so not currently locked."
+}

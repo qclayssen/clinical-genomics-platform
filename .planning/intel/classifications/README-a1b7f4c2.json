@@ -1,0 +1,26 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/README.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Architecture Decision Records (ADRs)",
+  "summary": "Index and explanation of the ADR process, listing all 12 ADRs with status and conventions for the project.",
+  "scope": ["ADR process", "decision index", "GIAB scope", "Nextflow pipeline", "AWS CDK deployment", "Postgres schema", "Metabase dashboard", "QLoRA fine-tuning", "guardrails", "Docker pinning", "GA4GH standards", "serverless migration", "DynamoDB"],
+  "cross_refs": [
+    "0001-scope-giab-hg002-chr20.md",
+    "0002-nextflow-dsl2-pipeline.md",
+    "0003-truth-set-validation.md",
+    "0004-aws-cdk-batch-fargate.md",
+    "0005-insert-only-postgres.md",
+    "0006-metabase-dashboard.md",
+    "0007-qlora-small-open-model.md",
+    "0008-guardrails-human-in-the-loop.md",
+    "0009-docker-pinned-by-digest.md",
+    "0010-ga4gh-standards-alignment.md",
+    "0011-serverless-lambda-stepfunctions.md",
+    "0012-dynamodb-primary-store.md"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

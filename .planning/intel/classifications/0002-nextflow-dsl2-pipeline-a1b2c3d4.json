@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0002-nextflow-dsl2-pipeline.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0002 — Use Nextflow DSL2 (nf-core style) for the pipeline",
+  "summary": "Decision to implement the genomics pipeline in Nextflow DSL2 following nf-core conventions for portability and provenance.",
+  "scope": ["Nextflow", "DSL2", "nf-core", "pipeline", "AWS Batch", "Snakemake", "WDL", "Cromwell"],
+  "cross_refs": ["0004-aws-cdk-batch-fargate.md"],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}

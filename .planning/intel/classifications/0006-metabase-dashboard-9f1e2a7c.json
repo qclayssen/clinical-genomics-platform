@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0006-metabase-dashboard.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0006 — Use Metabase for the operational dashboard",
+  "summary": "Decision to use Metabase, driven by version-controlled SQL, for the lab operations dashboard connected to results Postgres.",
+  "scope": ["Metabase", "operational dashboard", "results Postgres", "v_run_summary view", "docker-compose"],
+  "cross_refs": ["dashboards/metabase/README.md"],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0007-qlora-small-open-model.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0007 — Fine-tune a small open model with QLoRA (PyTorch)",
+  "summary": "Decision to fine-tune a small open-weight model using QLoRA with CPU smoke test and offline fallback paths.",
+  "scope": ["QLoRA", "PyTorch", "PEFT", "LoRA adapters", "fine-tuning", "ai-report", "train_smoke.py", "fallback prompt", "offline renderer"],
+  "cross_refs": ["0008-guardrails-human-in-the-loop.md"],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}

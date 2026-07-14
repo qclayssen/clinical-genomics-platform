@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/VALIDATION.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Analytical Validation Report",
+  "summary": "Describes the methodology, acceptance criterion (SNV F1 >= 0.99), and provenance for validating germline SNV calls against the GIAB HG002 chr20 truth set.",
+  "scope": ["hap.py", "GIAB HG002/NA24385", "GRCh38 chr20", "SNV calling validation", "run_provenance", "validation_pass", "acceptance criterion", "change control"],
+  "cross_refs": ["build_metrics.py", "CHANGELOG.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

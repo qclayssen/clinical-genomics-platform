@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0008-guardrails-human-in-the-loop.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0008 — Enforce AI guardrails and human-in-the-loop in code",
+  "summary": "Decision to enforce AI report guardrails (banner, provenance, advice-phrase scrubbing) deterministically in code rather than via prompt.",
+  "scope": ["ai-report", "enforce_guardrails", "LLM report generation", "human-in-the-loop review", "guardrails"],
+  "cross_refs": ["tests/test_build_metrics.py"],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}

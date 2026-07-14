@@ -1,0 +1,28 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0011-serverless-lambda-stepfunctions.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0011 — Migrate compute from AWS Batch/Fargate to serverless (Lambda + Step Functions)",
+  "summary": "Decision to replace Batch/Fargate compute with a serverless Lambda + Step Functions orchestration stack for a $0-idle demo.",
+  "scope": [
+    "compute-stack",
+    "orchestration-stack",
+    "AWS Step Functions",
+    "AWS Lambda",
+    "EventBridge",
+    "SQS DLQ",
+    "SNS",
+    "DynamoDB",
+    "AWS HealthOmics",
+    "billing alarm",
+    "IamStack"
+  ],
+  "cross_refs": [
+    "0004-aws-cdk-batch-fargate.md",
+    "docs/PRODUCTION-MIGRATION.md"
+  ],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}

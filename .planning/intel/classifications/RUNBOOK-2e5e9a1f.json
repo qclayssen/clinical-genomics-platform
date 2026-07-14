@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/RUNBOOK.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Runbook — running the pipeline for real (to get real validation numbers)",
+  "summary": "Step-by-step guide to run the genomics pipeline locally on staged GIAB HG002 chr20 data and record measured validation metrics.",
+  "scope": ["pipeline", "Nextflow", "Docker", "GIAB HG002 chr20", "hap.py validation", "preflight script", "VALIDATION.md", "provenance"],
+  "cross_refs": ["VALIDATION.md", "README.md", "docs/adr/0003-truth-set-validation.md", "scripts/preflight.sh", "scripts/fetch_testdata.sh", "pipeline/main.nf", "pipeline/bin/ga4gh_ids.py"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

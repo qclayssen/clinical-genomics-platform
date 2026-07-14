@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/END-TO-END.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "End-to-end run evidence",
+  "summary": "Records a real 2026-07-14 execution of the pipeline, DB, dashboard, and AI report stages, noting stub-mode limits and fixes made.",
+  "scope": ["Nextflow pipeline", "build_metrics.py", "Postgres schema", "Metabase dashboard", "AI reporting infer.py", "GA4GH refget ID", "pytest suite", "RUNBOOK"],
+  "cross_refs": ["docs/VALIDATION.md", "RUNBOOK.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

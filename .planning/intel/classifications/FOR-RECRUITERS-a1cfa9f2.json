@@ -1,0 +1,26 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/FOR-RECRUITERS.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "For Recruiters & Hiring Managers",
+  "summary": "One-page overview mapping the project's skills demonstrated and evidence locations for recruiters and hiring managers.",
+  "scope": ["portfolio project overview", "skills matrix", "ML component honesty", "verified vs needs-environment status", "reading order"],
+  "cross_refs": [
+    "../README.md#architecture",
+    "adr/0001-scope-giab-hg002-chr20.md",
+    "docs/VALIDATION.md",
+    "adr/0008-guardrails-human-in-the-loop.md",
+    "adr/0007-qlora-small-open-model.md",
+    "../ai-report/MODEL_CARD.md",
+    "MILESTONES.md",
+    "../README.md",
+    "BEGINNERS-GUIDE.md",
+    "GLOSSARY.md",
+    "adr/",
+    "VALIDATION.md"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0010-ga4gh-standards-alignment.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0010 — Align with GA4GH interoperability standards",
+  "summary": "Decision to incrementally adopt GA4GH interoperability standards, implementing the sha512t24u digest primitive now and documenting the rest as aspirational.",
+  "scope": ["GA4GH", "refget", "VRS", "WES", "DRS", "provenance", "reference identifiers", "sha512t24u"],
+  "cross_refs": ["docs/GA4GH-ALIGNMENT.md"],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}

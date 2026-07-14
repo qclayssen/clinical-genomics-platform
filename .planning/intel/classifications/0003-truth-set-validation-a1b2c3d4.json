@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0003-truth-set-validation.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0003 — Validate by benchmarking against a truth set (hap.py)",
+  "summary": "Decision to benchmark pipeline VCFs against the GIAB HG002 truth set with hap.py, requiring SNV F1 >= 0.99.",
+  "scope": ["truth-set validation", "hap.py", "GIAB HG002", "vcfeval", "high-confidence BED", "validation_pass", "SNV F1 acceptance criterion"],
+  "cross_refs": ["docs/VALIDATION.md", "0001-scope-giab-hg002-chr20.md"],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}
