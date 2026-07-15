@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0012-dynamodb-primary-store.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0012 — DynamoDB as the primary metadata store (Postgres demoted to read-replica)",
+  "summary": "Decision to make DynamoDB the primary metadata store for the serverless pivot, demoting Postgres to a read-replica for Metabase.",
+  "scope": ["DynamoDB", "Postgres", "metadata store", "Lambdas", "IAM", "PITR", "DynamoDB Streams", "Metabase", "immutability", "audit"],
+  "cross_refs": ["0005-insert-only-postgres.md", "0011-serverless-lambda-stepfunctions.md"],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}

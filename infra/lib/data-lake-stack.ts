@@ -43,6 +43,9 @@ export class DataLakeStack extends cdk.Stack {
       ],
     });
 
+    // Enable EventBridge notifications so S3 events can trigger the Step Functions workflow
+    this.bucket.enableEventBridgeNotification();
+
     new cdk.CfnOutput(this, 'DataLakeBucketName', {
       value: this.bucket.bucketName,
       description: 'Set CGP_S3_BUCKET to this for the Nextflow aws profile',

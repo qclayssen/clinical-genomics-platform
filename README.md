@@ -8,6 +8,13 @@ Built to demonstrate the stack that clinical-bioinformatics / AWS-genomics roles
 (nf-core-style Nextflow, AWS CDK, provenance-tracked DB, BI dashboard, applied LLM), scoped
 so a single person can finish it.
 
+> **Nextflow style, not the nf-core template.** The pipeline follows nf-core conventions
+> (DSL2, one process per module, `conf/modules.config`, per-process `versions.yml`, module
+> `meta.yml`) but is hand-written, not generated from `nf-core pipelines create` — it doesn't
+> include the template's `subworkflows/nf-core/utils_*` backbone, nf-schema validation, or
+> nf-test suite, and would not pass `nf-core lint` cleanly. For fully template-compliant,
+> lint-passing nf-core pipelines, see: <!-- TODO: link your other nf-core pipeline repo(s) here -->.
+
 > ⚠️ **Scope honesty.** This is a portfolio project. It demonstrates the *validation methodology
 > and traceability patterns* ISO 15189 / NATA accreditation requires (benchmarking against a
 > reference truth set, insert-only provenance, audit trails, change control). It is **not** an
@@ -87,7 +94,7 @@ acceptance criteria.
 | `docs/` | **Beginner's guide + glossary**, validation report, SOP, milestones |
 | `docs/adr/` | **Architecture Decision Records** — why each choice was made |
 | `tests/` | Unit tests + small committed fixtures (`tests/fixtures/`) |
-| `.github/workflows/` | CI: nf-core lint, pipeline test profile, CDK synth, ML smoke test |
+| `.github/workflows/` | CI: nf-core-style config check, pipeline test profile, CDK synth, ML smoke test |
 
 ## Documentation map
 

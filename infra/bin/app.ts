@@ -2,8 +2,9 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { DataLakeStack } from '../lib/data-lake-stack';
-import { ComputeStack } from '../lib/compute-stack';
+import { MetadataStack } from '../lib/metadata-stack';
 import { IamStack } from '../lib/iam-stack';
+import { OrchestrationStack } from '../lib/orchestration-stack';
 import { ObservabilityStack } from '../lib/observability-stack';
 
 const app = new cdk.App();
@@ -22,25 +23,37 @@ const tags = {
   ManagedBy: 'cdk',
 };
 
+// 1. Data Lake — S3 bucket with versioning, encryption, lifecycle
 const dataLake = new DataLakeStack(app, 'CgpDataLake', { env, tags });
 
+// 2. Metadata — DynamoDB single-table design
+const metadata = new MetadataStack(app, 'CgpMetadata', { env, tags });
+
+// 3. IAM — per-Lambda least-privilege roles
 const iam = new IamStack(app, 'CgpIam', {
   env,
   tags,
   dataLakeBucket: dataLake.bucket,
+  metadataTable: metadata.metadataTable,
 });
 
-const compute = new ComputeStack(app, 'CgpCompute', {
+// 4. Orchestration — Step Functions + Lambda + EventBridge
+const orchestration = new OrchestrationStack(app, 'CgpOrchestration', {
   env,
   tags,
-  jobRole: iam.batchJobRole,
-  executionRole: iam.batchExecutionRole,
+  dataLakeBucket: dataLake.bucket,
+  metadataTable: metadata.metadataTable,
+  lambdaRoles: iam.lambdaRoles,
 });
 
+// 5. Observability — CloudWatch alarms, log groups, dashboard
 new ObservabilityStack(app, 'CgpObservability', {
   env,
   tags,
-  jobQueueName: compute.jobQueue.jobQueueName,
+  stateMachine: orchestration.stateMachine,
+  lambdaFunctions: orchestration.lambdaFunctions,
+  dlqQueue: orchestration.dlqQueue,
+  snsTopic: orchestration.snsTopic,
 });
 
 app.synth();

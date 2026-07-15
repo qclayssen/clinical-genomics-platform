@@ -61,6 +61,24 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 CREATE INDEX IF NOT EXISTS idx_audit_run ON audit_log(run_pk);
 
+-- ── qc_warnings: per-run QC threshold breach records ──────────────────────────
+CREATE TABLE IF NOT EXISTS qc_warnings (
+    id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    run_pk           BIGINT NOT NULL REFERENCES runs(id),
+    sample_id        TEXT NOT NULL,
+    overall_status   TEXT NOT NULL CHECK (overall_status IN ('warn', 'fail')),
+    metric_name      TEXT NOT NULL,
+    metric_value     DOUBLE PRECISION NOT NULL,
+    threshold_warn   DOUBLE PRECISION NOT NULL,
+    threshold_fail   DOUBLE PRECISION NOT NULL,
+    threshold_source TEXT NOT NULL CHECK (threshold_source IN ('adaptive', 'bootstrap')),
+    metrics_detail   JSONB,
+    recorded_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_qc_warnings_run ON qc_warnings(run_pk);
+CREATE INDEX IF NOT EXISTS idx_qc_warnings_sample ON qc_warnings(sample_id);
+CREATE INDEX IF NOT EXISTS idx_qc_warnings_metric ON qc_warnings(metric_name, recorded_at);
+
 -- ── Guardrail: block UPDATE/DELETE on the immutable tables at the DB level ─────
 CREATE OR REPLACE FUNCTION forbid_mutation() RETURNS trigger AS $$
 BEGIN
@@ -71,7 +89,7 @@ $$ LANGUAGE plpgsql;
 DO $$
 DECLARE t TEXT;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['runs','qc_metrics','run_provenance','audit_log'] LOOP
+    FOREACH t IN ARRAY ARRAY['runs','qc_metrics','run_provenance','audit_log','qc_warnings'] LOOP
         EXECUTE format(
             'DROP TRIGGER IF EXISTS trg_immutable_%1$s ON %1$s;
              CREATE TRIGGER trg_immutable_%1$s
@@ -89,3 +107,44 @@ SELECT r.run_id, r.sample_id, r.pipeline_version, r.caller,
        q.percent_duplication, q.n_variants
 FROM runs r
 JOIN qc_metrics q ON q.run_pk = r.id;
+
+-- ── QC Warnings view for Metabase dashboard ───────────────────────────────────
+CREATE OR REPLACE VIEW v_qc_warnings AS
+SELECT w.id,
+       r.run_id,
+       w.sample_id,
+       w.overall_status,
+       w.metric_name,
+       w.metric_value,
+       w.threshold_warn,
+       w.threshold_fail,
+       w.threshold_source,
+       w.recorded_at,
+       r.pipeline_version,
+       r.caller
+FROM qc_warnings w
+JOIN runs r ON r.id = w.run_pk
+ORDER BY w.recorded_at DESC;
+
+-- ── QC Warning frequency time-series (for Metabase line chart) ────────────────
+CREATE OR REPLACE VIEW v_qc_warning_frequency AS
+SELECT date_trunc('day', w.recorded_at) AS day,
+       w.overall_status,
+       w.metric_name,
+       COUNT(*) AS warning_count
+FROM qc_warnings w
+GROUP BY day, w.overall_status, w.metric_name
+ORDER BY day DESC;
+
+-- ── QC Metric vs threshold scatter (for Metabase scatter plot) ────────────────
+CREATE OR REPLACE VIEW v_qc_metric_vs_threshold AS
+SELECT w.metric_name,
+       w.metric_value,
+       w.threshold_warn,
+       w.threshold_fail,
+       w.overall_status,
+       w.threshold_source,
+       w.recorded_at,
+       w.sample_id
+FROM qc_warnings w
+ORDER BY w.recorded_at DESC;

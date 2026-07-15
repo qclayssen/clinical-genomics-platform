@@ -1,0 +1,15 @@
+# Exclude build artifacts and development files from Docker context
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Exclude training checkpoints (large model files not needed for RAG inference)
+checkpoints/
+
+# Exclude training data (only rag/data/ annotations are needed)
+data/
+
+# Exclude development/IDE files
+.venv/
+*.egg-info/

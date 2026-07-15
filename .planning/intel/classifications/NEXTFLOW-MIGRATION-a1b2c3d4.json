@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/NEXTFLOW-MIGRATION.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Nextflow 26 / nf-core migration — issues encountered",
+  "summary": "Record of issues, symptoms, causes, and fixes encountered migrating the pipeline to Nextflow 26 strict-DSL and nf-core conventions.",
+  "scope": ["Nextflow", "nf-core", "pipeline migration", "DSL2 parser", "publishDir", "versions.yml", "nextflow_schema.json", "CI lint"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

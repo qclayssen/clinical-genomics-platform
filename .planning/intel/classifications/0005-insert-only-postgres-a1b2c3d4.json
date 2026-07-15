@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0005-insert-only-postgres.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0005 — Store results in an insert-only PostgreSQL schema",
+  "summary": "Decision to use trigger-guarded insert-only PostgreSQL tables for tamper-evident, queryable results and provenance.",
+  "scope": ["PostgreSQL", "runs table", "qc_metrics table", "run_provenance table", "audit_log table", "database triggers", "Metabase", "provenance"],
+  "cross_refs": ["0012-dynamodb-primary-store.md", "0006-metabase-dashboard.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": "Status is Superseded by ADR-0012 (DynamoDB becomes primary; Postgres retained as Metabase read-replica), so not locked despite being an ADR."
+}

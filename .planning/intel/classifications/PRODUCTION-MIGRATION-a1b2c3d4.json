@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/PRODUCTION-MIGRATION.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Production Migration Path",
+  "summary": "Describes how each free-tier demo component maps to a production-grade AWS service and the migration trade-offs.",
+  "scope": ["AWS HealthOmics", "Aurora Serverless v2", "Amazon Bedrock", "SageMaker Training", "DynamoDB", "Lambda", "Step Functions", "FAISS", "Ollama", "QLoRA", "Nextflow pipeline", "db/schema.sql", "enforce_guardrails"],
+  "cross_refs": ["db/schema.sql"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

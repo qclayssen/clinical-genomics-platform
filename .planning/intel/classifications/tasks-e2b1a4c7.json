@@ -1,0 +1,33 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/.kiro/specs/clinical-genomics-platform/tasks.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Implementation Plan: Clinical Genomics Platform — Serverless Evolution",
+  "summary": "Task-by-task implementation plan migrating the platform from Batch/Fargate to serverless Lambda, Step Functions, DynamoDB, and a local RAG layer.",
+  "scope": [
+    "CDK infrastructure stacks",
+    "Lambda handlers",
+    "Step Functions state machine",
+    "DynamoDB metadata table",
+    "RAG layer (FAISS, sentence-transformers, Ollama)",
+    "DynamoDB-to-Postgres sync",
+    "property-based tests",
+    "CI updates"
+  ],
+  "cross_refs": [
+    "infra/lib/metadata-stack.ts",
+    "infra/lib/iam-stack.ts",
+    "infra/lib/orchestration-stack.ts",
+    "infra/lib/data-lake-stack.ts",
+    "infra/lib/observability-stack.ts",
+    "infra/bin/app.ts",
+    "lambdas/",
+    "ai-report/infer.py",
+    "ai-report/rag/",
+    "db/sync_dynamodb_to_postgres.py"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

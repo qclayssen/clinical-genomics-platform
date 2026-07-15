@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/.kiro/specs/clinical-genomics-platform/design.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Design Document — Clinical Genomics Insight Platform",
+  "summary": "Technical design for migrating the platform to a serverless AWS architecture (Lambda, Step Functions, DynamoDB, EventBridge) with local RAG AI reporting.",
+  "scope": ["CDK stacks", "Step Functions state machine", "DynamoDB single-table design", "S3 data lake", "RAG reporter", "Metabase", "Nextflow pipeline", "IAM roles", "Observability"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

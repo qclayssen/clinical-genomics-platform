@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/SOP-run-pipeline.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "SOP — Running the Germline SNV Pipeline",
+  "summary": "Standard operating procedure for running the germline SNV pipeline locally or on AWS Batch, including validation and review steps.",
+  "scope": ["germline SNV pipeline", "Nextflow", "AWS Batch", "validation", "provenance", "AI report review", "audit log"],
+  "cross_refs": ["scripts/fetch_testdata.sh", "pipeline/assets/samplesheet.csv", "assets/schema_input.json", "docker/", "ai-report/infer.py", "VALIDATION.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

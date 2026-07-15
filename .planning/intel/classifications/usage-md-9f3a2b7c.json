@@ -1,0 +1,24 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/usage.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Usage",
+  "summary": "Reference for pipeline inputs, parameters, profiles, and run commands for the Nextflow variant-calling pipeline.",
+  "scope": ["samplesheet", "pipeline parameters", "Nextflow profiles", "reference genome", "truth set", "variant caller", "AWS Batch", "Postgres ingest"],
+  "cross_refs": [
+    "RUNBOOK.md",
+    "BEGINNERS-GUIDE.md",
+    "GLOSSARY.md",
+    "SOP-run-pipeline.md",
+    "../pipeline/assets/schema_input.json",
+    "../pipeline/assets/samplesheet.test.csv",
+    "../pipeline/assets/samplesheet.csv",
+    "../pipeline/nextflow.config",
+    "../pipeline/conf/test.config",
+    "../pipeline/conf/aws.config"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,28 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/ROADMAP.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Roadmap — rest of the project",
+  "summary": "Prioritized P0-P3 next-steps plan for non-serverless parts of the platform, covering ADR debt, real validation, pipeline finalization, and portfolio polish.",
+  "scope": ["ADR-0011", "ADR-0012", "serverless migration", "GIAB HG002 chr20 validation", "VALIDATION.md", "nf-core lint", "nf-test", "MiXCR immune-repertoire", "spatial genomics ADR", "Kiro spec"],
+  "cross_refs": [
+    "VALIDATION.md",
+    "adr/0004-aws-cdk-batch-fargate.md",
+    "adr/0005-insert-only-postgres.md",
+    "adr/0001-scope-giab-hg002-chr20.md",
+    "adr/README.md",
+    "../.kiro/specs/clinical-genomics-platform/tasks.md",
+    "RUNBOOK.md",
+    "END-TO-END.md",
+    "docs/FOR-RECRUITERS.md",
+    "../README.md",
+    "../.claude/agents/README.md",
+    "docs/PRODUCTION-MIGRATION.md",
+    "docs/adr/0014-spatial-genomics-direction.md",
+    "../CLAUDE.md"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

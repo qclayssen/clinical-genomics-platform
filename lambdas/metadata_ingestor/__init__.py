@@ -1,0 +1,1 @@
+"""Metadata Ingestor Lambda package."""

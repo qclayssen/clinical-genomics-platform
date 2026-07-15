@@ -27,8 +27,10 @@ lint:
   actions_ci: false
   actions_awstest: false
   actions_awsfulltest: false
-  # No nextflow_schema.json is shipped yet (params are documented in docs/usage.md
-  # and validated at runtime by assets/schema_input.json for the samplesheet).
+  # nextflow_schema.json exists (repo root) but is not wired to the nf-schema
+  # Nextflow plugin, so params aren't validated at runtime against it — it's
+  # currently a documentation artifact, not an enforced schema. The samplesheet
+  # itself IS validated at runtime via assets/schema_input.json.
   schema_lint: false
   schema_params: false
   schema_description: false

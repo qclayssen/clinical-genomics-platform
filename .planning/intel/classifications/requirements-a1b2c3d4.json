@@ -1,0 +1,30 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/.kiro/specs/clinical-genomics-platform/requirements.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Requirements Document",
+  "summary": "EARS-style technical requirements and acceptance criteria for the serverless Lambda/Step Functions/DynamoDB rearchitecture of the Clinical Genomics Insight Platform.",
+  "scope": [
+    "Nextflow pipeline",
+    "AWS Step Functions",
+    "AWS Lambda",
+    "EventBridge",
+    "S3 Data Lake",
+    "DynamoDB",
+    "Observability/CloudWatch",
+    "IAM least-privilege",
+    "Metabase dashboard",
+    "RAG-augmented AI reporting",
+    "LoRA fine-tuning",
+    "Provenance and audit trail",
+    "Docker containerization",
+    "CI/CD GitHub Actions",
+    "Cost guardrails",
+    "Production migration path"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

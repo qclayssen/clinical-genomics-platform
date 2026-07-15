@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/GLOSSARY.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Glossary — every term in this project, explained simply",
+  "summary": "Plain-language glossary defining genomics, pipeline, infra, and AI terminology used throughout the repo.",
+  "scope": ["DNA", "sequencing", "WGS", "reference genome", "variant calling", "SNV", "pipeline", "provenance", "guardrails"],
+  "cross_refs": ["BEGINNERS-GUIDE.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

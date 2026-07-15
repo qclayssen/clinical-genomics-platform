@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/BEGINNERS-GUIDE.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Beginner's Guide — what this project actually does",
+  "summary": "Plain-language, step-by-step walkthrough of the germline variant-calling pipeline for readers with no bioinformatics background.",
+  "scope": ["FASTQ files", "quality control", "alignment", "BWA-MEM2", "mark duplicates", "variant calling", "GIAB truth set", "provenance", "database", "dashboard", "AI summary"],
+  "cross_refs": ["GLOSSARY.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

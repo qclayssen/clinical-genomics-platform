@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/output.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Output",
+  "summary": "Describes the pipeline's output directory layout under results/ and which module produces each file.",
+  "scope": ["pipeline output", "results directory", "QC reports", "alignment", "variant calls", "hap.py validation", "metrics.json", "provenance", "MultiQC"],
+  "cross_refs": ["END-TO-END.md", "RUNBOOK.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

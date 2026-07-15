@@ -4,6 +4,7 @@ process MULTIQC {
 
     input:
     path '*'
+    path multiqc_config
 
     output:
     path "multiqc_report.html", emit: report
@@ -12,7 +13,10 @@ process MULTIQC {
 
     script:
     """
-    multiqc --force --title "Clinical Genomics Insight Platform" .
+    multiqc --force \\
+        --title "Clinical Genomics Insight Platform" \\
+        --config '${multiqc_config}' \\
+        .
 
     printf '"%s":\\n    multiqc: %s\\n' "${task.process}" "\$(multiqc --version | sed 's/.*version //')" > versions.yml
     """

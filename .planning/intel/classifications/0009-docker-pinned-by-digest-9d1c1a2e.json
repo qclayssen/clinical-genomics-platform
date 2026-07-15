@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0009-docker-pinned-by-digest.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0009 — Containerise every step and pin images by digest",
+  "summary": "Decision to run every pipeline step in its own container, pinned by immutable digest, for reproducibility and provenance.",
+  "scope": ["Docker", "containers", "pipeline steps", "Biocontainers", "image digests", "provenance", "docker/Dockerfile.tools"],
+  "cross_refs": ["0003-truth-set-validation.md"],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}

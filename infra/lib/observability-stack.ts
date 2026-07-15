@@ -2,51 +2,332 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as cw from 'aws-cdk-lib/aws-cloudwatch';
+import * as cw_actions from 'aws-cdk-lib/aws-cloudwatch-actions';
+import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as sns from 'aws-cdk-lib/aws-sns';
 
-interface ObservabilityStackProps extends cdk.StackProps {
-  jobQueueName: string;
+export interface ObservabilityStackProps extends cdk.StackProps {
+  stateMachine: sfn.IStateMachine;
+  lambdaFunctions: lambda.IFunction[];
+  dlqQueue: sqs.IQueue;
+  snsTopic: sns.ITopic;
 }
 
 /**
- * CloudWatch log retention + a dashboard/alarm on Batch job failures.
- * Retention is set explicitly (not "never expire") because a defined retention
- * period is itself an accreditation control.
+ * CloudWatch alarms, log groups, and dashboard for the serverless pipeline.
+ * Monitors Step Functions executions, Lambda errors, DLQ depth, and billing.
+ * All alarms publish to a shared SNS topic for operator notifications.
  */
 export class ObservabilityStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ObservabilityStackProps) {
     super(scope, id, props);
 
-    new logs.LogGroup(this, 'PipelineLogGroup', {
-      logGroupName: '/cgp/pipeline',
-      retention: logs.RetentionDays.ONE_YEAR, // defined retention, not indefinite
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    const { stateMachine, lambdaFunctions, dlqQueue, snsTopic } = props;
+    const snsAction = new cw_actions.SnsAction(snsTopic);
+
+    // ─── Log Groups ───────────────────────────────────────────────────────────
+    // Create a CloudWatch LogGroup per Lambda function with 30-day retention.
+    lambdaFunctions.forEach((fn, idx) => {
+      new logs.LogGroup(this, `LogGroup-${idx}`, {
+        logGroupName: `/aws/lambda/${fn.functionName}`,
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      });
     });
 
-    const failedJobs = new cw.Metric({
-      namespace: 'AWS/Batch',
-      metricName: 'FailedJobs',
-      dimensionsMap: { JobQueue: props.jobQueueName },
-      statistic: 'Sum',
-      period: cdk.Duration.hours(1),
-    });
-
-    const failureAlarm = new cw.Alarm(this, 'JobFailureAlarm', {
-      metric: failedJobs,
+    // ─── Alarm 1: Step Functions Executions Failed ────────────────────────────
+    const sfnExecutionsFailed = new cw.Alarm(this, 'SfnExecutionsFailed', {
+      alarmDescription: 'Step Functions execution failed — investigate pipeline run',
+      metric: stateMachine.metricFailed({
+        period: cdk.Duration.minutes(1),
+        statistic: 'Sum',
+      }),
       threshold: 1,
       evaluationPeriods: 1,
       comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-      alarmDescription: 'A pipeline job failed on Batch — investigate before releasing results',
       treatMissingData: cw.TreatMissingData.NOT_BREACHING,
     });
+    sfnExecutionsFailed.addAlarmAction(snsAction);
 
-    const dashboard = new cw.Dashboard(this, 'CgpOpsDashboard', {
-      dashboardName: 'cgp-pipeline-ops',
+    // ─── Alarm 2: Lambda Error Rate > 5% (per function) ──────────────────────
+    lambdaFunctions.forEach((fn, idx) => {
+      const errors = fn.metricErrors({
+        period: cdk.Duration.minutes(5),
+        statistic: 'Sum',
+      });
+      const invocations = fn.metricInvocations({
+        period: cdk.Duration.minutes(5),
+        statistic: 'Sum',
+      });
+
+      const errorRate = new cw.MathExpression({
+        expression: '(errors / invocations) * 100',
+        usingMetrics: { errors, invocations },
+        period: cdk.Duration.minutes(5),
+      });
+
+      const alarm = new cw.Alarm(this, `LambdaErrorRate-${idx}`, {
+        alarmDescription: `Lambda error rate > 5% over 5 min (function ${idx})`,
+        metric: errorRate,
+        threshold: 5,
+        evaluationPeriods: 1,
+        comparisonOperator: cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
+        treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+      });
+      alarm.addAlarmAction(snsAction);
     });
+
+    // ─── Alarm 3: Step Functions Execution Time Too Long (>30 min) ────────────
+    const sfnExecutionTimeTooLong = new cw.Alarm(this, 'SfnExecutionTimeTooLong', {
+      alarmDescription: 'Step Functions execution exceeded 30 minutes',
+      metric: stateMachine.metricTime({
+        period: cdk.Duration.minutes(1),
+        statistic: 'Maximum',
+      }),
+      threshold: 1800000, // 30 minutes in milliseconds
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    sfnExecutionTimeTooLong.addAlarmAction(snsAction);
+
+    // ─── Alarm 4: DLQ Messages Visible ────────────────────────────────────────
+    const dlqMessagesVisible = new cw.Alarm(this, 'DlqMessagesVisible', {
+      alarmDescription: 'Dead-letter queue has unprocessed messages — check failed EventBridge deliveries',
+      metric: dlqQueue.metricApproximateNumberOfMessagesVisible({
+        period: cdk.Duration.minutes(1),
+        statistic: 'Sum',
+      }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    dlqMessagesVisible.addAlarmAction(snsAction);
+
+    // ─── Alarm 5: Billing Alarm — EstimatedCharges > $1 ──────────────────────
+    const billingMetric = new cw.Metric({
+      namespace: 'AWS/Billing',
+      metricName: 'EstimatedCharges',
+      dimensionsMap: { Currency: 'USD' },
+      statistic: 'Maximum',
+      period: cdk.Duration.hours(6),
+    });
+
+    const billingAlarm = new cw.Alarm(this, 'BillingAlarm', {
+      alarmDescription: 'AWS estimated charges exceed $1 — check for unexpected usage',
+      metric: billingMetric,
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    billingAlarm.addAlarmAction(snsAction);
+
+    // ─── QC Metric Alarms — Custom namespace CGP/QC ──────────────────────────
+    // These alarms fire when QC metrics breach thresholds, enabling early
+    // warning before full pipeline failure.
+
+    const qcNamespace = 'CGP/QC';
+
+    // QC Alarm: Duplication Rate > 20% (warn threshold)
+    const qcDuplicationMetric = new cw.Metric({
+      namespace: qcNamespace,
+      metricName: 'PercentDuplication',
+      dimensionsMap: { Pipeline: 'cgp-genomics' },
+      statistic: 'Maximum',
+      period: cdk.Duration.minutes(5),
+    });
+
+    const qcDuplicationHigh = new cw.Alarm(this, 'QcDuplicationHigh', {
+      alarmDescription: 'QC: Duplication rate exceeds 20% warning threshold',
+      metric: qcDuplicationMetric,
+      threshold: 0.20,
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    qcDuplicationHigh.addAlarmAction(snsAction);
+
+    // QC Alarm: SNP F1 Score degraded below 0.995 (warn threshold)
+    const qcF1Metric = new cw.Metric({
+      namespace: qcNamespace,
+      metricName: 'SnpF1',
+      dimensionsMap: { Pipeline: 'cgp-genomics' },
+      statistic: 'Minimum',
+      period: cdk.Duration.minutes(5),
+    });
+
+    const qcF1Degraded = new cw.Alarm(this, 'QcF1Degraded', {
+      alarmDescription: 'QC: SNP F1 score below 0.995 warning threshold — quality degrading',
+      metric: qcF1Metric,
+      threshold: 0.995,
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.LESS_THAN_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    qcF1Degraded.addAlarmAction(snsAction);
+
+    // QC Alarm: Validation failed — F1 < 0.99 (fail threshold)
+    const qcValidationFailed = new cw.Alarm(this, 'QcValidationFailed', {
+      alarmDescription: 'QC: SNP F1 score below 0.99 failure threshold — validation failed',
+      metric: qcF1Metric,
+      threshold: 0.99,
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.LESS_THAN_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    qcValidationFailed.addAlarmAction(snsAction);
+
+    // QC Alarm: SNP Precision degraded below 0.995
+    const qcPrecisionMetric = new cw.Metric({
+      namespace: qcNamespace,
+      metricName: 'SnpPrecision',
+      dimensionsMap: { Pipeline: 'cgp-genomics' },
+      statistic: 'Minimum',
+      period: cdk.Duration.minutes(5),
+    });
+
+    const qcPrecisionDegraded = new cw.Alarm(this, 'QcPrecisionDegraded', {
+      alarmDescription: 'QC: SNP Precision below 0.995 warning threshold',
+      metric: qcPrecisionMetric,
+      threshold: 0.995,
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.LESS_THAN_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    qcPrecisionDegraded.addAlarmAction(snsAction);
+
+    // QC Alarm: SNP Recall degraded below 0.995
+    const qcRecallMetric = new cw.Metric({
+      namespace: qcNamespace,
+      metricName: 'SnpRecall',
+      dimensionsMap: { Pipeline: 'cgp-genomics' },
+      statistic: 'Minimum',
+      period: cdk.Duration.minutes(5),
+    });
+
+    const qcRecallDegraded = new cw.Alarm(this, 'QcRecallDegraded', {
+      alarmDescription: 'QC: SNP Recall below 0.995 warning threshold',
+      metric: qcRecallMetric,
+      threshold: 0.995,
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.LESS_THAN_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    qcRecallDegraded.addAlarmAction(snsAction);
+
+    // QC Alarm: Reads Filtered > 30% (warn threshold)
+    const qcReadsFilteredMetric = new cw.Metric({
+      namespace: qcNamespace,
+      metricName: 'ReadsFilteredPercent',
+      dimensionsMap: { Pipeline: 'cgp-genomics' },
+      statistic: 'Maximum',
+      period: cdk.Duration.minutes(5),
+    });
+
+    const qcReadsFilteredHigh = new cw.Alarm(this, 'QcReadsFilteredHigh', {
+      alarmDescription: 'QC: Reads filtered percentage exceeds 30% warning threshold',
+      metric: qcReadsFilteredMetric,
+      threshold: 0.30,
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    qcReadsFilteredHigh.addAlarmAction(snsAction);
+
+    // ─── Dashboard ────────────────────────────────────────────────────────────
+    const dashboard = new cw.Dashboard(this, 'CgpOpsDashboard', {
+      dashboardName: 'cgp-serverless-ops',
+    });
+
+    // Step Functions widget: started, succeeded, failed
     dashboard.addWidgets(
-      new cw.GraphWidget({ title: 'Batch failed jobs (1h)', left: [failedJobs], width: 12 }),
-      new cw.AlarmWidget({ title: 'Job failure alarm', alarm: failureAlarm, width: 12 }),
+      new cw.GraphWidget({
+        title: 'Step Functions Executions',
+        left: [
+          stateMachine.metricStarted({ period: cdk.Duration.minutes(5) }),
+          stateMachine.metricSucceeded({ period: cdk.Duration.minutes(5) }),
+          stateMachine.metricFailed({ period: cdk.Duration.minutes(5) }),
+        ],
+        width: 12,
+      }),
     );
 
-    new cdk.CfnOutput(this, 'OpsDashboardName', { value: dashboard.dashboardName ?? 'cgp-pipeline-ops' });
+    // Lambda invocations and errors
+    const lambdaInvocations: cw.IMetric[] = [];
+    const lambdaErrors: cw.IMetric[] = [];
+    for (const fn of lambdaFunctions) {
+      lambdaInvocations.push(
+        fn.metricInvocations({ period: cdk.Duration.minutes(5) }),
+      );
+      lambdaErrors.push(
+        fn.metricErrors({ period: cdk.Duration.minutes(5) }),
+      );
+    }
+
+    dashboard.addWidgets(
+      new cw.GraphWidget({
+        title: 'Lambda Invocations',
+        left: lambdaInvocations,
+        width: 12,
+      }),
+      new cw.GraphWidget({
+        title: 'Lambda Errors',
+        left: lambdaErrors,
+        width: 12,
+      }),
+    );
+
+    // DLQ depth
+    dashboard.addWidgets(
+      new cw.GraphWidget({
+        title: 'DLQ Depth',
+        left: [
+          dlqQueue.metricApproximateNumberOfMessagesVisible({
+            period: cdk.Duration.minutes(5),
+          }),
+        ],
+        width: 12,
+      }),
+    );
+
+    // QC Metrics Trends
+    dashboard.addWidgets(
+      new cw.GraphWidget({
+        title: 'QC: Duplication Rate',
+        left: [qcDuplicationMetric],
+        leftAnnotations: [
+          { value: 0.20, label: 'Warn', color: '#FF9800' },
+          { value: 0.40, label: 'Fail', color: '#F44336' },
+        ],
+        width: 12,
+      }),
+      new cw.GraphWidget({
+        title: 'QC: Validation Metrics (F1, Precision, Recall)',
+        left: [qcF1Metric, qcPrecisionMetric, qcRecallMetric],
+        leftAnnotations: [
+          { value: 0.995, label: 'Warn', color: '#FF9800' },
+          { value: 0.99, label: 'Fail', color: '#F44336' },
+        ],
+        width: 12,
+      }),
+      new cw.GraphWidget({
+        title: 'QC: Reads Filtered Percent',
+        left: [qcReadsFilteredMetric],
+        leftAnnotations: [
+          { value: 0.30, label: 'Warn', color: '#FF9800' },
+          { value: 0.50, label: 'Fail', color: '#F44336' },
+        ],
+        width: 12,
+      }),
+    );
+
+    // ─── Outputs ──────────────────────────────────────────────────────────────
+    new cdk.CfnOutput(this, 'OpsDashboardName', {
+      value: dashboard.dashboardName ?? 'cgp-serverless-ops',
+    });
   }
 }
