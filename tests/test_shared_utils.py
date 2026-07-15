@@ -165,8 +165,8 @@ class TestValidateRecordType:
             )
 
     def test_valid_record_types_set(self):
-        """VALID_RECORD_TYPES is exactly the expected set of 5 values."""
-        expected = {"RUN", "QC_METRICS", "PROVENANCE", "AUDIT", "CORRECTION"}
+        """VALID_RECORD_TYPES is exactly the expected set of 6 values."""
+        expected = {"RUN", "QC_METRICS", "PROVENANCE", "AUDIT", "CORRECTION", "QC_WARNING"}
         assert VALID_RECORD_TYPES == expected
 
 

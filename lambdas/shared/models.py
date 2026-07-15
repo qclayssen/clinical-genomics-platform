@@ -1,14 +1,14 @@
 """Data classes for DynamoDB record types.
 
 Defines the single-table record schema for the Clinical Genomics Platform
-metadata store. Valid record types: RUN, QC_METRICS, PROVENANCE, AUDIT, CORRECTION.
+metadata store. Valid record types: RUN, QC_METRICS, PROVENANCE, AUDIT, CORRECTION, QC_WARNING.
 """
 
 from dataclasses import dataclass, field
 from typing import Any
 
 
-VALID_RECORD_TYPES = {"RUN", "QC_METRICS", "PROVENANCE", "AUDIT", "CORRECTION"}
+VALID_RECORD_TYPES = {"RUN", "QC_METRICS", "PROVENANCE", "AUDIT", "CORRECTION", "QC_WARNING"}
 
 
 def validate_record_type(record_type: str) -> bool:
@@ -89,3 +89,25 @@ class CorrectionRecord:
     original_record_type: str = ""
     correction_reason: str = ""
     corrected_values: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class QcWarningRecord:
+    """Represents a QC warning/failure detected during threshold evaluation.
+
+    Stored in DynamoDB when the QC evaluation process detects a metric
+    breach (warn or fail level). Enables historical tracking for adaptive
+    thresholds and quarantine logic.
+    """
+
+    run_id: str
+    record_type: str = "QC_WARNING"
+    sample_id: str = ""
+    created_at: str = ""
+    overall_status: str = ""  # "warn" or "fail"
+    metric_name: str = ""  # which metric triggered
+    metric_value: float = 0.0
+    threshold_warn: float = 0.0
+    threshold_fail: float = 0.0
+    threshold_source: str = ""  # "adaptive" or "bootstrap"
+    metrics_detail: dict[str, Any] = field(default_factory=dict)  # full evaluation results

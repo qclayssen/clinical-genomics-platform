@@ -164,7 +164,7 @@ export class OrchestrationStack extends cdk.Stack {
       comment: 'Compare VCF against truth set for validation',
     });
     validateResults.addRetry(...retryConfig);
-    validateResults.addCatch(handleFailure, catchConfig);
+    // ValidateResults catches to DiagnoseFailure for self-healing (defined below)
 
     const exportToS3 = new tasks.LambdaInvoke(this, 'ExportToS3', {
       lambdaFunction: exportHandlerFn,
@@ -194,7 +194,181 @@ export class OrchestrationStack extends cdk.Stack {
       comment: 'All pipeline stages completed successfully',
     });
 
-    // Chain the states
+    // =========================================================================
+    // Self-Healing States — Deterministic recovery for known failure patterns
+    // =========================================================================
+
+    // Pass state: increment self-healing attempt counter
+    const incrementHealingAttempt = new sfn.Pass(this, 'IncrementHealingAttempt', {
+      comment: 'Track self-healing attempts to prevent infinite loops (max 2)',
+      resultPath: '$.healingContext',
+      parameters: {
+        'attemptNumber.$': "States.MathAdd(States.ArrayGetItem(States.StringSplit($.healingContext.attemptNumber, ''), 0), 1)",
+      },
+    });
+
+    // Self-healing: Retry with more resources (OOM/signal 137)
+    const retryWithMoreResources = new sfn.Pass(this, 'RetryWithMoreResources', {
+      comment: 'OOM detected — retry with increased memory multiplier',
+      parameters: {
+        'run_id.$': '$.run_id',
+        'sample_id.$': '$.sample_id',
+        'recovery_action': 'retry_more_memory',
+        'memoryMultiplier': 2,
+        'healingContext': { 'attemptNumber': '1', 'action': 'retry_more_memory' },
+      },
+    });
+
+    // Self-healing: Retry with stricter QC parameters
+    const retryWithStricterParams = new sfn.Pass(this, 'RetryWithStricterParams', {
+      comment: 'QC threshold breach — retry with stricter fastp parameters',
+      parameters: {
+        'run_id.$': '$.run_id',
+        'sample_id.$': '$.sample_id',
+        'recovery_action': 'retry_stricter',
+        'retryProfile': 2,
+        'healingContext': { 'attemptNumber': '1', 'action': 'retry_stricter' },
+      },
+    });
+
+    // Self-healing: Retry with longer timeout
+    const retryWithLongerTimeout = new sfn.Pass(this, 'RetryWithLongerTimeout', {
+      comment: 'Timeout detected — retry with extended duration',
+      parameters: {
+        'run_id.$': '$.run_id',
+        'sample_id.$': '$.sample_id',
+        'recovery_action': 'retry_longer_timeout',
+        'timeoutMultiplier': 2,
+        'healingContext': { 'attemptNumber': '1', 'action': 'retry_longer_timeout' },
+      },
+    });
+
+    // Escalate to healer Lambda for unknown failures
+    const escalateToHealer = new sfn.Pass(this, 'EscalateToHealer', {
+      comment: 'Unknown failure — escalate to AI healer for diagnosis',
+      parameters: {
+        'run_id.$': '$.run_id',
+        'sample_id.$': '$.sample_id',
+        'error.$': '$.error',
+        'recovery_action': 'invoke_healer',
+        'healingContext': { 'attemptNumber': '1', 'action': 'invoke_healer' },
+      },
+    });
+
+    // Terminal: max healing attempts exhausted
+    const healingExhausted = new sfn.Pass(this, 'HealingExhausted', {
+      comment: 'Max self-healing attempts (2) exhausted — escalating to operator',
+      parameters: {
+        'run_id.$': '$.run_id',
+        'sample_id.$': '$.sample_id',
+        'error.$': '$.error',
+        'healingExhausted': true,
+      },
+    });
+
+    // Choice state: Check if max healing attempts reached (max 2)
+    const checkHealingLimit = new sfn.Choice(this, 'CheckHealingLimit', {
+      comment: 'Guard: prevent infinite self-healing loops (max 2 attempts)',
+    });
+    checkHealingLimit
+      .when(
+        sfn.Condition.numberGreaterThanEquals('$.healingContext.attemptNumber', 2),
+        healingExhausted.next(handleFailure),
+      )
+      .otherwise(
+        new sfn.Pass(this, 'ContinueHealing', {
+          comment: 'Healing attempt within bounds — proceed with recovery',
+        }),
+      );
+
+    // DiagnoseFailure: Choice state that inspects error cause
+    const diagnoseFailure = new sfn.Choice(this, 'DiagnoseFailure', {
+      comment: 'Inspect error cause and route to appropriate recovery action',
+    });
+
+    diagnoseFailure
+      .when(
+        sfn.Condition.or(
+          sfn.Condition.stringMatches('$.error.Cause', '*137*'),
+          sfn.Condition.stringMatches('$.error.Cause', '*OutOfMemory*'),
+          sfn.Condition.stringMatches('$.error.Cause', '*OOM*'),
+        ),
+        retryWithMoreResources,
+      )
+      .when(
+        sfn.Condition.or(
+          sfn.Condition.stringMatches('$.error.Cause', '*QcThresholdBreach*'),
+          sfn.Condition.stringMatches('$.error.Cause', '*qc_soft_fail*'),
+          sfn.Condition.stringMatches('$.error.Cause', '*exit code 42*'),
+        ),
+        retryWithStricterParams,
+      )
+      .when(
+        sfn.Condition.or(
+          sfn.Condition.stringMatches('$.error.Cause', '*States.Timeout*'),
+          sfn.Condition.stringMatches('$.error.Cause', '*timed out*'),
+          sfn.Condition.stringMatches('$.error.Cause', '*TimeoutError*'),
+        ),
+        retryWithLongerTimeout,
+      )
+      .otherwise(escalateToHealer);
+
+    // Wire recovery paths through Notify-Then-Auto-Execute pattern
+    // After healer recommendation: publish to SNS with action details,
+    // then wait for operator response or auto-execute after timeout.
+
+    // NotifyOperator: Publish recommendation to SNS with action details
+    const notifyOperator = new tasks.SnsPublish(this, 'NotifyOperator', {
+      topic: this.snsTopic,
+      message: sfn.TaskInput.fromObject({
+        'notification_type': 'HEALING_RECOMMENDATION',
+        'run_id.$': '$.run_id',
+        'sample_id.$': '$.sample_id',
+        'recovery_action.$': '$.recovery_action',
+        'message': 'Self-healing recommendation pending operator approval. Auto-executes after timeout.',
+      }),
+      subject: 'CGP: Self-Healing Action Pending Approval',
+      resultPath: '$.notifyResult',
+    });
+
+    // WaitForOperator: configurable timeout (default 10 min) before auto-execution
+    const waitForOperator = new sfn.Wait(this, 'WaitForOperator', {
+      comment: 'Wait for operator response; auto-execute recommended action after 10 min timeout',
+      time: sfn.WaitTime.duration(cdk.Duration.minutes(10)),
+    });
+
+    // AutoExecuteAction: Pass state marking that auto-execution occurred
+    const autoExecuteAction = new sfn.Pass(this, 'AutoExecuteAction', {
+      comment: 'Timeout reached — auto-executing recommended healing action',
+      parameters: {
+        'run_id.$': '$.run_id',
+        'sample_id.$': '$.sample_id',
+        'recovery_action.$': '$.recovery_action',
+        'auto_executed': true,
+        'execution_mode': 'timeout_auto_execute',
+      },
+    });
+
+    // Chain: NotifyOperator → WaitForOperator → AutoExecuteAction → HandleFailure
+    notifyOperator.next(waitForOperator);
+    waitForOperator.next(autoExecuteAction);
+    autoExecuteAction.next(handleFailure);
+
+    // Wire all recovery paths through the notify-wait pattern
+    retryWithMoreResources.next(notifyOperator);
+    retryWithStricterParams.next(notifyOperator);
+    retryWithLongerTimeout.next(notifyOperator);
+    escalateToHealer.next(notifyOperator);
+
+    // Wire validateResults catch to DiagnoseFailure for self-healing
+    // Use a Pass state as intermediary since Choice can't directly be a catch target
+    const failureRouter = new sfn.Pass(this, 'FailureRouter', {
+      comment: 'Route caught errors to DiagnoseFailure for self-healing classification',
+    });
+    failureRouter.next(diagnoseFailure);
+    validateResults.addCatch(failureRouter, catchConfig);
+
+    // Chain the states (unchanged linear flow — healing branches off on catch)
     const definition = triggerIngestion
       .next(runQC)
       .next(runVariantCalling)

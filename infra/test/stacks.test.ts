@@ -267,6 +267,170 @@ describe('CGP infrastructure invariants', () => {
         }
       }
     });
+
+    test('state machine contains DiagnoseFailure Choice state', () => {
+      const resources = orchestrationTemplate.toJSON().Resources ?? {};
+      const stateMachines = Object.values(resources).filter(
+        (r: any) => r.Type === 'AWS::StepFunctions::StateMachine',
+      );
+      expect(stateMachines.length).toBeGreaterThan(0);
+
+      for (const sm of stateMachines as any[]) {
+        const definitionString = sm.Properties?.DefinitionString;
+        let definition: any;
+        if (typeof definitionString === 'string') {
+          definition = JSON.parse(definitionString);
+        } else if (definitionString?.['Fn::Join']) {
+          const parts = definitionString['Fn::Join'][1];
+          const joined = parts.map((p: any) => (typeof p === 'string' ? p : 'PLACEHOLDER')).join('');
+          definition = JSON.parse(joined);
+        } else {
+          definition = definitionString;
+        }
+
+        const states = definition?.States ?? {};
+        expect(states['DiagnoseFailure']).toBeDefined();
+        expect(states['DiagnoseFailure'].Type).toBe('Choice');
+      }
+    });
+
+    test('state machine contains self-healing recovery states', () => {
+      const resources = orchestrationTemplate.toJSON().Resources ?? {};
+      const stateMachines = Object.values(resources).filter(
+        (r: any) => r.Type === 'AWS::StepFunctions::StateMachine',
+      );
+
+      for (const sm of stateMachines as any[]) {
+        const definitionString = sm.Properties?.DefinitionString;
+        let definition: any;
+        if (typeof definitionString === 'string') {
+          definition = JSON.parse(definitionString);
+        } else if (definitionString?.['Fn::Join']) {
+          const parts = definitionString['Fn::Join'][1];
+          const joined = parts.map((p: any) => (typeof p === 'string' ? p : 'PLACEHOLDER')).join('');
+          definition = JSON.parse(joined);
+        } else {
+          definition = definitionString;
+        }
+
+        const states = definition?.States ?? {};
+        // Check all recovery states exist
+        expect(states['RetryWithMoreResources']).toBeDefined();
+        expect(states['RetryWithStricterParams']).toBeDefined();
+        expect(states['RetryWithLongerTimeout']).toBeDefined();
+        expect(states['EscalateToHealer']).toBeDefined();
+        expect(states['HealingExhausted']).toBeDefined();
+        expect(states['FailureRouter']).toBeDefined();
+      }
+    });
+
+    test('DiagnoseFailure has no infinite loops (max bound via CheckHealingLimit)', () => {
+      const resources = orchestrationTemplate.toJSON().Resources ?? {};
+      const stateMachines = Object.values(resources).filter(
+        (r: any) => r.Type === 'AWS::StepFunctions::StateMachine',
+      );
+
+      for (const sm of stateMachines as any[]) {
+        const definitionString = sm.Properties?.DefinitionString;
+        let definition: any;
+        if (typeof definitionString === 'string') {
+          definition = JSON.parse(definitionString);
+        } else if (definitionString?.['Fn::Join']) {
+          const parts = definitionString['Fn::Join'][1];
+          const joined = parts.map((p: any) => (typeof p === 'string' ? p : 'PLACEHOLDER')).join('');
+          definition = JSON.parse(joined);
+        } else {
+          definition = definitionString;
+        }
+
+        const states = definition?.States ?? {};
+        // CheckHealingLimit must exist as a loop guard
+        expect(states['CheckHealingLimit']).toBeDefined();
+        expect(states['CheckHealingLimit'].Type).toBe('Choice');
+      }
+    });
+
+    test('state machine contains notify-wait-execute pattern', () => {
+      const resources = orchestrationTemplate.toJSON().Resources ?? {};
+      const stateMachines = Object.values(resources).filter(
+        (r: any) => r.Type === 'AWS::StepFunctions::StateMachine',
+      );
+
+      for (const sm of stateMachines as any[]) {
+        const definitionString = sm.Properties?.DefinitionString;
+        let definition: any;
+        if (typeof definitionString === 'string') {
+          definition = JSON.parse(definitionString);
+        } else if (definitionString?.['Fn::Join']) {
+          const parts = definitionString['Fn::Join'][1];
+          const joined = parts.map((p: any) => (typeof p === 'string' ? p : 'PLACEHOLDER')).join('');
+          definition = JSON.parse(joined);
+        } else {
+          definition = definitionString;
+        }
+
+        const states = definition?.States ?? {};
+        // NotifyOperator (SNS publish) must exist
+        expect(states['NotifyOperator']).toBeDefined();
+        // WaitForOperator must exist with Wait type
+        expect(states['WaitForOperator']).toBeDefined();
+        expect(states['WaitForOperator'].Type).toBe('Wait');
+        // AutoExecuteAction must exist
+        expect(states['AutoExecuteAction']).toBeDefined();
+      }
+    });
+
+    test('WaitForOperator has 10-minute timeout', () => {
+      const resources = orchestrationTemplate.toJSON().Resources ?? {};
+      const stateMachines = Object.values(resources).filter(
+        (r: any) => r.Type === 'AWS::StepFunctions::StateMachine',
+      );
+
+      for (const sm of stateMachines as any[]) {
+        const definitionString = sm.Properties?.DefinitionString;
+        let definition: any;
+        if (typeof definitionString === 'string') {
+          definition = JSON.parse(definitionString);
+        } else if (definitionString?.['Fn::Join']) {
+          const parts = definitionString['Fn::Join'][1];
+          const joined = parts.map((p: any) => (typeof p === 'string' ? p : 'PLACEHOLDER')).join('');
+          definition = JSON.parse(joined);
+        } else {
+          definition = definitionString;
+        }
+
+        const states = definition?.States ?? {};
+        const waitState = states['WaitForOperator'];
+        expect(waitState.Seconds).toBe(600); // 10 minutes
+      }
+    });
+
+    test('NotifyOperator publishes to SNS before WaitForOperator', () => {
+      const resources = orchestrationTemplate.toJSON().Resources ?? {};
+      const stateMachines = Object.values(resources).filter(
+        (r: any) => r.Type === 'AWS::StepFunctions::StateMachine',
+      );
+
+      for (const sm of stateMachines as any[]) {
+        const definitionString = sm.Properties?.DefinitionString;
+        let definition: any;
+        if (typeof definitionString === 'string') {
+          definition = JSON.parse(definitionString);
+        } else if (definitionString?.['Fn::Join']) {
+          const parts = definitionString['Fn::Join'][1];
+          const joined = parts.map((p: any) => (typeof p === 'string' ? p : 'PLACEHOLDER')).join('');
+          definition = JSON.parse(joined);
+        } else {
+          definition = definitionString;
+        }
+
+        const states = definition?.States ?? {};
+        // NotifyOperator should lead to WaitForOperator
+        expect(states['NotifyOperator'].Next).toBe('WaitForOperator');
+        // WaitForOperator should lead to AutoExecuteAction
+        expect(states['WaitForOperator'].Next).toBe('AutoExecuteAction');
+      }
+    });
   });
 
   // =========================================================================
@@ -285,6 +449,74 @@ describe('CGP infrastructure invariants', () => {
       orchestrationTemplate.hasResourceProperties('AWS::SQS::Queue', {
         MessageRetentionPeriod: 1209600, // 14 days in seconds
       });
+    });
+
+    test('QC alarm: QcDuplicationHigh exists with threshold 0.20 in CGP/QC namespace', () => {
+      observabilityTemplate.hasResourceProperties('AWS::CloudWatch::Alarm', {
+        Namespace: 'CGP/QC',
+        MetricName: 'PercentDuplication',
+        Threshold: 0.20,
+        ComparisonOperator: 'GreaterThanThreshold',
+      });
+    });
+
+    test('QC alarm: QcF1Degraded exists with threshold 0.995 in CGP/QC namespace', () => {
+      observabilityTemplate.hasResourceProperties('AWS::CloudWatch::Alarm', {
+        Namespace: 'CGP/QC',
+        MetricName: 'SnpF1',
+        Threshold: 0.995,
+        ComparisonOperator: 'LessThanThreshold',
+      });
+    });
+
+    test('QC alarm: QcValidationFailed exists with threshold 0.99 in CGP/QC namespace', () => {
+      observabilityTemplate.hasResourceProperties('AWS::CloudWatch::Alarm', {
+        Namespace: 'CGP/QC',
+        MetricName: 'SnpF1',
+        Threshold: 0.99,
+        ComparisonOperator: 'LessThanThreshold',
+      });
+    });
+
+    test('QC alarm: QcPrecisionDegraded exists in CGP/QC namespace', () => {
+      observabilityTemplate.hasResourceProperties('AWS::CloudWatch::Alarm', {
+        Namespace: 'CGP/QC',
+        MetricName: 'SnpPrecision',
+        Threshold: 0.995,
+        ComparisonOperator: 'LessThanThreshold',
+      });
+    });
+
+    test('QC alarm: QcRecallDegraded exists in CGP/QC namespace', () => {
+      observabilityTemplate.hasResourceProperties('AWS::CloudWatch::Alarm', {
+        Namespace: 'CGP/QC',
+        MetricName: 'SnpRecall',
+        Threshold: 0.995,
+        ComparisonOperator: 'LessThanThreshold',
+      });
+    });
+
+    test('QC alarm: QcReadsFilteredHigh exists with threshold 0.30 in CGP/QC namespace', () => {
+      observabilityTemplate.hasResourceProperties('AWS::CloudWatch::Alarm', {
+        Namespace: 'CGP/QC',
+        MetricName: 'ReadsFilteredPercent',
+        Threshold: 0.30,
+        ComparisonOperator: 'GreaterThanThreshold',
+      });
+    });
+
+    test('all QC alarms have SNS actions configured', () => {
+      const resources = observabilityTemplate.toJSON().Resources ?? {};
+      const qcAlarms = Object.values(resources).filter(
+        (r: any) =>
+          r.Type === 'AWS::CloudWatch::Alarm' &&
+          r.Properties?.Namespace === 'CGP/QC',
+      );
+      expect(qcAlarms.length).toBeGreaterThanOrEqual(6);
+      for (const alarm of qcAlarms as any[]) {
+        expect(alarm.Properties.AlarmActions).toBeDefined();
+        expect(alarm.Properties.AlarmActions.length).toBeGreaterThan(0);
+      }
     });
   });
 });

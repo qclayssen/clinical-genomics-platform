@@ -243,10 +243,10 @@ def test_property_4_s3_key_pattern_matching(key):
 def test_property_5_record_type_validation(record_type):
     """For any string value proposed as a record_type sort key, the validation
     function SHALL accept the value iff it is one of: RUN, QC_METRICS,
-    PROVENANCE, AUDIT, CORRECTION. All other strings SHALL be rejected.
+    PROVENANCE, AUDIT, CORRECTION, QC_WARNING. All other strings SHALL be rejected.
     """
     result = validate_record_type(record_type)
-    expected = record_type in {"RUN", "QC_METRICS", "PROVENANCE", "AUDIT", "CORRECTION"}
+    expected = record_type in {"RUN", "QC_METRICS", "PROVENANCE", "AUDIT", "CORRECTION", "QC_WARNING"}
     assert result == expected, (
         f"record_type={record_type!r}, result={result}, expected={expected}"
     )

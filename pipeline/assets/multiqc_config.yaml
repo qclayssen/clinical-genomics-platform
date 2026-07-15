@@ -1,0 +1,144 @@
+# MultiQC Configuration — Clinical Genomics Insight Platform
+#
+# Configures conditional formatting (pass/warn/fail coloring) for QC metrics
+# displayed in the MultiQC report. Aligns with qc_thresholds.yaml bootstrap values.
+#
+# Reference: https://multiqc.info/docs/getting_started/config/#conditional-formatting
+#
+# Color scheme:
+#   pass (green)  = within normal range
+#   warn (orange) = approaching failure threshold
+#   fail (red)    = exceeds failure threshold
+
+report_header_info:
+  - Platform: "Clinical Genomics Insight Platform"
+  - Threshold Version: "1.0 (bootstrap defaults)"
+  - Truth Set: "GIAB HG002 v4.2.1 chr20"
+
+title: "Clinical Genomics Insight Platform"
+subtitle: "QC Report with Adaptive Threshold Monitoring"
+
+# ─── Conditional Formatting Rules ─────────────────────────────────────────────
+# Rules apply to columns in the General Stats table and module-specific tables.
+# Each rule has a list of conditions evaluated top-to-bottom; first match wins.
+
+table_cond_formatting_rules:
+  # ─── Duplication Rate (from Picard MarkDuplicates) ─────────────────────────
+  # Column: PERCENT_DUPLICATION
+  # Direction: higher_is_worse — warn >20%, fail >40%
+  PERCENT_DUPLICATION:
+    pass:
+      - le: 0.20
+    warn:
+      - gt: 0.20
+      - le: 0.40
+    fail:
+      - gt: 0.40
+
+  # ─── FastQC / fastp: Percent Duplicates ────────────────────────────────────
+  percent_duplicates:
+    pass:
+      - le: 20
+    warn:
+      - gt: 20
+      - le: 40
+    fail:
+      - gt: 40
+
+  # ─── fastp: Q30 Rate (after filtering) ─────────────────────────────────────
+  # Direction: lower_is_worse — warn <80%, fail <70%
+  "% Q30":
+    pass:
+      - ge: 80
+    warn:
+      - lt: 80
+      - ge: 70
+    fail:
+      - lt: 70
+
+  after_filtering_q30_rate:
+    pass:
+      - ge: 80
+    warn:
+      - lt: 80
+      - ge: 70
+    fail:
+      - lt: 70
+
+  # ─── fastp: Reads Passing Filter ───────────────────────────────────────────
+  # Inverse of reads_filtered_percent: lower passing % is worse
+  # warn if filtered >30% (i.e., passing <70%), fail if filtered >50% (passing <50%)
+  filtering_result_passed_filter_reads:
+    pass:
+      - ge: 70
+    warn:
+      - lt: 70
+      - ge: 50
+    fail:
+      - lt: 50
+
+  # ─── hap.py: SNP F1 Score ──────────────────────────────────────────────────
+  # Direction: lower_is_worse — warn <0.995, fail <0.99
+  # Note: hap.py reports as fraction (0-1) in MultiQC
+  METRIC.F1_Score:
+    pass:
+      - ge: 0.995
+    warn:
+      - lt: 0.995
+      - ge: 0.99
+    fail:
+      - lt: 0.99
+
+  # ─── hap.py: SNP Precision ─────────────────────────────────────────────────
+  METRIC.Precision:
+    pass:
+      - ge: 0.995
+    warn:
+      - lt: 0.995
+      - ge: 0.99
+    fail:
+      - lt: 0.99
+
+  # ─── hap.py: SNP Recall ────────────────────────────────────────────────────
+  METRIC.Recall:
+    pass:
+      - ge: 0.995
+    warn:
+      - lt: 0.995
+      - ge: 0.99
+    fail:
+      - lt: 0.99
+
+# ─── Conditional Formatting Colors ───────────────────────────────────────────
+table_cond_formatting_colours:
+  - pass: "#4CAF50"   # Green
+  - warn: "#FF9800"   # Orange
+  - fail: "#F44336"   # Red
+
+# ─── General Stats Table Configuration ───────────────────────────────────────
+# Show key QC metrics prominently in the General Stats table
+table_columns_visible:
+  Picard:
+    PERCENT_DUPLICATION: true
+  fastp:
+    after_filtering_q30_rate: true
+    filtering_result_passed_filter_reads: true
+
+# ─── Module Order ────────────────────────────────────────────────────────────
+# Prioritize QC-relevant modules at the top of the report
+module_order:
+  - fastp
+  - fastqc
+  - picard
+  - happy
+
+# ─── Report Section Order ────────────────────────────────────────────────────
+report_section_order:
+  fastp:
+    order: 100
+  fastqc:
+    order: 200
+  picard:
+    order: 300
+  happy:
+    order: 400

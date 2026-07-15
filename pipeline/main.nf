@@ -13,6 +13,7 @@ nextflow.enable.dsl = 2
 // ── Modules ────────────────────────────────────────────────────────────────
 include { FASTP           } from './modules/qc/fastp.nf'
 include { FASTQC          } from './modules/qc/fastqc.nf'
+include { QC_EVALUATE     } from './modules/qc/qc_evaluate.nf'
 include { MULTIQC         } from './modules/qc/multiqc.nf'
 include { BWAMEM2_ALIGN   } from './modules/align/bwamem2.nf'
 include { MARKDUPLICATES  } from './modules/align/markduplicates.nf'
@@ -83,6 +84,15 @@ workflow {
     )
     ch_versions = ch_versions.mix(HAPPY_BENCHMARK.out.versions)
 
+    // ── QC Evaluation — assess all metrics against thresholds ────────────────
+    QC_EVALUATE(
+        FASTP.out.json
+            .join(MARKDUPLICATES.out.metrics)
+            .join(HAPPY_BENCHMARK.out.summary),
+        file("${projectDir}/conf/qc_thresholds.yaml", checkIfExists: true)
+    )
+    ch_versions = ch_versions.mix(QC_EVALUATE.out.versions)
+
     // ── Structured export + provenance ────────────────────────────────────────
     JSON_METRICS(
         MARKDUPLICATES.out.metrics
@@ -104,7 +114,8 @@ workflow {
             .mix(MARKDUPLICATES.out.metrics)
             .mix(HAPPY_BENCHMARK.out.summary)
             .map { it instanceof List ? it[1] : it }
-            .collect()
+            .collect(),
+        file("${projectDir}/assets/multiqc_config.yaml", checkIfExists: true)
     )
     ch_versions = ch_versions.mix(MULTIQC.out.versions)
 
