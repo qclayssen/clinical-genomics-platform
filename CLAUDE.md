@@ -26,7 +26,7 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | `docs/` | Beginner's guide, glossary, `VALIDATION.md`, `SOP-run-pipeline.md`, `MILESTONES.md`, `FOR-RECRUITERS.md` |
 | `docs/adr/` | 9 Architecture Decision Records (append-only) |
 | `tests/` | Python unit tests + small committed fixtures in `tests/fixtures/` |
-| `.github/workflows/` | CI: nf-core lint, pipeline test profile, CDK synth, ML smoke test |
+| `.github/workflows/` | CI: nf-core-style config check, pipeline test profile, CDK synth, ML smoke test |
 
 ## How to run the runnable parts
 
