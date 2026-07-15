@@ -1,0 +1,21 @@
+#chrom	start	end	gene_symbol	strand	description
+chr20	4686394	4701588	PRNP	+	Prion protein
+chr20	6748311	6904009	BMP2	+	Bone morphogenetic protein 2
+chr20	10588827	10674499	JAG1	-	Jagged canonical Notch ligand 1
+chr20	32356069	32487275	ASXL1	+	ASXL transcriptional regulator 1
+chr20	37344685	37401587	SRC	+	Proto-oncogene tyrosine-protein kinase
+chr20	40762281	40823741	MAFB	-	MAF bZIP transcription factor B
+chr20	41061696	41204451	PLCG1	+	Phospholipase C gamma 1
+chr20	44437055	44497967	CDH22	+	Cadherin 22
+chr20	56344614	56401024	AURKA	-	Aurora kinase A
+chr20	56824736	56885539	GNAS	+	GNAS complex locus
+chr20	58839718	58911192	GNAS	+	GNAS complex locus (extended)
+chr20	63253818	63360148	NTSR1	+	Neurotensin receptor 1
+chr20	39640170	39678996	TOP1	+	DNA topoisomerase I
+chr20	10225437	10283019	SNAP25	-	Synaptosomal-associated protein 25
+chr20	62285655	62345461	CHRNA4	-	Cholinergic receptor nicotinic alpha 4
+chr20	17924155	17984853	RRBP1	+	Ribosome binding protein 1
+chr20	44746610	44798404	EYA2	-	EYA transcriptional coactivator 2
+chr20	23018900	23050900	THBD	-	Thrombomodulin
+chr20	31349547	31445486	BPIFB1	+	BPI fold containing family B member 1
+chr20	49505584	49576018	PTGIS	-	Prostaglandin I2 synthase

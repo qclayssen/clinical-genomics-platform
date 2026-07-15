@@ -26,6 +26,7 @@ finished and runnable, not a half-built sprawl.
 | **MLOps / responsible AI** | Human-in-the-loop, enforced guardrails in code, graceful degradation | [ADR-0008](adr/0008-guardrails-human-in-the-loop.md) |
 | **DevOps** | Docker per step (pinned by digest), GitHub Actions CI (pipeline + infra + ML) | `docker/`, `.github/workflows/` |
 | **Engineering judgement** | 9 Architecture Decision Records weighing trade-offs | `docs/adr/` |
+| **Agentic AI** | ReAct-style tool-using agent: multi-provider LLM, function-calling, ACMG classification, deterministic fallback, property-based testing | `ai-report/agent/`, [ADR-0014](adr/0014-agentic-variant-interpretation.md) |
 | **Quality/accreditation literacy** | ISO 15189 / NATA patterns: validation, provenance, SOP, change control | `docs/VALIDATION.md`, `docs/SOP-run-pipeline.md` |
 
 ## The ML component, specifically
@@ -40,6 +41,23 @@ Since AI/ML is increasingly expected, here's the honest shape of it:
 - **It's responsible by construction.** Every output carries a mandatory review banner and
   field citations, enforced in tested code, not left to the model
   ([ADR-0008](adr/0008-guardrails-human-in-the-loop.md)).
+
+## The agentic AI component
+
+The variant interpretation agent demonstrates **tool-using AI agents under clinical
+safety constraints**:
+
+- **ReAct loop** — the agent reasons step-by-step, calling tools (ClinVar, gnomAD, ACMG
+  classifier) and observing results before producing a final classification.
+- **Multi-provider LLM** — supports Ollama (local), OpenAI, Anthropic with automatic
+  fallback to a deterministic rule engine. See [ADR-0014](adr/0014-agentic-variant-interpretation.md).
+- **Fully CI-smokable** — the deterministic backend proves the entire agent loop without
+  real LLM inference. Property-based tests (Hypothesis, 200 examples/property) verify
+  ACMG correctness invariants.
+- **Safety by construction** — guardrails enforced in code: treatment language scrubbed,
+  VUS flagged with uncertainty, mandatory review banner, evidence citations required.
+- See the [Agent Model Card](../ai-report/agent/MODEL_CARD.md) and
+  [Design Doc](../ai-report/agent/DESIGN.md).
 
 ## What was actually run vs. what needs a full environment
 

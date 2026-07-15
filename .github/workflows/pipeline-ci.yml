@@ -87,3 +87,36 @@ jobs:
         run: pip install --quiet torch transformers datasets peft --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - name: Run LoRA fine-tuning smoke test
         run: python ai-report/train_smoke.py
+
+  agent-interpretation:
+    # Proves the variant interpretation agent loop works end-to-end (deterministic, no LLM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install test dependencies
+        run: pip install --quiet pytest hypothesis
+      - name: Agent smoke tests
+        run: pytest tests/test_agent_smoke.py -v
+      - name: Agent property-based tests
+        run: pytest tests/test_agent_properties.py -v
+      - name: CLI end-to-end (deterministic)
+        run: |
+          python ai-report/agent/interpret.py \
+            --vcf tests/fixtures/tiny_truth.vcf.gz \
+            --metrics tests/fixtures/HG002_chr20.metrics.json \
+            --backend deterministic \
+            --out /tmp/interp.json \
+            --run-id ci_e2e
+          python -c "
+          import json
+          data = json.load(open('/tmp/interp.json'))
+          assert data['banner'] == 'AI-DRAFTED VARIANT INTERPRETATION — REQUIRES CLINICAL GENETICIST REVIEW'
+          assert len(data['variants']) > 0
+          assert 'provenance' in data
+          print(f'Agent CI: {len(data[\"variants\"])} variants classified')
+          print(f'Classifications: {data[\"classification_counts\"]}')
+          "
+

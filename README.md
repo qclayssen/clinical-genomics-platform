@@ -48,6 +48,12 @@ so a single person can finish it.
                                             ai-report (QLoRA-tuned LLM)
                                             structured JSON → draft summary
                                             (mandatory "requires review" flag)
+                                                       │
+                                                       ▼
+                                            ai-report/agent (ReAct agent)
+                                            VCF → ClinVar/gnomAD/ACMG → variant
+                                            interpretation (tool-using LLM agent
+                                            with deterministic fallback)
 ```
 
 ## Validation summary
@@ -90,6 +96,7 @@ acceptance criteria.
 | `db/` | Postgres schema + migrations (samples, runs, QC, provenance, audit) |
 | `dashboards/metabase/` | Version-controlled dashboard + question definitions |
 | `ai-report/` | **PyTorch** QLoRA fine-tune + inference for AI-drafted summaries ([model card](ai-report/MODEL_CARD.md)) |
+| `ai-report/agent/` | **ReAct variant interpretation agent** — tool-using LLM with ACMG classification ([design](ai-report/agent/DESIGN.md), [model card](ai-report/agent/MODEL_CARD.md)) |
 | `docker/` | One pinned Dockerfile per pipeline stage |
 | `docs/` | **Beginner's guide + glossary**, validation report, SOP, milestones |
 | `docs/adr/` | **Architecture Decision Records** — why each choice was made |
@@ -103,6 +110,7 @@ acceptance criteria.
 - **Why these choices?** → [Architecture Decision Records](docs/adr/)
 - **How accurate is it?** → [Validation Report](docs/VALIDATION.md)
 - **The ML component?** → [Model Card](ai-report/MODEL_CARD.md) + [ADR-0007](docs/adr/0007-qlora-small-open-model.md)
+- **The agentic AI?** → [Agent Design](ai-report/agent/DESIGN.md) + [Agent Model Card](ai-report/agent/MODEL_CARD.md) + [ADR-0014](docs/adr/0014-agentic-variant-interpretation.md)
 - **How do I operate it?** → [SOP](docs/SOP-run-pipeline.md)
 - **How do I run it for real numbers?** → [Runbook](docs/RUNBOOK.md)
 - **Standards interoperability?** → [GA4GH alignment](docs/GA4GH-ALIGNMENT.md)
