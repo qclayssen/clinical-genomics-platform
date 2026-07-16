@@ -37,7 +37,7 @@ jobs:
 
       - name: Unit tests + property-based tests
         run: |
-          python -m pip install --quiet pytest hypothesis boto3 botocore pyyaml
+          python -m pip install --quiet pytest hypothesis pytest-timeout boto3 botocore pyyaml
           pytest tests/ -v --timeout=300
 
       - name: Validate Lambda handler imports
