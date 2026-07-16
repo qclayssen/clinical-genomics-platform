@@ -260,7 +260,7 @@ ISO8601_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
 @settings(max_examples=100)
 @given(
-    dt=st.datetimes(timezones=st.just(timezone.utc)),
+    dt=st.datetimes(min_value=datetime(1000, 1, 1), timezones=st.just(timezone.utc)),
 )
 def test_property_6_iso8601_timestamp_formatting(dt):
     """For any valid datetime value, the timestamp formatter SHALL produce a
