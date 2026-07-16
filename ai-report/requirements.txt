@@ -11,7 +11,7 @@ accelerate>=1.14.0
 # RAG layer — vector store and embedding model
 sentence-transformers>=5.6.0
 faiss-cpu>=1.14.3
-numpy>=1.26,<2.5
+numpy>=2.5.1,<2.6
 
 # HTTP client for Ollama API
 requests>=2.34.2
