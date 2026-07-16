@@ -3,7 +3,8 @@
 > Source: https://llmstxt.org/
 
 ## About
-End-to-end germline variant-calling platform. Author: Quentin Clayssen.
+End-to-end germline variant-calling platform built solo by Quentin Clayssen.
+Scoped deliberately to be complete and runnable rather than sprawling and unfinished.
 
 ## Stack
 - Pipeline: Nextflow DSL2 (nf-core conventions, hand-written modules)
@@ -18,12 +19,10 @@ End-to-end germline variant-calling platform. Author: Quentin Clayssen.
 - SNV F1 = 0.9914 (meets >= 0.99 acceptance criterion)
 - Methodology: hap.py, documented in docs/VALIDATION.md
 
-## Candidate profile
-- Builds complete systems autonomously, end-to-end
-- Clinical-grade validation patterns (ISO 15189 / NATA)
+## Design
 - 14 Architecture Decision Records documenting trade-offs
-- Responsible AI: guardrails enforced in code, human-in-the-loop
-- Scoped deliberately to be finished and runnable, not half-built
+- ISO 15189 / NATA validation patterns (provenance, audit, change control)
+- Responsible AI: guardrails enforced in code, human-in-the-loop by design
 
 ## Docs
 - /README.md
