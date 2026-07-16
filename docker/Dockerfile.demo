@@ -14,6 +14,9 @@ COPY demo/ ./demo/
 COPY tests/fixtures/ ./tests/fixtures/
 COPY ai-report/ ./ai-report/
 
+# Ensure 'demo' is importable as a package from /app
+ENV PYTHONPATH="/app"
+
 # Streamlit config: disable CORS/XSRF for container environments
 RUN mkdir -p /root/.streamlit
 RUN printf '[server]\nheadless = true\nport = 8501\nenableCORS = false\nenableXsrfProtection = true\naddress = "0.0.0.0"\n\n[browser]\ngatherUsageStats = false\n' > /root/.streamlit/config.toml
