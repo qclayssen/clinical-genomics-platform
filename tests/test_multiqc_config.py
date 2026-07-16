@@ -8,8 +8,8 @@ Validates:
 """
 from pathlib import Path
 
-import yaml
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 MULTIQC_CONFIG = ROOT / "pipeline" / "assets" / "multiqc_config.yaml"

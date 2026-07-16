@@ -32,9 +32,14 @@ def main() -> int:
 
     import torch
     from datasets import load_dataset
-    from transformers import (AutoModelForCausalLM, AutoTokenizer,
-                              DataCollatorForLanguageModeling, Trainer, TrainingArguments)
     from peft import LoraConfig, get_peft_model
+    from transformers import (
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        DataCollatorForLanguageModeling,
+        Trainer,
+        TrainingArguments,
+    )
 
     torch.manual_seed(0)
 

@@ -10,7 +10,6 @@ For this demo/portfolio platform, it generates representative metrics.
 import json
 import os
 import random
-import sys
 
 from lambdas.shared.s3_utils import write_json
 from lambdas.shared.timestamps import now_iso8601

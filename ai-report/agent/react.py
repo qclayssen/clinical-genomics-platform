@@ -13,14 +13,13 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
-from .llm import LLMBackend, LLMResponse, Message, ToolCall, create_backend
+from .llm import LLMBackend, Message, ToolCall, create_backend
 from .tools import ToolRegistry, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -435,7 +434,7 @@ class ReActAgent:
     def _format_variant_prompt(self, variant: Variant) -> str:
         """Format the variant as a user prompt for the agent."""
         parts = [
-            f"Please interpret the following variant:\n",
+            "Please interpret the following variant:\n",
             f"  Chromosome: {variant.chrom}",
             f"  Position: {variant.pos}",
             f"  Reference allele: {variant.ref}",
@@ -451,8 +450,8 @@ class ReActAgent:
             parts.append(f"  Filter: {variant.filter_status}")
 
         parts.append(
-            f"\nGather evidence from ClinVar, gnomAD, and gene annotations, "
-            f"then apply ACMG/AMP criteria to classify this variant."
+            "\nGather evidence from ClinVar, gnomAD, and gene annotations, "
+            "then apply ACMG/AMP criteria to classify this variant."
         )
 
         # Also include as JSON for the deterministic backend

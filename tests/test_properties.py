@@ -7,15 +7,15 @@ import json
 import re
 from datetime import datetime, timezone
 
-from hypothesis import given, settings, assume
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
+
+from lambdas.ingestion_trigger.handler import _FASTQ_EXTENSION_RE, _validate_fastq_extension
+from lambdas.shared.audit import build_audit_record
 
 # Import system under test
 from lambdas.shared.models import VALID_RECORD_TYPES, validate_record_type
 from lambdas.shared.timestamps import format_iso8601
-from lambdas.shared.audit import build_audit_record
-from lambdas.ingestion_trigger.handler import _FASTQ_EXTENSION_RE, _validate_fastq_extension
-
 
 # ═══ Property 1: Provenance Stamp Round-Trip ═══
 # Validates: Requirements 1.4, 11.1
@@ -478,8 +478,8 @@ def test_property_9_correction_record_integrity(original_record, correction_reas
 # ═══ Property 10: Guardrails Enforcement ═══
 # Validates: Requirements 9.6
 
-import sys
 import os
+import sys
 
 # Add ai-report to sys.path for enforce_guardrails import
 _AI_REPORT_DIR = os.path.join(

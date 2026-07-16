@@ -22,7 +22,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -35,7 +34,7 @@ if str(_AI_REPORT_DIR) not in sys.path:
 
 from agent.deterministic import DeterministicInterpreter
 from agent.llm import create_backend
-from agent.react import ReActAgent, Variant
+from agent.react import ReActAgent
 from agent.report import (
     build_report,
     enforce_report_guardrails,

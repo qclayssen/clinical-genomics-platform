@@ -13,7 +13,6 @@ from typing import Any
 
 import yaml
 
-
 VALID_DIRECTIONS = {"higher_is_worse", "lower_is_worse"}
 VALID_UNITS = {"fraction", "score", "percent"}
 REQUIRED_METRIC_FIELDS = {"direction", "warn", "fail", "unit"}

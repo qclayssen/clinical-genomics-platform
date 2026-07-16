@@ -21,7 +21,6 @@ from lambdas.shared.audit import build_audit_record
 from lambdas.shared.dynamo import write_item
 from lambdas.shared.timestamps import now_iso8601
 
-
 # Case-insensitive pattern for valid FASTQ extensions
 _FASTQ_EXTENSION_RE = re.compile(r"\.(fastq|fq)\.gz$", re.IGNORECASE)
 
