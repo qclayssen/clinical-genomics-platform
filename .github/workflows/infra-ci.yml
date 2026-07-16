@@ -5,6 +5,10 @@ on:
     paths: ['infra/**', '.github/workflows/infra-ci.yml']
   pull_request:
 
+concurrency:
+  group: infra-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least privilege: these jobs only read the repo.
 permissions:
   contents: read

@@ -6,6 +6,10 @@ on:
   pull_request:
     paths: ['db/**', '.github/workflows/db-ci.yml']
 
+concurrency:
+  group: db-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
