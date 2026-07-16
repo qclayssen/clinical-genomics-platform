@@ -1,72 +1,9 @@
-# Dependabot dependency update configuration
-# Strategy: group ALL updates per ecosystem into a single PR.
-# Monthly schedule — this is a demo repo, no urgency.
-
+# Dependabot — disabled (demo repo). Config kept for reference.
 version: 2
 
 updates:
-  # Python — ai-report (ML/inference stack)
-  - package-ecosystem: pip
-    directory: /ai-report
-    schedule:
-      interval: monthly
-    labels: [dependencies, automated]
-    open-pull-requests-limit: 2
-    groups:
-      all-python-ai-report:
-        patterns: ["*"]
-
-  # Python — lambdas
-  - package-ecosystem: pip
-    directory: /lambdas
-    schedule:
-      interval: monthly
-    labels: [dependencies, automated]
-    open-pull-requests-limit: 2
-    groups:
-      all-python-lambdas:
-        patterns: ["*"]
-
-  # Python — demo app
-  - package-ecosystem: pip
-    directory: /demo
-    schedule:
-      interval: monthly
-    labels: [dependencies, automated]
-    open-pull-requests-limit: 2
-    groups:
-      all-python-demo:
-        patterns: ["*"]
-
-  # npm — CDK infrastructure
-  - package-ecosystem: npm
-    directory: /infra
-    schedule:
-      interval: monthly
-    labels: [dependencies, automated]
-    open-pull-requests-limit: 2
-    groups:
-      all-npm-infra:
-        patterns: ["*"]
-
-  # GitHub Actions — workflow action versions
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
-    labels: [dependencies, automated]
-    open-pull-requests-limit: 2
-    groups:
-      all-actions:
-        patterns: ["*"]
-
-  # Docker — base image updates
-  - package-ecosystem: docker
-    directory: /docker
-    schedule:
-      interval: monthly
-    labels: [dependencies, automated]
-    open-pull-requests-limit: 2
-    groups:
-      all-docker:
-        patterns: ["*"]
+    open-pull-requests-limit: 0
