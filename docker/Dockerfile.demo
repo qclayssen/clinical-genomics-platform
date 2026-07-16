@@ -1,7 +1,7 @@
 # Dockerfile for the Streamlit demo app
 # Deployed via AWS App Runner — public HTTPS endpoint.
 
-FROM python:3.12-slim AS base
+FROM python:3.14-slim AS base
 
 WORKDIR /app
 
