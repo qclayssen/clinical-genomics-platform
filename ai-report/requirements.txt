@@ -2,7 +2,7 @@
 # The --offline renderer in infer.py needs none of these — only the model paths do.
 torch>=2.2
 transformers>=4.44
-datasets>=2.20
+datasets>=5.0.0
 peft>=0.12
 trl>=0.9
 bitsandbytes>=0.43
