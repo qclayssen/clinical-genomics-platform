@@ -8,17 +8,16 @@ Validates:
 - Rule-based classification for known patterns
 """
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from lambdas.healer.handler import (
+    VALID_ACTIONS,
+    _parse_llm_response,
     handler,
     rule_based_classify,
-    _parse_llm_response,
-    VALID_ACTIONS,
 )
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Test: Rule-based classification

@@ -7,7 +7,6 @@ metadata store. Valid record types: RUN, QC_METRICS, PROVENANCE, AUDIT, CORRECTI
 from dataclasses import dataclass, field
 from typing import Any
 
-
 VALID_RECORD_TYPES = {"RUN", "QC_METRICS", "PROVENANCE", "AUDIT", "CORRECTION", "QC_WARNING"}
 
 

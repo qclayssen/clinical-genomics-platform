@@ -13,12 +13,9 @@ Guardrails (non-negotiable, enforced in code):
 
 from __future__ import annotations
 
-import json
-import os
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
 
 from .react import InterpretationResult, Variant, enforce_safety_constraints
 

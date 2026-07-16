@@ -23,11 +23,13 @@ def main() -> None:
     # Imports kept inside main so --help works without a GPU stack installed.
     import torch
     from datasets import load_dataset
-    from transformers import (
-        AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig,
-    )
     from peft import LoraConfig, prepare_model_for_kbit_training
-    from trl import SFTTrainer, SFTConfig
+    from transformers import (
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        BitsAndBytesConfig,
+    )
+    from trl import SFTConfig, SFTTrainer
 
     tokenizer = AutoTokenizer.from_pretrained(args.base_model)
     tokenizer.pad_token = tokenizer.pad_token or tokenizer.eos_token

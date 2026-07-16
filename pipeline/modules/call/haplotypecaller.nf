@@ -26,7 +26,7 @@ process HAPLOTYPECALLER {
 
     stub:
     """
-    echo '##fileformat=VCFv4.2' | bgzip > ${meta.id}.gatk.vcf.gz
+    printf '##fileformat=VCFv4.2\\n' | gzip > ${meta.id}.gatk.vcf.gz
     touch ${meta.id}.gatk.vcf.gz.tbi
     printf '"%s":\\n    gatk4: 4.5.0.0\\n' "${task.process}" > versions.yml
     """

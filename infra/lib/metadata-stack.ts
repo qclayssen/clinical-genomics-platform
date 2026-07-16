@@ -24,7 +24,7 @@ export class MetadataStack extends cdk.Stack {
       partitionKey: { name: 'run_id', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'record_type', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 

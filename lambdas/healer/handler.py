@@ -18,7 +18,6 @@ Requirements: Task 10 — AI diagnostics with rule-based fallback.
 import json
 import logging
 import os
-import time
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -140,8 +139,8 @@ def _call_ollama(prompt: str, timeout_seconds: int = 30) -> str | None:
     model = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
 
     try:
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         payload = json.dumps({
             "model": model,

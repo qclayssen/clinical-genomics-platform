@@ -12,14 +12,12 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime
 from typing import Any
 
 import pandas as pd
 import streamlit as st
 
-from demo.data_loader import load_all_data, get_summary_stats
-
+from demo.data_loader import get_summary_stats, load_all_data
 
 # ── Tool functions (the bot's "actions") ──────────────────────────────────────
 
@@ -268,7 +266,7 @@ def _generate_report(df: pd.DataFrame, sample: str) -> str:
     # Use the offline renderer directly (no ML dependencies)
     try:
         sys.path.insert(0, str(ai_report_dir))
-        from infer import render_offline, enforce_guardrails
+        from infer import enforce_guardrails, render_offline
 
         report = render_offline(metrics)
         report = enforce_guardrails(report, metrics)

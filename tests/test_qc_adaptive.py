@@ -12,7 +12,7 @@ import statistics
 from pathlib import Path
 
 import pytest
-from hypothesis import given, settings, assume
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 ROOT = Path(__file__).resolve().parents[1]

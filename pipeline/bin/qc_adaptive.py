@@ -15,7 +15,7 @@ import statistics
 from dataclasses import dataclass
 from typing import Sequence
 
-from qc_thresholds import ThresholdConfig, MetricThreshold, load_default_config
+from qc_thresholds import MetricThreshold, ThresholdConfig, load_default_config
 
 
 @dataclass(frozen=True)

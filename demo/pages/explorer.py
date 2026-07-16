@@ -6,12 +6,10 @@ Charts mirror the Metabase dashboard but run locally with no infrastructure.
 
 from __future__ import annotations
 
-import streamlit as st
 import plotly.express as px
-import plotly.graph_objects as go
-import pandas as pd
+import streamlit as st
 
-from demo.data_loader import load_all_data, get_summary_stats
+from demo.data_loader import get_summary_stats, load_all_data
 
 
 def render() -> None:

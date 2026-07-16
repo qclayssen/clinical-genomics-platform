@@ -7,21 +7,20 @@ Requirements: 5.2, 5.4, 5.9
 """
 
 import re
-from datetime import datetime, timezone, timedelta
-from unittest.mock import patch, MagicMock
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock, patch
 
 import pytest
 from botocore.exceptions import ClientError
 
-from lambdas.shared.timestamps import format_iso8601, now_iso8601
-from lambdas.shared.dynamo import write_item
-from lambdas.shared.models import VALID_RECORD_TYPES, validate_record_type
 from lambdas.shared.audit import (
+    build_audit_record,
     build_completion_record,
     build_failure_record,
-    build_audit_record,
 )
-
+from lambdas.shared.dynamo import write_item
+from lambdas.shared.models import VALID_RECORD_TYPES, validate_record_type
+from lambdas.shared.timestamps import format_iso8601, now_iso8601
 
 # ─── ISO 8601 pattern for validation ───
 ISO8601_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")

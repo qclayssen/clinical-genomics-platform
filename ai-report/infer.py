@@ -207,8 +207,8 @@ def render_offline(m: dict) -> str:
 
 
 def render_with_model(m: dict, adapter: str | None, base_model: str) -> str:
-    from transformers import AutoModelForCausalLM, AutoTokenizer
     import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(base_model)
     model = AutoModelForCausalLM.from_pretrained(base_model, device_map="auto",

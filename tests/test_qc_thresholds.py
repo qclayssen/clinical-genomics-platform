@@ -6,12 +6,12 @@ Validates:
 - Property test: warn/fail ordering correct for all metric directions
 - Metric evaluation returns correct pass/warn/fail status
 """
-import importlib.util
 import copy
+import importlib.util
 from pathlib import Path
 
 import pytest
-from hypothesis import given, settings, assume
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 ROOT = Path(__file__).resolve().parents[1]

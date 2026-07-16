@@ -16,7 +16,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -443,8 +442,8 @@ class OllamaBackend(LLMBackend):
         max_tokens: int = 1024,
     ) -> LLMResponse:
         """Generate using Ollama chat API with tool support."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         # Convert messages to Ollama format
         ollama_messages = []

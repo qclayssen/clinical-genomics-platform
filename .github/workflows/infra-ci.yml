@@ -30,7 +30,7 @@ jobs:
         run: npm test
 
       - name: CDK synth (all stacks)
-        run: npx cdk synth --all
+        run: npx cdk synth '*'
         env:
           CDK_DEFAULT_ACCOUNT: '000000000000'
           CDK_DEFAULT_REGION: ap-southeast-2

@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from hypothesis import given, settings, assume
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 # Add ai-report to path
@@ -36,11 +36,10 @@ from agent.report import (
     VUS_UNCERTAINTY_STATEMENT,
     build_report,
     enforce_report_guardrails,
-    render_report,
     render_json,
+    render_report,
 )
 from agent.tools import ToolRegistry
-
 
 # ═══ Strategies ═══════════════════════════════════════════════════════════════
 

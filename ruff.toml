@@ -1,0 +1,28 @@
+# Ruff linter configuration for clinical-genomics-platform
+# Docs: https://docs.astral.sh/ruff/configuration/
+
+target-version = "py311"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W", "I"]  # pycodestyle errors, pyflakes, warnings, isort
+
+# Ignore rules that conflict with existing style or are too noisy for initial adoption
+ignore = [
+    "E501",   # line too long — handled by formatter / existing style
+]
+
+[lint.isort]
+known-first-party = ["pipeline", "lambdas", "ai_report"]
+
+[lint.per-file-ignores]
+# Test files may use assert, unused imports for fixtures, etc.
+"tests/**" = ["F401", "F841", "E712", "E402", "E741"]
+# __init__.py re-exports are intentional public API
+"**/__init__.py" = ["F401"]
+# Nextflow bin scripts use argparse patterns that trigger some warnings
+"pipeline/bin/**" = ["E712"]
+# AI report scripts import after sys.path manipulation
+"ai-report/**" = ["E402"]
+# RAG module uses conditional faiss imports
+"ai-report/rag/**" = ["E402", "F821"]
