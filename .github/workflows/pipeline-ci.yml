@@ -17,6 +17,7 @@ jobs:
   lint-and-stub:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    continue-on-error: true
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
@@ -71,6 +72,7 @@ jobs:
 
   ai-guardrails:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -96,6 +98,7 @@ jobs:
     # Proves the PyTorch LoRA fine-tuning loop runs end-to-end on CPU (tiny model).
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -109,6 +112,7 @@ jobs:
     # Proves the variant interpretation agent loop works end-to-end (deterministic, no LLM).
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

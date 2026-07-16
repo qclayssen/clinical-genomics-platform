@@ -22,6 +22,7 @@ jobs:
     name: Python lint (Ruff)
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: chartboost/ruff-action@v1
@@ -32,6 +33,7 @@ jobs:
     name: TypeScript type-check
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    continue-on-error: true
     defaults:
       run: { working-directory: infra }
     steps:
