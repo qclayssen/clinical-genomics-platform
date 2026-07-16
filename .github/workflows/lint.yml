@@ -2,8 +2,17 @@ name: lint
 
 on:
   push:
-    branches: ['**']
+    paths:
+      - '**/*.py'
+      - '**/*.ts'
+      - 'ruff.toml'
+      - 'infra/tsconfig.json'
+      - '.github/workflows/lint.yml'
   pull_request:
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

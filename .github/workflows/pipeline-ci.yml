@@ -5,6 +5,10 @@ on:
     paths: ['pipeline/**', 'ai-report/**', 'db/**', 'lambdas/**', 'tests/**', '.github/workflows/pipeline-ci.yml']
   pull_request:
 
+concurrency:
+  group: pipeline-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least privilege: these jobs only read the repo (no writes to contents/packages/etc.)
 permissions:
   contents: read
