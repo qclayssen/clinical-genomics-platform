@@ -1,6 +1,6 @@
 # SOP — Running the Germline SNV Pipeline
 
-**Document ID:** CGP-SOP-001 · **Version:** 0.3.0 · **Status:** portfolio demonstration
+**Document ID:** CGP-SOP-001 · **Version:** 1.0.0 · **Status:** portfolio demonstration
 
 > Written in standard operating procedure shape (scope / procedure / acceptance /
 > deviations) to demonstrate familiarity with ISO 15189 documentation, not as a

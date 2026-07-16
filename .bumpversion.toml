@@ -1,0 +1,38 @@
+[tool.bumpversion]
+current_version = "1.0.0"
+commit = true
+tag = true
+tag_name = "v{new_version}"
+commit_message = "release: {new_version}"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+
+[[tool.bumpversion.files]]
+filename = "pipeline/nextflow.config"
+search = "version         = '{current_version}'"
+replace = "version         = '{new_version}'"
+
+[[tool.bumpversion.files]]
+filename = "infra/package.json"
+search = "\"version\": \"{current_version}\""
+replace = "\"version\": \"{new_version}\""
+
+[[tool.bumpversion.files]]
+filename = "lambdas/export_handler/handler.py"
+search = "_PIPELINE_VERSION = os.environ.get(\"PIPELINE_VERSION\", \"{current_version}\")"
+replace = "_PIPELINE_VERSION = os.environ.get(\"PIPELINE_VERSION\", \"{new_version}\")"
+
+[[tool.bumpversion.files]]
+filename = "lambdas/metadata_ingestor/handler.py"
+search = "_PIPELINE_VERSION = os.environ.get(\"PIPELINE_VERSION\", \"{current_version}\")"
+replace = "_PIPELINE_VERSION = os.environ.get(\"PIPELINE_VERSION\", \"{new_version}\")"
+
+[[tool.bumpversion.files]]
+filename = "docs/SOP-run-pipeline.md"
+search = "**Version:** {current_version}"
+replace = "**Version:** {new_version}"
+
+[[tool.bumpversion.files]]
+filename = "CHANGELOG.md"
+search = "## [Unreleased]"
+replace = "## [Unreleased]\n\n## [{new_version}] — {now:%Y-%m-%d}"

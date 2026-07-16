@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Default provenance field values
-_PIPELINE_VERSION = os.environ.get("PIPELINE_VERSION", "0.3.0")
+_PIPELINE_VERSION = os.environ.get("PIPELINE_VERSION", "1.0.0")
 _REFERENCE_BUILD = "GRCh38"
 _REFERENCE_VERSION = "hg38"
 _TRUTH_SET_VERSION = "GIAB_v4.2.1_HG002_chr20"

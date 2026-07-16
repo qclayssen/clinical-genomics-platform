@@ -1,6 +1,6 @@
 {
   "name": "cgp-infra",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "AWS CDK infrastructure for the Clinical Genomics Insight Platform",
   "bin": { "cgp-infra": "bin/app.js" },
   "scripts": {

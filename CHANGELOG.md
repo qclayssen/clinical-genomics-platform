@@ -5,12 +5,16 @@ before tagging** — re-validation on change is a first-class rule, not an after
 (see `docs/VALIDATION.md` §7).
 
 ## [Unreleased]
+
+## [1.0.0] — 2026-07-16
 ### Added
 - First real (non-stub) GIAB validation run: real GRCh38 chr20 reference, real GIAB
   v4.2.1 truth set, real HG002 reads (chr20:1,000,000-2,000,000 window). Real measured
   result: SNV F1 0.9914, INDEL F1 0.9971 — see `docs/VALIDATION.md`.
 - ADR-0015: switched `hap.py` from vcfeval to xcmp engine (pinned container lacks
   `rtg-tools`).
+- Release packaging: `bump-my-version` config, GitHub Release workflow, Docker image
+  publishing to ghcr.io.
 ### Fixed
 - `haplotypecaller.nf`: removed a `samtools faidx` call the `gatk4` container can't run
   (no `samtools` binary); the `.fai` is already staged via the reference glob.
