@@ -6,6 +6,7 @@ import { MetadataStack } from '../lib/metadata-stack';
 import { IamStack } from '../lib/iam-stack';
 import { OrchestrationStack } from '../lib/orchestration-stack';
 import { ObservabilityStack } from '../lib/observability-stack';
+import { DemoHostingStack } from '../lib/demo-hosting-stack';
 
 const app = new cdk.App();
 
@@ -55,5 +56,12 @@ new ObservabilityStack(app, 'CgpObservability', {
   dlqQueue: orchestration.dlqQueue,
   snsTopic: orchestration.snsTopic,
 });
+
+// 6. Demo Hosting — EC2 t2.micro (free tier) running Docker Compose
+//    Streamlit demo on :8501, Metabase on :3000, Postgres internal
+//    Requires AWS credentials (uses Vpc.fromLookup for the default VPC).
+if (env.account) {
+  new DemoHostingStack(app, 'CgpDemoHosting', { env, tags });
+}
 
 app.synth();

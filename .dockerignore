@@ -1,0 +1,32 @@
+# Ignore heavy/recursive dirs during Docker builds
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.hypothesis
+.pytest_cache
+infra/node_modules
+infra/cdk.out
+results
+work
+.nextflow
+.nextflow.log*
+
+# Large genomics files
+*.fastq.gz
+*.bam
+*.bai
+*.vcf.gz
+*.tbi
+*.fa
+*.fa.*
+ai-report/checkpoints
+ai-report/data/*.jsonl
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+credentials.json

@@ -1,8 +1,17 @@
-# Local demo stack: Postgres (results DB) + Metabase (dashboard).
+# Full demo stack: Postgres + Metabase + Streamlit demo app.
+#
+# Start everything:
 #   docker compose up -d
-#   psql postgresql://cgp:cgp@localhost:5432/cgp -f db/schema.sql
-#   psql postgresql://cgp:cgp@localhost:5432/cgp -f db/seed_demo.sql
-#   open http://localhost:3000   (add the Postgres DB: host 'postgres', db 'cgp')
+#
+# Access:
+#   Streamlit demo:  http://localhost:8501
+#   Metabase:        http://localhost:3000
+#   Postgres:        postgresql://cgp:cgp@localhost:5432/cgp
+#
+# On first boot, schema.sql and seed_demo.sql run automatically via
+# docker-entrypoint-initdb.d (Postgres initialises the cgp database).
+# In Metabase, add the Postgres DB: host 'postgres', port 5432, db 'cgp',
+# user 'cgp', password 'cgp'.
 
 services:
   postgres:
@@ -14,7 +23,7 @@ services:
     ports: ['5432:5432']
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db:/docker-entrypoint-initdb.d:ro   # schema.sql runs on first boot
+      - ./db:/docker-entrypoint-initdb.d:ro   # schema.sql + seed_demo.sql on first boot
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U cgp']
       interval: 5s
@@ -34,6 +43,20 @@ services:
       MB_DB_USER: cgp
       MB_DB_PASS: cgp
       MB_DB_HOST: postgres
+    restart: unless-stopped
+
+  demo:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.demo
+    ports: ['8501:8501']
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8501/_stcore/health || exit 1']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
 volumes:
   pgdata:
