@@ -26,8 +26,8 @@ From raw WGS reads to validated variants, structured provenance, ops dashboards,
 
 <br/>
 
-[![CI — Pipeline](https://img.shields.io/github/actions/workflow/status/quentinclayssen/clinical-genomics-platform/pipeline-ci.yml?label=Pipeline%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/quentinclayssen/clinical-genomics-platform/actions/workflows/pipeline-ci.yml)
-[![CI — Infra](https://img.shields.io/github/actions/workflow/status/quentinclayssen/clinical-genomics-platform/infra-ci.yml?label=Infra%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/quentinclayssen/clinical-genomics-platform/actions/workflows/infra-ci.yml)
+[![CI — Pipeline](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/pipeline-ci.yml?label=Pipeline%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/pipeline-ci.yml)
+[![CI — Infra](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/infra-ci.yml?label=Infra%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/infra-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 [![Nextflow DSL2](https://img.shields.io/badge/Nextflow-DSL2-23b45e?style=flat-square&logo=nextflow&logoColor=white)](https://www.nextflow.io/)
 [![AWS CDK](https://img.shields.io/badge/AWS-CDK-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com/cdk/)
@@ -40,6 +40,16 @@ From raw WGS reads to validated variants, structured provenance, ops dashboards,
 <div align="center">
   <sub>Built to demonstrate the stack that clinical-bioinformatics and AWS-genomics roles screen for — scoped so a single person can finish it.</sub>
 </div>
+
+<br/>
+
+<p align="center">
+  <a href="#architecture">Architecture</a> ·
+  <a href="#validation-summary">Validation</a> ·
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#documentation">Docs</a> ·
+  <a href="docs/FOR-RECRUITERS.md">For Recruiters</a>
+</p>
 
 <br/>
 
@@ -239,13 +249,12 @@ The build is demoable at every stage — see [`docs/MILESTONES.md`](docs/MILESTO
 ## Dashboard Preview
 
 <p align="center">
-  <img src="docs/assets/metabase-dashboard.png" alt="Metabase Dashboard" width="720" />
-  <br/><br/>
   <sub>QC trends, turnaround time, and validation pass/fail — powered by Metabase over Postgres.</sub>
 </p>
 
-> Run `docker compose up` from the repo root, open Metabase at `localhost:3000`, configure cards
-> from the `v_run_summary` view, and save the screenshot to `docs/assets/metabase-dashboard.png`.
+> **Screenshot pending.** Run `docker compose up` from the repo root, open Metabase at
+> `localhost:3000`, configure cards from the `v_run_summary` view, and save the screenshot to
+> `docs/assets/metabase-dashboard.png` — it'll render here automatically once committed.
 
 <br/>
 
