@@ -32,13 +32,13 @@ jobs:
         run: pip install pip-audit
 
       - name: Audit ai-report dependencies (pinned)
-        run: pip-audit -r ai-report/requirements-lock.txt --desc --severity HIGH
+        run: pip-audit -r ai-report/requirements-lock.txt --desc on --severity HIGH
 
       - name: Audit lambdas dependencies
-        run: pip-audit -r lambdas/requirements.txt --desc --severity HIGH
+        run: pip-audit -r lambdas/requirements.txt --desc on --severity HIGH
 
       - name: Audit demo dependencies
-        run: pip-audit -r demo/requirements.txt --desc --severity HIGH
+        run: pip-audit -r demo/requirements.txt --desc on --severity HIGH
 
   trivy-repo:
     name: Trivy filesystem scan
