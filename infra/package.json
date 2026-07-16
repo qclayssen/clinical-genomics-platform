@@ -11,15 +11,15 @@
     "deploy": "cdk deploy --all"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.1",
     "aws-cdk": "^2.147.0",
-    "jest": "^29.7.0",
+    "jest": "^30.4.2",
     "ts-jest": "^29.1.2",
-    "typescript": "^5.4.0"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.147.0",
-    "constructs": "^10.3.0"
+    "constructs": "^10.7.0"
   }
 }
