@@ -15,6 +15,11 @@ process BWAMEM2_ALIGN {
     script:
     def rg = "@RG\\tID:${meta.id}\\tSM:${meta.id}\\tPL:ILLUMINA\\tLB:${meta.id}"
     """
+    # Build index on the fly if not already present
+    if [ ! -f ${fasta}.bwt.2bit.64 ]; then
+        bwa-mem2 index ${fasta}
+    fi
+
     bwa-mem2 mem \\
         -t ${task.cpus} \\
         -R "${rg}" \\
