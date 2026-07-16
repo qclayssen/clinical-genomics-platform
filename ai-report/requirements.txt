@@ -9,7 +9,7 @@ bitsandbytes>=0.43
 accelerate>=0.33
 
 # RAG layer — vector store and embedding model
-sentence-transformers>=2.7
+sentence-transformers>=5.6.0
 faiss-cpu>=1.8
 numpy>=1.26
 
