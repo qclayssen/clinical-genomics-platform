@@ -14,7 +14,7 @@ accelerate==1.14.0
 # RAG layer
 sentence-transformers==5.6.0
 faiss-cpu==1.14.3
-numpy==2.5.1
+numpy==2.4.6
 
 # Ollama client (for RAG mode LLM calls)
 ollama==0.6.2
