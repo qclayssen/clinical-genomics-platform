@@ -1,0 +1,26 @@
+# Dockerfile for the Streamlit demo app
+# Deployed via AWS App Runner — public HTTPS endpoint.
+
+FROM python:3.12-slim AS base
+
+WORKDIR /app
+
+# Install dependencies
+COPY demo/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY demo/ ./demo/
+COPY tests/fixtures/ ./tests/fixtures/
+COPY ai-report/ ./ai-report/
+
+# Streamlit config: disable CORS/XSRF for container environments
+RUN mkdir -p /root/.streamlit
+RUN printf '[server]\nheadless = true\nport = 8501\nenableCORS = false\nenableXsrfProtection = false\naddress = "0.0.0.0"\n\n[browser]\ngatherUsageStats = false\n' > /root/.streamlit/config.toml
+
+EXPOSE 8501
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+  CMD curl -f http://localhost:8501/_stcore/health || exit 1
+
+ENTRYPOINT ["streamlit", "run", "demo/app.py"]
