@@ -38,7 +38,7 @@ jobs:
       PGDATABASE: cgp_test
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Apply schema.sql
         run: psql -f db/schema.sql
