@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with: { python-version: '3.11' }
 
       - name: Install Nextflow
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with: { python-version: '3.11' }
       - name: Report renderer produces guardrail-compliant output
         run: |
@@ -92,7 +92,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with: { python-version: '3.11' }
       - name: Install CPU ML stack
         run: pip install --quiet torch transformers datasets peft --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
@@ -105,7 +105,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with: { python-version: '3.11' }
       - name: Install test dependencies
         run: pip install --quiet pytest hypothesis
