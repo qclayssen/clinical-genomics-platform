@@ -205,7 +205,7 @@ clinical-genomics-platform/
 ├── docker/                 One pinned Dockerfile per pipeline stage
 ├── docs/                   Validation report, SOP, beginner's guide, glossary, ADRs
 ├── tests/                  Unit tests + small committed fixtures
-└── .github/workflows/      CI: config check, pipeline test, CDK synth, ML smoke test
+└── .github/workflows/      CI/CD: lint, security, DB validation, coverage, Docker, release, maintenance
 ```
 
 <br/>
