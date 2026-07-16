@@ -1,0 +1,57 @@
+name: security
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write  # Required for SARIF upload to GitHub Security tab
+
+jobs:
+  pip-audit:
+    name: Python dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit ai-report dependencies (pinned)
+        run: pip-audit -r ai-report/requirements-lock.txt --desc --severity HIGH
+
+      - name: Audit lambdas dependencies
+        run: pip-audit -r lambdas/requirements.txt --desc --severity HIGH
+
+      - name: Audit demo dependencies
+        run: pip-audit -r demo/requirements.txt --desc --severity HIGH
+
+  trivy-repo:
+    name: Trivy filesystem scan
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs-results.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs-results.sarif
+          category: trivy-filesystem
