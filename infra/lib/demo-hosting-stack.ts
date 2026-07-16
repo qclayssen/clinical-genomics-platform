@@ -11,8 +11,8 @@ import * as iam from 'aws-cdk-lib/aws-iam';
  *  - Metabase on port 3000
  *  - Postgres (internal, port 5432 — not exposed publicly)
  *
- * Cost: $0/month within AWS free tier (750 hrs/month t2.micro for 12 months,
- * 30 GB EBS gp3 included). After free tier expires: ~$8.50/month.
+ * Cost: ~$15/month (t3.small 2 GB RAM needed for Metabase + Streamlit + Postgres).
+ * t2.micro (1 GB) is insufficient — Metabase alone needs ~1 GB heap.
  *
  * The instance bootstraps via user-data: installs Docker + Compose, clones
  * the repo, runs `docker compose up -d`. Services auto-restart on reboot.
@@ -107,7 +107,7 @@ export class DemoHostingStack extends cdk.Stack {
     const instance = new ec2.Instance(this, 'DemoInstance', {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL),
       machineImage: ec2.MachineImage.latestAmazonLinux2023(),
       securityGroup: sg,
       role,
