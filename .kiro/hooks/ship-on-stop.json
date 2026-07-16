@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Ship work on session end",
+      "trigger": "Stop",
+      "description": "Automatically commits, pushes, opens a PR, and asks permission to merge when a session ends",
+      "action": {
+        "type": "agent",
+        "prompt": "Before closing this session, perform the following ship workflow:\n\n1. CHECK FOR CHANGES: Run `git status` to see if there are uncommitted changes. If there are none, skip the rest.\n\n2. COMMIT with best-practice Conventional Commits format:\n   - Use the format: `<type>(<scope>): <short summary>` (max 72 chars for subject)\n   - Types: feat, fix, refactor, docs, test, chore, ci, perf, style\n   - Scope should reflect the affected module (e.g., pipeline, infra, api, db)\n   - Body should explain WHAT changed and WHY (not HOW)\n   - If multiple logical changes exist, create separate commits for each\n   - Stage specific files per commit (do NOT use `git add .` for mixed changes)\n\n3. PUSH to a feature branch:\n   - If already on a feature branch, push there\n   - If on main/master, create a branch named `feat/<short-description>` or `fix/<short-description>` and push\n   - Use `git push -u origin <branch>`\n\n4. OPEN A PULL REQUEST using `gh pr create` with best-practice documentation:\n   - Title: same as the primary commit subject line (max 72 chars, imperative mood)\n   - Body MUST follow this structure:\n     ## Summary\n     Brief description of what this PR does and why.\n\n     ## Changes\n     - Bullet list of key changes, grouped by area\n\n     ## Testing\n     - What was tested (unit tests, integration, manual verification)\n     - Commands run and their outcomes\n\n     ## Checklist\n     - [ ] Code follows project conventions\n     - [ ] Tests pass locally\n     - [ ] No secrets or credentials committed\n     - [ ] Documentation updated if needed\n\n   - Do NOT auto-merge\n\n5. WAIT FOR CI: After pushing, monitor CI checks:\n   - Run `gh pr checks <PR-number> --watch` to wait for CI workflows (lint, pipeline-ci, db-ci, infra-ci, security, coverage, docker)\n   - If any check fails, report which check failed and the error. Attempt to fix the issue, commit the fix, and push again. Repeat up to 2 times.\n   - Do NOT proceed to merge if CI is failing.\n\n6. ASK PERMISSION: Once CI passes, show the user:\n   - The PR URL\n   - A summary of CI check results (all green / any warnings)\n   - Ask: \"All CI checks pass. PR is ready. Would you like me to merge it (squash), or would you prefer to review first?\"\n   - Only merge if the user explicitly confirms\n   - Use `gh pr merge --squash` when approved\n\nIf any step fails, report the error and stop — do not force-push or skip checks."
+      }
+    }
+  ]
+}
