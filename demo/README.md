@@ -1,14 +1,15 @@
-# Interactive Demo — Data Explorer + Chatbot
+# Interactive Demo — Data Explorer + LLM Pipeline Assistant
 
 A self-contained Streamlit app for exploring clinical genomics pipeline results
-interactively. No database, no Docker, no API keys — just `pip install` and run.
+interactively. Features rich Plotly visualizations and an LLM-powered conversational
+assistant that understands genomics context.
 
 ## What's included
 
 | Page | Description |
 |------|-------------|
-| **Data Explorer** | Interactive Plotly charts: SNP F1 trend, turnaround time, duplication rates, precision vs recall scatter, validation pass/fail breakdown. Filterable by sample, caller, and pipeline version. |
-| **Chatbot** | Conversational interface to query pipeline data. Ask about summaries, failures, caller comparisons, or generate an AI-drafted report — all offline. |
+| **Data Explorer** | 8 interactive Plotly charts: SNP F1 trend with regression zone, turnaround time, duplication rates, precision vs recall scatter, QC metrics heatmap, run timeline (Gantt), validation pass/fail breakdown, and caller performance radar. All filterable by sample, caller, and pipeline version. |
+| **Pipeline Assistant** | Conversational interface powered by a local LLM (via Ollama) that reasons about pipeline data. Falls back gracefully to pattern matching when Ollama is unavailable. Supports streaming responses, report generation, and arbitrary natural-language questions. |
 
 ## Quickstart
 
@@ -20,6 +21,61 @@ streamlit run demo/app.py
 
 The app opens at `http://localhost:8501`. Use the sidebar to switch between pages.
 
+## LLM-Powered Assistant (Optional)
+
+The Pipeline Assistant page upgrades to full natural-language understanding when
+Ollama is running locally. This enables arbitrary questions, follow-up reasoning,
+and contextual awareness of the conversation history.
+
+### Setup
+
+```bash
+# Install Ollama (macOS)
+brew install ollama
+
+# Or download from https://ollama.ai
+
+# Start the Ollama server
+ollama serve
+
+# Pull a model (any of these work — mistral is recommended)
+ollama pull mistral        # 7B, fast, good quality
+ollama pull llama3         # 8B, excellent reasoning
+ollama pull phi3           # 3.8B, lightweight alternative
+```
+
+### How it works
+
+1. On page load, the assistant checks if Ollama is reachable at `localhost:11434`
+2. If available, it selects the best model from a priority list (mistral > llama3 > etc.)
+3. The full pipeline dataset is injected as a system prompt with clinical context
+4. Responses are **streamed** token-by-token for a responsive experience
+5. Conversation history (last 10 messages) is maintained for follow-up questions
+
+### Without Ollama
+
+The assistant still works — it uses regex-based intent matching to handle common
+queries like summaries, comparisons, failure lists, and report generation. You'll
+see an "Offline Mode" indicator in the UI.
+
+## Data Explorer Charts
+
+The explorer page includes 8 production-quality visualizations:
+
+| Chart | Type | Purpose |
+|-------|------|---------|
+| SNP F1 Trend | Line | Accuracy over time with clinical threshold + regression zone |
+| Turnaround Time | Bar | Processing speed per run, coloured by caller |
+| Duplication Rate | Grouped bar | Library quality with alert threshold at 8% |
+| Precision vs Recall | Scatter (bubble) | Trade-off landscape, bubble size = variant count |
+| QC Metrics Heatmap | Heatmap | Correlation matrix across 5 key metrics |
+| Run Timeline | Gantt | Start/end times showing scheduling and concurrency |
+| Validation Status | Stacked bar | Pass/fail breakdown by pipeline version |
+| Caller Radar | Radar/polar | Multi-dimensional caller comparison (normalised) |
+
+All charts use a consistent clinical genomics colour palette (teal/cyan/coral/amber)
+with a dark theme optimised for extended viewing.
+
 ## Data source
 
 The demo loads data from two sources (no Postgres required):
@@ -30,35 +86,9 @@ The demo loads data from two sources (no Postgres required):
 2. **Test fixtures** — any `*.metrics.json` files found under `tests/fixtures/` are
    loaded automatically.
 
-## Chatbot capabilities
+## Docker Compose (full stack with Metabase)
 
-The chatbot answers questions about pipeline data using pattern matching and pandas
-queries. No external LLM API is needed. Example prompts:
-
-- "What's the overall summary?"
-- "Which run had the best F1?"
-- "Are there any failures?"
-- "Compare GATK vs DeepVariant"
-- "Show me details for HG002"
-- "Compare pipeline versions"
-- "Show the last 5 runs"
-- "What are the duplication rates?"
-- "Generate a report for HG002_chr20"
-
-The report generation command reuses `ai-report/infer.py`'s offline renderer —
-the same deterministic template that runs in CI.
-
-## Dependencies
-
-- `streamlit` — app framework and chat UI
-- `plotly` — interactive charts
-- `pandas` — data manipulation
-
-All pinned in `requirements.txt`. Python 3.11+ recommended.
-
-## Docker Compose (local hosting with Metabase)
-
-If you want the full stack — Streamlit demo, Metabase dashboard, and Postgres with
+If you want the full stack — Streamlit demo, Metabase BI dashboard, and Postgres with
 seeded pipeline data — you can run everything locally with Docker Compose:
 
 ### Prerequisites
@@ -77,8 +107,8 @@ This starts three services:
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **Streamlit demo** | http://localhost:8501 | Data Explorer + Chatbot |
-| **Metabase** | http://localhost:3000 | BI dashboard over pipeline data |
+| **Streamlit demo** | http://localhost:8501 | Data Explorer + Pipeline Assistant |
+| **Metabase** | http://localhost:3000 | Production BI dashboard over pipeline data |
 | **Postgres** | `localhost:5432` | Database (user: `cgp`, password: `cgp`, db: `cgp`) |
 
 On first boot, Postgres automatically runs `db/schema.sql` and `db/seed_demo.sql`
@@ -99,7 +129,20 @@ asks to add a database:
 | Password | `cgp` |
 
 After connecting, the `v_run_summary` view is the best starting point for building
-dashboard cards.
+dashboard cards. See `dashboards/metabase/README.md` for the pre-defined SQL queries.
+
+### Metabase vs Streamlit
+
+Both tools visualize the same pipeline data — they serve different audiences:
+
+| Aspect | Metabase | Streamlit Demo |
+|--------|----------|----------------|
+| **Audience** | Lab managers, ops teams | Developers, reviewers, demos |
+| **Setup** | Docker Compose + DB config | `pip install` + run |
+| **Data source** | Live Postgres | Embedded seed + fixtures |
+| **LLM assistant** | No | Yes (with Ollama) |
+| **Customisation** | Drag-and-drop, saved questions | Code-driven, version-controlled |
+| **Best for** | Daily ops monitoring | Code review, presentations, offline use |
 
 ### Stop the stack
 
@@ -114,33 +157,27 @@ docker compose down -v     # Stop and delete Postgres data volume
 docker compose up -d --build demo   # Rebuild only the Streamlit container
 ```
 
-## Deploy to AWS (free tier)
+## Dependencies
 
-For a publicly accessible version, deploy on a single EC2 t2.micro instance
-(free tier eligible for 12 months):
+- `streamlit` — app framework and chat UI
+- `plotly` — interactive charts (line, bar, scatter, heatmap, timeline, radar)
+- `pandas` — data manipulation
+- `numpy` — numerical operations (heatmap correlation)
+- `httpx` — HTTP client for Ollama API communication
 
-```bash
-cd infra
-cdk deploy CgpDemoHosting
-```
-
-This provisions an EC2 instance that clones the repo and runs the same
-`docker compose up` stack. After deploy, CDK outputs the public IP:
-
-- Streamlit → `http://<public-ip>:8501`
-- Metabase → `http://<public-ip>:3000`
-
-Estimated cost: **$0/month** within AWS free tier (t2.micro 750 hrs + 20 GB EBS).
+All pinned in `requirements.txt`. Python 3.11+ recommended.
 
 ## Project structure
 
 ```
 demo/
-├── app.py              # Main entry point (streamlit run demo/app.py)
-├── data_loader.py      # Data loading: seed + fixtures → DataFrame
+├── .streamlit/
+│   └── config.toml         # Theme: dark navy + teal clinical palette
+├── app.py                  # Main entry point (streamlit run demo/app.py)
+├── data_loader.py          # Data loading: seed + fixtures → DataFrame
 ├── pages/
-│   ├── explorer.py     # Interactive visualization page
-│   └── chat.py         # Chatbot page
-├── requirements.txt    # Pinned dependencies
-└── README.md           # This file
+│   ├── explorer.py         # 8-chart interactive visualization page
+│   └── chat.py             # LLM-powered pipeline assistant
+├── requirements.txt        # Pinned dependencies
+└── README.md               # This file
 ```

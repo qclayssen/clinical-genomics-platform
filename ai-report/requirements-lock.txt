@@ -14,14 +14,14 @@ accelerate==1.14.0
 # RAG layer
 sentence-transformers==5.6.0
 faiss-cpu==1.14.3
-numpy==2.5.1
+numpy==2.4.6
 
 # Ollama client (for RAG mode LLM calls)
 ollama==0.6.2
 
 # Transitive deps pinned for reproducibility
 huggingface-hub==1.23.0
-tokenizers==0.23.1
+tokenizers==0.22.2
 safetensors==0.8.0
 tqdm==4.68.4
 requests==2.34.2
