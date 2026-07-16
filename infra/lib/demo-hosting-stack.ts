@@ -43,7 +43,7 @@ export class DemoHostingStack extends cdk.Stack {
 
     sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(8501), 'Streamlit demo');
     sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(3000), 'Metabase dashboard');
-    sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'SSH access');
+    // SSH removed — use SSM Session Manager instead (IAM role already has AmazonSSMManagedInstanceCore)
 
     // =========================================================================
     // IAM Role — minimal (SSM for Session Manager access, no SSH key needed)

@@ -16,7 +16,7 @@ COPY ai-report/ ./ai-report/
 
 # Streamlit config: disable CORS/XSRF for container environments
 RUN mkdir -p /root/.streamlit
-RUN printf '[server]\nheadless = true\nport = 8501\nenableCORS = false\nenableXsrfProtection = false\naddress = "0.0.0.0"\n\n[browser]\ngatherUsageStats = false\n' > /root/.streamlit/config.toml
+RUN printf '[server]\nheadless = true\nport = 8501\nenableCORS = false\nenableXsrfProtection = true\naddress = "0.0.0.0"\n\n[browser]\ngatherUsageStats = false\n' > /root/.streamlit/config.toml
 
 EXPOSE 8501
 
