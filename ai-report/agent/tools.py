@@ -265,6 +265,9 @@ def _classify_acmg(
     Takes a list of evidence codes (e.g., ['PS1', 'PM2', 'PP3']) and returns
     the resulting classification according to the 2015 ACMG/AMP guidelines.
 
+    Delegates to the canonical implementation in deterministic.py to avoid
+    rule duplication.
+
     Returns
     -------
     dict with:
@@ -273,131 +276,38 @@ def _classify_acmg(
         - matched_rule: str describing which combining rule was triggered
         - confidence: str (high/moderate/low)
     """
-    kb = _kb or KnowledgeBase()
-    try:
-        criteria = kb.get_acmg_criteria()
+    from .deterministic import classify_by_acmg_rules
 
-        # Categorize evidence codes by strength
-        pvs = [c for c in evidence_codes if c.startswith("PVS")]
-        ps = [c for c in evidence_codes if c.startswith("PS")]
-        pm = [c for c in evidence_codes if c.startswith("PM")]
-        pp = [c for c in evidence_codes if c.startswith("PP")]
-        ba = [c for c in evidence_codes if c.startswith("BA")]
-        bs = [c for c in evidence_codes if c.startswith("BS")]
-        bp = [c for c in evidence_codes if c.startswith("BP")]
+    # Categorize evidence codes by strength for the summary
+    pvs = [c for c in evidence_codes if c.startswith("PVS")]
+    ps = [c for c in evidence_codes if c.startswith("PS")]
+    pm = [c for c in evidence_codes if c.startswith("PM")]
+    pp = [c for c in evidence_codes if c.startswith("PP")]
+    ba = [c for c in evidence_codes if c.startswith("BA")]
+    bs = [c for c in evidence_codes if c.startswith("BS")]
+    bp = [c for c in evidence_codes if c.startswith("BP")]
 
-        n_pvs = len(pvs)
-        n_ps = len(ps)
-        n_pm = len(pm)
-        n_pp = len(pp)
-        n_ba = len(ba)
-        n_bs = len(bs)
-        n_bp = len(bp)
+    classification, matched_rule, confidence = classify_by_acmg_rules(evidence_codes)
 
-        classification = "Uncertain Significance"
-        matched_rule = "No combining rule met — classified as VUS"
-        confidence = "low"
+    evidence_summary = {
+        "very_strong_pathogenic": pvs,
+        "strong_pathogenic": ps,
+        "moderate_pathogenic": pm,
+        "supporting_pathogenic": pp,
+        "stand_alone_benign": ba,
+        "strong_benign": bs,
+        "supporting_benign": bp,
+    }
 
-        # ── Benign rules (check first — BA1 is stand-alone) ──────────────
-        if n_ba >= 1:
-            classification = "Benign"
-            matched_rule = "BA1 stand-alone: allele frequency >5% in population database"
-            confidence = "high"
-        elif n_bs >= 2:
-            classification = "Benign"
-            matched_rule = f">=2 Strong benign ({', '.join(bs)})"
-            confidence = "high"
-        elif n_bs >= 1 and n_bp >= 1:
-            classification = "Likely Benign"
-            matched_rule = f"1 Strong benign + >=1 Supporting benign ({', '.join(bs + bp)})"
-            confidence = "moderate"
-        elif n_bp >= 2:
-            classification = "Likely Benign"
-            matched_rule = f">=2 Supporting benign ({', '.join(bp)})"
-            confidence = "moderate"
-
-        # ── Pathogenic rules (only if not already benign) ────────────────
-        elif n_pvs >= 1 and n_ps >= 1:
-            classification = "Pathogenic"
-            matched_rule = f"1 Very Strong + >=1 Strong ({', '.join(pvs + ps)})"
-            confidence = "high"
-        elif n_pvs >= 1 and n_pm >= 2:
-            classification = "Pathogenic"
-            matched_rule = f"1 Very Strong + >=2 Moderate ({', '.join(pvs + pm)})"
-            confidence = "high"
-        elif n_pvs >= 1 and n_pm >= 1 and n_pp >= 1:
-            classification = "Pathogenic"
-            matched_rule = f"1 Very Strong + 1 Moderate + 1 Supporting ({', '.join(pvs + pm + pp)})"
-            confidence = "high"
-        elif n_pvs >= 1 and n_pp >= 2:
-            classification = "Pathogenic"
-            matched_rule = f"1 Very Strong + >=2 Supporting ({', '.join(pvs + pp)})"
-            confidence = "high"
-        elif n_ps >= 2:
-            classification = "Pathogenic"
-            matched_rule = f">=2 Strong ({', '.join(ps)})"
-            confidence = "high"
-        elif n_ps >= 1 and n_pm >= 3:
-            classification = "Pathogenic"
-            matched_rule = f"1 Strong + >=3 Moderate ({', '.join(ps + pm)})"
-            confidence = "high"
-        elif n_ps >= 1 and n_pm >= 2 and n_pp >= 2:
-            classification = "Pathogenic"
-            matched_rule = f"1 Strong + 2 Moderate + >=2 Supporting ({', '.join(ps + pm + pp)})"
-            confidence = "high"
-        elif n_ps >= 1 and n_pm >= 1 and n_pp >= 4:
-            classification = "Pathogenic"
-            matched_rule = f"1 Strong + 1 Moderate + >=4 Supporting ({', '.join(ps + pm + pp)})"
-            confidence = "high"
-
-        # ── Likely Pathogenic rules ──────────────────────────────────────
-        elif n_pvs >= 1 and n_pm >= 1:
-            classification = "Likely Pathogenic"
-            matched_rule = f"1 Very Strong + 1 Moderate ({', '.join(pvs + pm)})"
-            confidence = "moderate"
-        elif n_ps >= 1 and n_pm >= 1:
-            classification = "Likely Pathogenic"
-            matched_rule = f"1 Strong + 1-2 Moderate ({', '.join(ps + pm)})"
-            confidence = "moderate"
-        elif n_ps >= 1 and n_pp >= 2:
-            classification = "Likely Pathogenic"
-            matched_rule = f"1 Strong + >=2 Supporting ({', '.join(ps + pp)})"
-            confidence = "moderate"
-        elif n_pm >= 3:
-            classification = "Likely Pathogenic"
-            matched_rule = f">=3 Moderate ({', '.join(pm)})"
-            confidence = "moderate"
-        elif n_pm >= 2 and n_pp >= 2:
-            classification = "Likely Pathogenic"
-            matched_rule = f"2 Moderate + >=2 Supporting ({', '.join(pm + pp)})"
-            confidence = "moderate"
-        elif n_pm >= 1 and n_pp >= 4:
-            classification = "Likely Pathogenic"
-            matched_rule = f"1 Moderate + >=4 Supporting ({', '.join(pm + pp)})"
-            confidence = "moderate"
-
-        evidence_summary = {
-            "very_strong_pathogenic": pvs,
-            "strong_pathogenic": ps,
-            "moderate_pathogenic": pm,
-            "supporting_pathogenic": pp,
-            "stand_alone_benign": ba,
-            "strong_benign": bs,
-            "supporting_benign": bp,
-        }
-
-        return {
-            "classification": classification,
-            "evidence_codes": evidence_codes,
-            "evidence_summary": {k: v for k, v in evidence_summary.items() if v},
-            "matched_rule": matched_rule,
-            "confidence": confidence,
-            "n_pathogenic_evidence": n_pvs + n_ps + n_pm + n_pp,
-            "n_benign_evidence": n_ba + n_bs + n_bp,
-        }
-    finally:
-        if _kb is None:
-            kb.close()
+    return {
+        "classification": classification,
+        "evidence_codes": evidence_codes,
+        "evidence_summary": {k: v for k, v in evidence_summary.items() if v},
+        "matched_rule": matched_rule,
+        "confidence": confidence,
+        "n_pathogenic_evidence": len(pvs) + len(ps) + len(pm) + len(pp),
+        "n_benign_evidence": len(ba) + len(bs) + len(bp),
+    }
 
 
 def _final_answer(

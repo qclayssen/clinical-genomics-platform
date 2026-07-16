@@ -202,7 +202,7 @@ def run_interpretation(args: argparse.Namespace) -> int:
         # For any variant where the agent failed, run deterministic fallback
         fallback = DeterministicInterpreter()
         for i, result in enumerate(results):
-            if result.fallback_triggered and result.classification == "Uncertain Significance":
+            if result.fallback_triggered:
                 logger.info(f"Fallback triggered for {result.variant}, running deterministic")
                 fallback_result = fallback.run(result.variant)
                 # Keep the original trace but use fallback classification

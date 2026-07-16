@@ -130,7 +130,7 @@ _TREATMENT_PATTERNS = [
     r"\bshould (?:take|start|stop|begin|consider)\b",
     r"\btreat(?:ment|ed)?\s+with\b",
     r"\bprescri(?:be|ption)\b",
-    r"\bdiagnos(?:e|is|ed)\b",
+    r"\bthis (?:confirms|establishes) (?:a |the )?diagnos(?:is|e)\b",
     r"\btherapy\b",
     r"\bmedication\b",
     r"\bclinical management\b",
