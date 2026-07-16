@@ -7,7 +7,7 @@
 #     # -> FROM python:3.11-slim@sha256:<real-digest>   (then re-validate)
 # A version tag is used here rather than a fabricated digest so the image actually
 # builds; swap in the resolved @sha256 digest at release time.
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         bcftools \
