@@ -1,0 +1,79 @@
+# Dependabot dependency update configuration
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+
+updates:
+  # Python — ai-report (ML/inference stack, pinned lock file)
+  - package-ecosystem: pip
+    directory: /ai-report
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, automated, python]
+    open-pull-requests-limit: 10
+    groups:
+      ml-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Python — lambdas
+  - package-ecosystem: pip
+    directory: /lambdas
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, automated, python]
+    open-pull-requests-limit: 5
+    groups:
+      lambdas-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Python — demo app
+  - package-ecosystem: pip
+    directory: /demo
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, automated, python]
+    open-pull-requests-limit: 5
+    groups:
+      demo-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # npm — CDK infrastructure
+  - package-ecosystem: npm
+    directory: /infra
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, automated, npm]
+    open-pull-requests-limit: 10
+    groups:
+      cdk-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # GitHub Actions — workflow action versions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, automated, ci]
+    open-pull-requests-limit: 10
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Docker — base image updates
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, automated, docker]
+    open-pull-requests-limit: 5
