@@ -11,6 +11,8 @@ depth, and the ability to ship complete systems end-to-end.
 
 # For Recruiters & Hiring Managers
 
+**Author: Quentin Clayssen** — solo-built, AI-orchestrated, end-to-end.
+
 A one-page map of what this project demonstrates and where to look. If you have three
 minutes, read this and skim the [architecture diagram](../README.md#architecture).
 

@@ -26,6 +26,10 @@ From raw WGS reads to validated variants, structured provenance, ops dashboards,
 
 <br/>
 
+**Built by [Quentin Clayssen](https://github.com/qclayssen)** · Solo-designed, solo-built, AI-orchestrated
+
+<br/>
+
 [![CI — Pipeline](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/pipeline-ci.yml?label=Pipeline%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/pipeline-ci.yml)
 [![CI — Infra](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/infra-ci.yml?label=Infra%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/infra-ci.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/qclayssen/COVERAGE_GIST_ID/raw/coverage-badge.json&style=flat-square)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/coverage.yml)
