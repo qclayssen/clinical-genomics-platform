@@ -1,17 +1,17 @@
 # Fine-tuning + inference stack (single-GPU friendly).
 # The --offline renderer in infer.py needs none of these — only the model paths do.
-torch>=2.2
+torch>=2.13.0
 transformers>=4.44
 datasets>=2.20
-peft>=0.12
+peft>=0.19.1
 trl>=0.9
-bitsandbytes>=0.43
+bitsandbytes>=0.49.2
 accelerate>=0.33
 
 # RAG layer — vector store and embedding model
 sentence-transformers>=2.7
-faiss-cpu>=1.8
+faiss-cpu>=1.14.3
 numpy>=1.26
 
 # HTTP client for Ollama API
-requests>=2.31
+requests>=2.34.2
