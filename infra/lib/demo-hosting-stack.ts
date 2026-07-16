@@ -77,7 +77,7 @@ export class DemoHostingStack extends cdk.Stack {
       '',
       '# Clone the repo and start services',
       'cd /home/ec2-user',
-      'git clone https://github.com/quentinclayssen/clinical-genomics-platform.git app',
+      'git clone https://github.com/qclayssen/clinical-genomics-platform.git app',
       'cd app',
       'docker compose up -d',
       '',
