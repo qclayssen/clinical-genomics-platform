@@ -2,7 +2,7 @@ name: maintenance
 
 on:
   schedule:
-    - cron: '0 6 * * 1'  # Monday 6 AM UTC
+    - cron: '0 6 1 4 *'  # April 1st, 6 AM UTC (once a year)
   workflow_dispatch:       # Manual trigger for testing
 
 permissions:

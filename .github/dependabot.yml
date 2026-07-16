@@ -1,8 +1,6 @@
 # Dependabot dependency update configuration
-# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
-#
-# Strategy: group ALL updates per ecosystem into a single PR to avoid PR flooding.
-# Major bumps are included in the group — review them carefully before merging.
+# Strategy: group ALL updates per ecosystem into a single PR.
+# Monthly schedule — this is a demo repo, no urgency.
 
 version: 2
 
@@ -11,10 +9,9 @@ updates:
   - package-ecosystem: pip
     directory: /ai-report
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, automated]
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     groups:
       all-python-ai-report:
         patterns: ["*"]
@@ -23,10 +20,9 @@ updates:
   - package-ecosystem: pip
     directory: /lambdas
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, automated]
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     groups:
       all-python-lambdas:
         patterns: ["*"]
@@ -35,10 +31,9 @@ updates:
   - package-ecosystem: pip
     directory: /demo
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, automated]
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     groups:
       all-python-demo:
         patterns: ["*"]
@@ -47,10 +42,9 @@ updates:
   - package-ecosystem: npm
     directory: /infra
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, automated]
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     groups:
       all-npm-infra:
         patterns: ["*"]
@@ -59,10 +53,9 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, automated]
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     groups:
       all-actions:
         patterns: ["*"]
@@ -71,8 +64,7 @@ updates:
   - package-ecosystem: docker
     directory: /docker
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     labels: [dependencies, automated]
     open-pull-requests-limit: 2
     groups:
