@@ -12,8 +12,7 @@ so a single person can finish it.
 > (DSL2, one process per module, `conf/modules.config`, per-process `versions.yml`, module
 > `meta.yml`) but is hand-written, not generated from `nf-core pipelines create` — it doesn't
 > include the template's `subworkflows/nf-core/utils_*` backbone, nf-schema validation, or
-> nf-test suite, and would not pass `nf-core lint` cleanly. For fully template-compliant,
-> lint-passing nf-core pipelines, see: <!-- TODO: link your other nf-core pipeline repo(s) here -->.
+> nf-test suite, and would not pass `nf-core lint` cleanly.
 
 > ⚠️ **Scope honesty.** This is a portfolio project. It demonstrates the *validation methodology
 > and traceability patterns* ISO 15189 / NATA accreditation requires (benchmarking against a
@@ -58,16 +57,20 @@ so a single person can finish it.
 
 ## Validation summary
 
-The pipeline is benchmarked on **GIAB HG002 / NA24385, chromosome 20** against the
-v4.2.1 high-confidence truth set using `hap.py`. Real numbers land in
-[`docs/VALIDATION.md`](docs/VALIDATION.md) after your first full run.
+The pipeline is benchmarked on **GIAB HG002 / NA24385, chromosome 20** (1 Mb window,
+chr20:1,000,000–2,000,000, 300x depth) against the v4.2.1 high-confidence truth set
+using `hap.py`. See [`docs/VALIDATION.md`](docs/VALIDATION.md) for full methodology,
+known limitations, and provenance.
 
 | Metric | GATK HaplotypeCaller | DeepVariant | Source |
 |---|---|---|---|
-| SNV precision | _run to fill_ | _run to fill_ | `hap.py` summary.csv |
-| SNV recall | _run to fill_ | _run to fill_ | `hap.py` summary.csv |
-| SNV F1 | _run to fill_ | _run to fill_ | `hap.py` summary.csv |
-| Ti/Tv | _run to fill_ | _run to fill_ | `bcftools stats` |
+| SNV precision | 0.9934 | _not yet run_ | `hap.py` summary.csv |
+| SNV recall | 0.9894 | _not yet run_ | `hap.py` summary.csv |
+| SNV F1 | **0.9914** | _not yet run_ | `hap.py` summary.csv |
+| INDEL F1 | 0.9971 | _not yet run_ | `hap.py` summary.csv |
+| Ti/Tv | 2.07 | _not yet run_ | `bcftools stats` |
+
+SNV F1 meets the ≥ 0.99 acceptance criterion. DeepVariant comparison is planned but not yet run.
 
 ## Quickstart
 
@@ -118,6 +121,12 @@ acceptance criteria.
 ## Milestones
 
 The build is demoable at every stage — see [`docs/MILESTONES.md`](docs/MILESTONES.md).
+
+## Contributing
+
+This is a solo portfolio project. Issues, questions, and feedback are welcome — open an
+issue or start a discussion. Unsolicited pull requests are unlikely to be merged, but feel
+free to fork.
 
 ## License
 

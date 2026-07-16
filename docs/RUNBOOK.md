@@ -76,10 +76,10 @@ python3 pipeline/bin/ga4gh_ids.py --fasta pipeline/assets/reference/GRCh38_chr20
 
 ## 6. Record the numbers honestly
 
-Copy the **measured** precision/recall/F1 into `docs/VALIDATION.md` and the README table,
-replacing the `_fill_` placeholders. Note the exact truth version, reference build, and
-pipeline git commit alongside them (they're already in `metrics.json` provenance). Per
-ADR-0003, a version bump should re-run this validation.
+Copy the **measured** precision/recall/F1 into `docs/VALIDATION.md` and the README table.
+Note the exact truth version, reference build, and pipeline git commit alongside them
+(they're already in `metrics.json` provenance). Per ADR-0003, a version bump should
+re-run this validation.
 
 ---
 
