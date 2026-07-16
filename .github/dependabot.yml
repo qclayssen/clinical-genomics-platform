@@ -1,21 +1,23 @@
 # Dependabot dependency update configuration
 # Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+#
+# Strategy: group ALL updates per ecosystem into a single PR to avoid PR flooding.
+# Major bumps are included in the group — review them carefully before merging.
 
 version: 2
 
 updates:
-  # Python — ai-report (ML/inference stack, pinned lock file)
+  # Python — ai-report (ML/inference stack)
   - package-ecosystem: pip
     directory: /ai-report
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies, automated, python]
-    open-pull-requests-limit: 10
+    labels: [dependencies, automated]
+    open-pull-requests-limit: 3
     groups:
-      ml-minor-patch:
+      all-python-ai-report:
         patterns: ["*"]
-        update-types: [minor, patch]
 
   # Python — lambdas
   - package-ecosystem: pip
@@ -23,12 +25,11 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies, automated, python]
-    open-pull-requests-limit: 5
+    labels: [dependencies, automated]
+    open-pull-requests-limit: 3
     groups:
-      lambdas-minor-patch:
+      all-python-lambdas:
         patterns: ["*"]
-        update-types: [minor, patch]
 
   # Python — demo app
   - package-ecosystem: pip
@@ -36,12 +37,11 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies, automated, python]
-    open-pull-requests-limit: 5
+    labels: [dependencies, automated]
+    open-pull-requests-limit: 3
     groups:
-      demo-minor-patch:
+      all-python-demo:
         patterns: ["*"]
-        update-types: [minor, patch]
 
   # npm — CDK infrastructure
   - package-ecosystem: npm
@@ -49,12 +49,11 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies, automated, npm]
-    open-pull-requests-limit: 10
+    labels: [dependencies, automated]
+    open-pull-requests-limit: 3
     groups:
-      cdk-minor-patch:
+      all-npm-infra:
         patterns: ["*"]
-        update-types: [minor, patch]
 
   # GitHub Actions — workflow action versions
   - package-ecosystem: github-actions
@@ -62,12 +61,11 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies, automated, ci]
-    open-pull-requests-limit: 10
+    labels: [dependencies, automated]
+    open-pull-requests-limit: 3
     groups:
-      actions-minor-patch:
+      all-actions:
         patterns: ["*"]
-        update-types: [minor, patch]
 
   # Docker — base image updates
   - package-ecosystem: docker
@@ -75,5 +73,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies, automated, docker]
-    open-pull-requests-limit: 5
+    labels: [dependencies, automated]
+    open-pull-requests-limit: 2
+    groups:
+      all-docker:
+        patterns: ["*"]
