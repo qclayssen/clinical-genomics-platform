@@ -7,14 +7,15 @@ process MULTIQC {
     path multiqc_config
 
     output:
-    path "multiqc_report.html", emit: report
-    path "multiqc_data",        emit: data
-    path "versions.yml",        emit: versions
+    path "multiqc_report.html",  emit: report
+    path "multiqc_report_data",  emit: data
+    path "versions.yml",         emit: versions
 
     script:
     """
     multiqc --force \\
         --title "Clinical Genomics Insight Platform" \\
+        --filename multiqc_report \\
         --config '${multiqc_config}' \\
         .
 
@@ -23,7 +24,7 @@ process MULTIQC {
 
     stub:
     """
-    mkdir multiqc_data
+    mkdir multiqc_report_data
     touch multiqc_report.html
     printf '"%s":\\n    multiqc: 1.21\\n' "${task.process}" > versions.yml
     """

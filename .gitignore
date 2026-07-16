@@ -2,6 +2,7 @@
 .nextflow/
 .nextflow.log*
 work/
+work_*/
 results/
 pipeline/assets/reference/*
 pipeline/assets/truth/*

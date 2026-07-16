@@ -87,8 +87,9 @@ renumbered or rewritten**.
 
 ## 5. Validation workflow
 
-- Benchmark SNV calls with **`hap.py`** (vcfeval engine) against the **GIAB HG002 v4.2.1**
-  high-confidence VCF + BED, restricted to chr20 (ADR-0003, `docs/VALIDATION.md`).
+- Benchmark SNV calls with **`hap.py`** (xcmp engine — ADR-0015, not vcfeval; the pinned
+  container lacks `rtg-tools`) against the **GIAB HG002 v4.2.1** high-confidence VCF + BED,
+  restricted to chr20 (ADR-0003, `docs/VALIDATION.md`).
 - **Acceptance criterion: SNV F1 ≥ 0.99** within the high-confidence regions. Recorded per run
   as `validation_pass`; below-threshold runs are flagged and withheld from reporting.
 - **Re-validate on any change** to reference, caller, or filtering *before* tagging a new

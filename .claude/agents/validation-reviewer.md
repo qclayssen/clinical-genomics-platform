@@ -15,7 +15,8 @@ Read `docs/VALIDATION.md`, `pipeline/modules/validate/happy_benchmark.nf`,
 ## What to scrutinize
 
 1. **Benchmarking methodology.** Is `hap.py` run against the correct GIAB truth VCF, restricted
-   to the high-confidence BED, with a proper comparison engine (vcfeval) and matching reference?
+   to the high-confidence BED, with a proper comparison engine (xcmp — see ADR-0015 for why not
+   vcfeval) and matching reference?
    Flag anything that would inflate or deflate the metrics — e.g. comparing outside the
    confident regions, contig-name mismatches (chr20 vs 20), or a reference/truth build mismatch.
 2. **Metric correctness.** Confirm precision/recall/F1 are parsed from the right hap.py fields

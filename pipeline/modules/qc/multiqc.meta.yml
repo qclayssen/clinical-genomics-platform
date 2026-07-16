@@ -27,9 +27,9 @@ output:
           description: Standalone HTML MultiQC report aggregating all supplied QC outputs
           pattern: "multiqc_report.html"
   - data:
-      - "multiqc_data":
+      - "multiqc_report_data":
           type: directory
           description: Directory of parsed data tables backing the report
-          pattern: "multiqc_data"
+          pattern: "multiqc_report_data"
 authors:
   - "Quentin Clayssen"

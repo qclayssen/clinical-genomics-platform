@@ -1,6 +1,6 @@
 # ADR-0003 — Validate by benchmarking against a truth set (hap.py)
 
-**Status:** Accepted · **Date:** 2026-05-06
+**Status:** Accepted, engine choice superseded by [ADR-0015](0015-happy-xcmp-engine-not-vcfeval.md) · **Date:** 2026-05-06
 
 ## Context
 

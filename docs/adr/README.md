@@ -36,6 +36,9 @@ Each ADR follows the same tiny structure:
 | [0010](0010-ga4gh-standards-alignment.md) | Align with GA4GH standards; implement the refget/VRS digest primitive | Accepted |
 | [0011](0011-serverless-lambda-stepfunctions.md) | Migrate compute Batch/Fargate → Lambda + Step Functions (free-tier) | Accepted (supersedes 0004) |
 | [0012](0012-dynamodb-primary-store.md) | DynamoDB primary store; Postgres → Metabase read-replica | Accepted (supersedes 0005) |
+| [0013](0013-qc-warnings-adaptive-thresholds-self-healing.md) | QC warnings with adaptive thresholds and self-healing | Accepted |
+| [0014](0014-agentic-variant-interpretation.md) | Agentic variant interpretation with a ReAct loop (ACMG/AMP) | Accepted |
+| [0015](0015-happy-xcmp-engine-not-vcfeval.md) | Use hap.py's xcmp engine, not vcfeval | Accepted (supersedes engine choice in 0003) |
 
 ## Conventions
 

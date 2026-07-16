@@ -153,8 +153,13 @@ Google's variant caller that uses a neural network (AI) to call variants. The pr
 The tool that **grades** our variant calls against the truth set and computes precision,
 recall, and F1 (step 6). *The exam marker.*
 
+**xcmp**
+The comparison "engine" hap.py uses under the hood to match up variants fairly — hap.py's
+original, self-contained engine. This is what the platform actually runs (see ADR-0015).
+
 **vcfeval**
-The comparison "engine" hap.py uses under the hood to match up variants fairly.
+An alternative, more sophisticated comparison engine for hap.py. Not used here: it needs an
+external tool (`rtg-tools`) that isn't in the pinned `hap.py` container (ADR-0015).
 
 **seqtk**
 A small utility for subsampling FASTQ files (taking a random slice) to make test data

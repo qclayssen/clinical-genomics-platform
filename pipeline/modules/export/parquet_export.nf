@@ -1,7 +1,7 @@
 process PARQUET_EXPORT {
     tag   { meta.id }
     label 'process_low'
-    container 'quay.io/biocontainers/pyarrow:15.0.0'
+    container 'quay.io/biocontainers/pyarrow:4.0.1'
 
     input:
     tuple val(meta), path(json)
@@ -34,6 +34,6 @@ process PARQUET_EXPORT {
     stub:
     """
     touch ${meta.id}.metrics.parquet
-    printf '"%s":\\n    pyarrow: 15.0.0\\n' "${task.process}" > versions.yml
+    printf '"%s":\\n    pyarrow: 4.0.1\\n' "${task.process}" > versions.yml
     """
 }

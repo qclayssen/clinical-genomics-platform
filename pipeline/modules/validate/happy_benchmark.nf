@@ -1,7 +1,7 @@
 process HAPPY_BENCHMARK {
     tag   { meta.id }
     label 'process_medium'
-    container 'quay.io/biocontainers/hap.py:0.3.15--py27h5c5a762_0'
+    container 'quay.io/biocontainers/hap.py:0.3.15--py27hcb73b3d_0'
 
     input:
     tuple val(meta), path(vcf), path(tbi)
@@ -25,7 +25,7 @@ process HAPPY_BENCHMARK {
         -r ${fasta} \\
         -o ${meta.id}.happy \\
         --threads ${task.cpus} \\
-        --engine vcfeval
+        --engine xcmp
 
     printf '"%s":\\n    hap.py: %s\\n' "${task.process}" "\$(hap.py --version 2>&1 | tail -1)" > versions.yml
     """

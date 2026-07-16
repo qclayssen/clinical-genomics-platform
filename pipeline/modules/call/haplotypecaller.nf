@@ -13,7 +13,6 @@ process HAPLOTYPECALLER {
 
     script:
     """
-    samtools faidx ${fasta}
     gatk CreateSequenceDictionary -R ${fasta} 2>/dev/null || true
 
     gatk --java-options "-Xmx${task.memory.toGiga()}g" HaplotypeCaller \\
