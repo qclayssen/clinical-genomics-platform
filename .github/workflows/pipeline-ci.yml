@@ -21,10 +21,10 @@ jobs:
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with: { python-version: '3.11' }
 
       - name: Install Nextflow
@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload coverage artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage.xml
@@ -74,8 +74,8 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with: { python-version: '3.11' }
       - name: Report renderer produces guardrail-compliant output
         run: |
@@ -100,8 +100,8 @@ jobs:
     timeout-minutes: 15
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with: { python-version: '3.11' }
       - name: Install CPU ML stack
         run: pip install --quiet torch transformers datasets peft --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
@@ -114,8 +114,8 @@ jobs:
     timeout-minutes: 10
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with: { python-version: '3.11' }
       - name: Install test dependencies
         run: pip install --quiet pytest hypothesis

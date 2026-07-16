@@ -20,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download coverage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coverage-report
           run-id: ${{ github.event.workflow_run.id }}
@@ -47,10 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download coverage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coverage-report
           run-id: ${{ github.event.workflow_run.id }}
@@ -71,7 +71,7 @@ jobs:
           echo "percentage=$PCT" >> "$GITHUB_OUTPUT"
 
       - name: Update dynamic badge gist
-        uses: schneegans/dynamic-badges-action@v1.7.0
+        uses: schneegans/dynamic-badges-action@v1.9.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
           gistID: ${{ vars.COVERAGE_GIST_ID }}
