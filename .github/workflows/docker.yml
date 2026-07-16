@@ -1,0 +1,107 @@
+name: docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/**'
+      - 'pipeline/bin/build_metrics.py'
+      - 'pipeline/bin/ingest_metrics.py'
+      - '.github/workflows/docker.yml'
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'docker/**'
+      - 'pipeline/bin/build_metrics.py'
+      - 'pipeline/bin/ingest_metrics.py'
+  workflow_call:
+    inputs:
+      push_image:
+        description: Whether to push the image
+        type: boolean
+        default: false
+      version_tag:
+        description: Version tag for the image (e.g. v1.2.3)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/cgp-tools
+
+jobs:
+  build-scan-push:
+    name: Build, scan, and push Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # SHA tag on every push to main
+            type=sha,prefix=sha-,format=short
+            # Version tag on release
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            # latest on release tag
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # Workflow call version tag
+            type=raw,value=${{ inputs.version_tag }},enable=${{ inputs.version_tag != '' }}
+
+      - name: Build image (load for scanning)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.tools
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:ci-scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:ci-scan
+          format: sarif
+          output: trivy-image-results.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-image-results.sarif
+          category: trivy-docker-image
+
+      - name: Build and push
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.tools
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
