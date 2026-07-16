@@ -27,7 +27,7 @@ process DEEPVARIANT {
 
     stub:
     """
-    echo '##fileformat=VCFv4.2' | bgzip > ${meta.id}.dv.vcf.gz
+    printf '##fileformat=VCFv4.2\\n' | gzip > ${meta.id}.dv.vcf.gz
     touch ${meta.id}.dv.vcf.gz.tbi
     printf '"%s":\\n    deepvariant: 1.6.1\\n' "${task.process}" > versions.yml
     """
