@@ -20,7 +20,7 @@ numpy==1.26.4
 ollama==0.3.3
 
 # Transitive deps pinned for reproducibility
-huggingface-hub==0.24.7
+huggingface-hub==1.23.0
 tokenizers==0.19.1
 safetensors==0.4.5
 tqdm==4.66.5
