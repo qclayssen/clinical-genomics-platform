@@ -37,8 +37,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      # Metabase stores its own state in a separate DB to avoid collisions with cgp schema
       MB_DB_TYPE: postgres
-      MB_DB_DBNAME: cgp
+      MB_DB_DBNAME: metabase
       MB_DB_PORT: 5432
       MB_DB_USER: cgp
       MB_DB_PASS: cgp
