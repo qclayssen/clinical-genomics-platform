@@ -196,14 +196,23 @@ def run_interpretation(args: argparse.Namespace) -> int:
             backend=backend,
             max_iterations=args.max_iterations,
         )
-        results = agent.run_batch(variants)
+        try:
+            results = agent.run_batch(variants)
+        finally:
+            agent.close()
         backend_label = backend.model_id
 
-        # For any variant where the agent failed, run deterministic fallback
+        # For any variant where the agent failed, run deterministic fallback.
+        # Always re-classify on fallback — if the agent couldn't complete
+        # cleanly, its result is suspect regardless of what it emitted.
         fallback = DeterministicInterpreter()
         for i, result in enumerate(results):
             if result.fallback_triggered:
-                logger.info(f"Fallback triggered for {result.variant}, running deterministic")
+                logger.info(
+                    f"Fallback triggered for {result.variant} "
+                    f"(agent classification: {result.classification}), "
+                    "running deterministic"
+                )
                 fallback_result = fallback.run(result.variant)
                 # Keep the original trace but use fallback classification
                 fallback_result.trace = result.trace + fallback_result.trace

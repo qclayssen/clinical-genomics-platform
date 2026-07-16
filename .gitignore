@@ -42,5 +42,12 @@ __pycache__/
 venv/
 .venv/
 
+# Secrets / environment
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+
 # OS
 .DS_Store

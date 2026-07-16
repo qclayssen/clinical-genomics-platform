@@ -38,3 +38,19 @@ git push
   (`Permission denied (publickey)`) — add it at github.com → Settings → SSH keys, or just
   use the `gh` HTTPS flow above, which is simpler.
 - Nothing here is auto-pushed. You stay in control of what goes public and when.
+
+## Social preview image
+
+When the repo link is shared on LinkedIn, Twitter, or Slack, GitHub shows a social preview
+card. By default it's just the repo name on a plain background.
+
+To set a custom banner (1280 x 640 px recommended):
+
+1. Create or export a banner image — e.g. the architecture diagram or a styled project title.
+   Save it to `docs/assets/social-preview.png`.
+2. Go to your repo on GitHub → **Settings** → **General** → scroll to **Social preview**.
+3. Upload the image.
+
+A good social preview shows the project name, a one-line tagline, and a hint of the
+tech stack (DNA helix + AWS + dashboard). Tools like Figma, Canva, or even Excalidraw
+work well for this.

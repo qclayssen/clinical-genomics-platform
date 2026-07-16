@@ -278,7 +278,12 @@ class ReActAgent:
                     result.error = "Agent stopped without final_answer"
                     break
 
-                # Process tool calls
+                # Process tool calls — collect all results before appending
+                # to conversation to avoid malformed history with multi-tool
+                # responses (one assistant message with N tool calls, then N
+                # tool-result messages).
+                tool_results_batch: list[tuple["ToolCall", ToolResult]] = []
+
                 for tool_call in response.tool_calls:
                     # Loop detection
                     args_hash = json.dumps(tool_call.arguments, sort_keys=True)
@@ -318,6 +323,8 @@ class ReActAgent:
                         duration_ms=tool_result.duration_ms,
                     ))
 
+                    tool_results_batch.append((tool_call, tool_result))
+
                     # Check if this is a terminal tool call (final_answer)
                     if tool_call.name == "final_answer" and tool_result.success:
                         output = tool_result.output
@@ -342,18 +349,21 @@ class ReActAgent:
                             result.wall_time_ms = (time.perf_counter() - start_time) * 1000
                             return result
 
-                    # Add assistant message + tool result to conversation
+                # Append conversation history correctly: one assistant message
+                # carrying all tool calls, then one tool-result message per call.
+                if tool_results_batch and not result.fallback_triggered:
                     messages.append(Message(
                         role="assistant",
                         content=response.content or "",
-                        tool_calls=[tool_call],
+                        tool_calls=[tc for tc, _ in tool_results_batch],
                     ))
-                    messages.append(Message(
-                        role="tool",
-                        content=json.dumps(tool_result.output),
-                        tool_call_id=tool_call.id,
-                        name=tool_call.name,
-                    ))
+                    for tc, tr in tool_results_batch:
+                        messages.append(Message(
+                            role="tool",
+                            content=json.dumps(tr.output),
+                            tool_call_id=tc.id,
+                            name=tc.name,
+                        ))
 
                 # Check if loop was triggered
                 if result.fallback_triggered:
@@ -417,6 +427,10 @@ class ReActAgent:
             # Reset tool registry log between variants
             self._tool_registry.reset_log()
         return results
+
+    def close(self) -> None:
+        """Close the tool registry and its underlying knowledge base connection."""
+        self._tool_registry.close()
 
     def _format_variant_prompt(self, variant: Variant) -> str:
         """Format the variant as a user prompt for the agent."""
