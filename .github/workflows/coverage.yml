@@ -1,0 +1,82 @@
+name: coverage-report
+
+on:
+  workflow_run:
+    workflows: [pipeline-ci]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+jobs:
+  coverage-comment:
+    name: Post coverage summary to PR
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Coverage comment
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-xml-coverage-path: coverage.xml
+          title: "Test Coverage Report"
+          badge-title: Coverage
+          hide-badge: false
+          hide-report: false
+          junitxml-path: ""
+
+  update-badge:
+    name: Update coverage badge
+    if: >
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          sudo apt-get install -y xmlstarlet > /dev/null 2>&1 || true
+          if command -v xmlstarlet &>/dev/null; then
+            COV=$(xmlstarlet sel -t -v '/coverage/@line-rate' coverage.xml 2>/dev/null || echo "0")
+            PCT=$(echo "$COV * 100" | bc -l | xargs printf "%.1f")
+          else
+            # Fallback: grep for line-rate
+            COV=$(grep -oP 'line-rate="\K[^"]+' coverage.xml | head -1)
+            PCT=$(echo "$COV * 100" | bc -l | xargs printf "%.1f")
+          fi
+          echo "percentage=$PCT" >> "$GITHUB_OUTPUT"
+
+      - name: Update dynamic badge gist
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: ${{ vars.COVERAGE_GIST_ID }}
+          filename: coverage-badge.json
+          label: coverage
+          message: "${{ steps.coverage.outputs.percentage }}%"
+          valColorRange: ${{ steps.coverage.outputs.percentage }}
+          maxColorRange: 90
+          minColorRange: 50

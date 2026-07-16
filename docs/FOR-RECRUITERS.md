@@ -35,7 +35,7 @@ finished and runnable, not a half-built sprawl.
 | **BI / reporting** | Metabase dashboard defined as version-controlled SQL | `dashboards/` |
 | **Machine learning** | **PyTorch** QLoRA fine-tuning of a small open LLM; model card; guardrails | `ai-report/`, `ai-report/MODEL_CARD.md` |
 | **MLOps / responsible AI** | Human-in-the-loop, enforced guardrails in code, graceful degradation | [ADR-0008](adr/0008-guardrails-human-in-the-loop.md) |
-| **DevOps** | Docker per step (pinned by digest), GitHub Actions CI (pipeline + infra + ML) | `docker/`, `.github/workflows/` |
+| **DevOps** | Tiered CI/CD: Ruff lint, pip-audit + Trivy security, DB migration CI, pytest-cov + badge, Docker build/scan/GHCR, Dependabot, semver release, scheduled maintenance | `docker/`, `.github/workflows/`, [ADR-0016](adr/0016-cicd-strategy.md) |
 | **Engineering judgement** | 9 Architecture Decision Records weighing trade-offs | `docs/adr/` |
 | **Agentic AI** | ReAct-style tool-using agent: multi-provider LLM, function-calling, ACMG classification, deterministic fallback, property-based testing | `ai-report/agent/`, [ADR-0014](adr/0014-agentic-variant-interpretation.md) |
 | **Quality/accreditation literacy** | ISO 15189 / NATA patterns: validation, provenance, SOP, change control | `docs/VALIDATION.md`, `docs/SOP-run-pipeline.md` |
