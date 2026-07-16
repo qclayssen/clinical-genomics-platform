@@ -1,7 +1,7 @@
 # Fine-tuning + inference stack (single-GPU friendly).
 # The --offline renderer in infer.py needs none of these — only the model paths do.
 torch>=2.2
-transformers>=4.44
+transformers>=5.14.0
 datasets>=2.20
 peft>=0.12
 trl>=0.9
