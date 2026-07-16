@@ -50,5 +50,8 @@ venv/
 *.key
 credentials.json
 
+# Personal study / interview prep (not part of the project)
+docs/INTERVIEW-PREP.md
+
 # OS
 .DS_Store

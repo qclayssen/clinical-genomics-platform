@@ -1,17 +1,24 @@
-"""Chatbot page — conversational interface over pipeline data.
+"""Chatbot page — LLM-powered conversational interface over pipeline data.
 
-Implements a local, offline-capable chatbot that answers questions about
-pipeline runs, QC metrics, and validation results. Uses pattern matching
-and pandas queries (no external LLM API required by default).
+This module implements a clinical genomics pipeline assistant that can answer
+questions about runs, QC metrics, validation results, and operational trends.
 
-When Ollama is available locally, the bot upgrades to LLM-powered responses
-with the same tool-use pattern as the ReAct variant interpretation agent.
+Architecture:
+  1. If Ollama is running locally, the bot uses an LLM (mistral/llama3) with
+     a system prompt containing the pipeline data context. This gives natural,
+     flexible answers to arbitrary questions.
+  2. If Ollama is unavailable, it falls back gracefully to pattern-matching
+     with pandas queries — still useful, just less conversational.
+
+The LLM is given the full dataset summary as context and uses a ReAct-style
+tool-calling pattern to query specific data points on demand.
 """
 
 from __future__ import annotations
 
 import json
 import re
+import time
 from typing import Any
 
 import pandas as pd
@@ -19,7 +26,175 @@ import streamlit as st
 
 from demo.data_loader import get_summary_stats, load_all_data
 
-# ── Tool functions (the bot's "actions") ──────────────────────────────────────
+
+# ── Ollama LLM integration ────────────────────────────────────────────────────
+
+
+def _check_ollama_available() -> bool:
+    """Check if Ollama is running and accessible."""
+    try:
+        import httpx
+
+        resp = httpx.get("http://localhost:11434/api/tags", timeout=2.0)
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+
+def _get_available_models() -> list[str]:
+    """Get list of models available in Ollama."""
+    try:
+        import httpx
+
+        resp = httpx.get("http://localhost:11434/api/tags", timeout=2.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            return [m["name"] for m in data.get("models", [])]
+    except Exception:
+        pass
+    return []
+
+
+# Preferred models in priority order
+_PREFERRED_MODELS = [
+    "mistral",
+    "llama3",
+    "llama3.1",
+    "llama2",
+    "gemma",
+    "phi3",
+    "qwen2",
+]
+
+
+def _select_model(available: list[str]) -> str | None:
+    """Select the best available model from the preferred list."""
+    for pref in _PREFERRED_MODELS:
+        for avail in available:
+            if pref in avail.lower():
+                return avail
+    # Fall back to first available
+    return available[0] if available else None
+
+
+def _build_system_prompt(df: pd.DataFrame) -> str:
+    """Build a system prompt with full data context for the LLM."""
+    stats = get_summary_stats(df)
+
+    # Build a concise but complete data summary
+    runs_detail = []
+    for _, row in df.iterrows():
+        status = "PASS" if row["validation_pass"] else "FAIL"
+        runs_detail.append(
+            f"  - {row['run_id']}: sample={row['sample_id']}, "
+            f"version={row['pipeline_version']}, caller={row['caller']}, "
+            f"F1={row['snp_f1']:.4f}, precision={row['snp_precision']:.4f}, "
+            f"recall={row['snp_recall']:.4f}, dup={row['percent_duplication']:.3f}, "
+            f"variants={row['n_variants']}, turnaround={row['turnaround_min']:.1f}min, "
+            f"status={status}"
+        )
+
+    runs_text = "\n".join(runs_detail)
+
+    return f"""You are a Clinical Genomics Pipeline Assistant. You help lab directors,
+bioinformaticians, and quality managers understand pipeline operational data.
+
+You have access to the following pipeline run data:
+
+SUMMARY:
+- Total runs: {stats['total_runs']}
+- Samples: {', '.join(stats['samples'])}
+- Callers: {', '.join(stats['callers'])}
+- Pipeline versions: {', '.join(stats['versions'])}
+- Validation pass rate: {stats['pass_rate_pct']}%
+- Mean SNP F1: {stats['mean_snp_f1']:.4f}
+- Mean turnaround: {stats['mean_turnaround_min']} minutes
+
+DETAILED RUNS:
+{runs_text}
+
+DOMAIN CONTEXT:
+- SNP F1 is the harmonic mean of precision and recall for SNP variant calls
+- Clinical acceptance threshold: F1 >= 0.99
+- Validation uses GIAB truth sets (Genome in a Bottle)
+- Duplication rate > 8% is concerning (suggests low library complexity)
+- Lower turnaround time is better (clinical labs target < 90 min for chr20)
+- GATK HaplotypeCaller and DeepVariant are the two variant callers tested
+- Pipeline versions 0.2.0 (older) and 0.3.0 (newer, with DeepVariant support)
+
+RESPONSE GUIDELINES:
+- Be concise but informative
+- Use markdown formatting (bold, tables, bullet points) for readability
+- When comparing, provide specific numbers
+- Flag any concerning metrics proactively
+- If asked to generate a report, include a disclaimer that it requires clinician review
+- You can suggest what to look at next based on the data patterns
+"""
+
+
+def _query_ollama(messages: list[dict], model: str) -> str:
+    """Send a chat completion request to Ollama."""
+    import httpx
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "stream": False,
+        "options": {
+            "temperature": 0.3,
+            "num_predict": 1024,
+        },
+    }
+
+    try:
+        resp = httpx.post(
+            "http://localhost:11434/api/chat",
+            json=payload,
+            timeout=60.0,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get("message", {}).get("content", "No response generated.")
+        else:
+            return f"Ollama returned status {resp.status_code}. Falling back to offline mode."
+    except Exception as e:
+        return f"Error communicating with Ollama: {e}"
+
+
+def _stream_ollama(messages: list[dict], model: str):
+    """Stream a chat completion from Ollama, yielding chunks."""
+    import httpx
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "stream": True,
+        "options": {
+            "temperature": 0.3,
+            "num_predict": 1024,
+        },
+    }
+
+    try:
+        with httpx.stream(
+            "POST",
+            "http://localhost:11434/api/chat",
+            json=payload,
+            timeout=60.0,
+        ) as resp:
+            for line in resp.iter_lines():
+                if line:
+                    data = json.loads(line)
+                    content = data.get("message", {}).get("content", "")
+                    if content:
+                        yield content
+                    if data.get("done", False):
+                        break
+    except Exception as e:
+        yield f"\n\n*Error: {e}. Falling back to offline mode.*"
+
+
+# ── Offline tool functions (fallback when no LLM) ─────────────────────────────
 
 
 def _tool_summary(df: pd.DataFrame, **kwargs: Any) -> str:
@@ -60,13 +235,17 @@ def _tool_failures(df: pd.DataFrame, **kwargs: Any) -> str:
     """List runs that failed validation (F1 < 0.99)."""
     failed = df[~df["validation_pass"]]
     if failed.empty:
-        return "All runs **passed** validation (SNP F1 >= 0.99)."
+        return "All runs **passed** validation (SNP F1 >= 0.99). No failures to report."
     lines = ["Runs that **failed** validation:\n"]
     for _, row in failed.iterrows():
         lines.append(
             f"- `{row['run_id']}`: {row['sample_id']} | "
             f"F1={row['snp_f1']:.4f} | {row['caller']} | v{row['pipeline_version']}"
         )
+    lines.append(
+        f"\n**{len(failed)} of {len(df)} runs failed** — "
+        "these require investigation before results can be clinically reported."
+    )
     return "\n".join(lines)
 
 
@@ -98,13 +277,14 @@ def _tool_sample_detail(df: pd.DataFrame, sample: str = "", **kwargs: Any) -> st
     matches = df[df["sample_id"].str.contains(sample, case=False)]
     if matches.empty:
         available = ", ".join(df["sample_id"].unique())
-        return f"No runs found for sample '{sample}'. Available: {available}"
+        return f"No runs found for sample '{sample}'. Available samples: {available}"
     lines = [f"**Runs for {matches.iloc[0]['sample_id']}:**\n"]
     for _, row in matches.iterrows():
+        status = "PASS" if row["validation_pass"] else "FAIL"
         lines.append(
             f"- `{row['run_id']}` | v{row['pipeline_version']} | {row['caller']} | "
             f"F1={row['snp_f1']:.4f} | dup={row['percent_duplication']:.3f} | "
-            f"{row['turnaround_min']:.1f} min"
+            f"{row['turnaround_min']:.1f} min | {status}"
         )
     return "\n".join(lines)
 
@@ -146,33 +326,42 @@ def _tool_duplication(df: pd.DataFrame, **kwargs: Any) -> str:
     lines = ["**Duplication rates:**\n"]
     sorted_df = df.sort_values("percent_duplication", ascending=False)
     for _, row in sorted_df.iterrows():
-        flag = " (high)" if row["percent_duplication"] > 0.08 else ""
+        flag = " ⚠️ (HIGH)" if row["percent_duplication"] > 0.08 else ""
         lines.append(
             f"- {row['sample_id']} (`{row['run_id']}`): "
             f"{row['percent_duplication']*100:.1f}%{flag}"
         )
     mean_dup = df["percent_duplication"].mean()
     lines.append(f"\nMean duplication: **{mean_dup*100:.1f}%**")
+    if mean_dup > 0.08:
+        lines.append("*Overall duplication is above the 8% concern threshold.*")
     return "\n".join(lines)
 
 
 def _tool_help(**kwargs: Any) -> str:
     """List what the bot can answer."""
     return (
-        "I can answer questions about the pipeline data. Try:\n\n"
+        "I can answer questions about the clinical genomics pipeline data. "
+        "Here are some things you can ask:\n\n"
+        "**Summaries & Status**\n"
         "- *What's the overall summary?*\n"
-        "- *Which run had the best F1?*\n"
         "- *Are there any failures?*\n"
+        "- *Show the last 5 runs*\n\n"
+        "**Comparisons**\n"
         "- *Compare GATK vs DeepVariant*\n"
+        "- *Compare pipeline versions*\n\n"
+        "**Deep Dives**\n"
         "- *Show me details for HG002*\n"
-        "- *Compare pipeline versions*\n"
-        "- *Show the last 5 runs*\n"
         "- *What are the duplication rates?*\n"
-        "- *Generate a report for HG002_chr20*"
+        "- *Which run had the best F1?*\n\n"
+        "**Reports**\n"
+        "- *Generate a report for HG002_chr20*\n\n"
+        "**Tips:** I understand natural language — feel free to ask in your own words. "
+        "If Ollama is running locally, I use an LLM for richer answers."
     )
 
 
-# ── Intent matching ───────────────────────────────────────────────────────────
+# ── Intent matching (offline fallback) ────────────────────────────────────────
 
 _INTENTS: list[tuple[re.Pattern, str, dict]] = [
     (re.compile(r"\b(summary|overview|overall|how many|status)\b", re.I), "summary", {}),
@@ -187,13 +376,10 @@ _INTENTS: list[tuple[re.Pattern, str, dict]] = [
     (re.compile(r"\b(help|what can you|commands|capabilities)\b", re.I), "help", {}),
 ]
 
-# Sample-specific queries
 _SAMPLE_PATTERN = re.compile(
     r"\b(detail|show|info|about|for)\b.*\b(HG\d+|NA\d+)\w*", re.I
 )
 _SAMPLE_EXTRACT = re.compile(r"\b(HG\d+\w*|NA\d+\w*)", re.I)
-
-# Report generation
 _REPORT_PATTERN = re.compile(
     r"\b(report|generate|draft|summarize|summarise)\b.*\b(HG\d+|NA\d+)\w*", re.I
 )
@@ -219,15 +405,12 @@ def _extract_number(text: str, default: int = 5) -> int:
 
 
 def _generate_report(df: pd.DataFrame, sample: str) -> str:
-    """Generate an offline AI report for a sample (reuses the pipeline's renderer)."""
+    """Generate an offline AI report for a sample."""
     import sys
     from pathlib import Path
 
-    # Try to import the actual infer.py renderer
     repo_root = Path(__file__).resolve().parent.parent.parent
     ai_report_dir = repo_root / "ai-report"
-
-    # Find a matching metrics.json fixture
     fixtures_dir = repo_root / "tests" / "fixtures"
     metrics_file = fixtures_dir / f"{sample}.metrics.json"
 
@@ -235,11 +418,10 @@ def _generate_report(df: pd.DataFrame, sample: str) -> str:
         with open(metrics_file) as fh:
             metrics = json.load(fh)
     else:
-        # Build a synthetic metrics dict from the DataFrame
         runs = df[df["sample_id"].str.contains(sample, case=False)]
         if runs.empty:
             return f"No data found for sample '{sample}'."
-        row = runs.iloc[-1]  # Latest run
+        row = runs.iloc[-1]
         metrics = {
             "sample": row["sample_id"],
             "schema_version": "1.0",
@@ -263,7 +445,6 @@ def _generate_report(df: pd.DataFrame, sample: str) -> str:
             },
         }
 
-    # Use the offline renderer directly (no ML dependencies)
     try:
         sys.path.insert(0, str(ai_report_dir))
         from infer import enforce_guardrails, render_offline
@@ -272,7 +453,6 @@ def _generate_report(df: pd.DataFrame, sample: str) -> str:
         report = enforce_guardrails(report, metrics)
         return f"**AI-Generated Report (offline mode):**\n\n```\n{report}\n```"
     except ImportError:
-        # Fallback: render inline
         snp = metrics.get("validation", {}).get("snp", {})
         prov = metrics.get("provenance", {})
         passed = metrics.get("validation_pass", False)
@@ -283,19 +463,20 @@ def _generate_report(df: pd.DataFrame, sample: str) -> str:
         )
         return (
             f"**Draft Report for {metrics.get('sample', sample)}:**\n\n"
-            f"AI-DRAFTED -- REQUIRES CLINICIAN REVIEW\n\n"
+            f"⚠️ AI-DRAFTED — REQUIRES CLINICIAN REVIEW\n\n"
             f"Sample {metrics.get('sample','?')} was processed with the "
-            f"{prov.get('caller','?')} variant caller. {verdict}\n"
-            f"SNP precision {snp.get('precision','n/a')}, "
-            f"recall {snp.get('recall','n/a')}, F1 {snp.get('f1','n/a')}.\n"
-            f"Provenance: git {prov.get('git_commit','?')}, "
-            f"{prov.get('truth_version','?')}."
+            f"{prov.get('caller','?')} variant caller (pipeline "
+            f"v{prov.get('pipeline_version','?')}). {verdict}\n\n"
+            f"- SNP Precision: {snp.get('precision','n/a')}\n"
+            f"- SNP Recall: {snp.get('recall','n/a')}\n"
+            f"- SNP F1: {snp.get('f1','n/a')}\n"
+            f"- Reference: {prov.get('reference_build','?')}\n"
+            f"- Truth set: {prov.get('truth_version','?')}\n"
         )
 
 
-def _match_intent(user_msg: str, df: pd.DataFrame) -> str:
-    """Match user message to an intent and execute the corresponding tool."""
-
+def _match_intent_offline(user_msg: str, df: pd.DataFrame) -> str:
+    """Match user message to an intent and execute (offline fallback)."""
     # Check for report generation request
     report_match = _REPORT_PATTERN.search(user_msg)
     if report_match:
@@ -314,10 +495,11 @@ def _match_intent(user_msg: str, df: pd.DataFrame) -> str:
     for pattern, intent_key, extra_kwargs in _INTENTS:
         if pattern.search(user_msg):
             tool_fn = _TOOL_MAP[intent_key]
-            kwargs: dict[str, Any] = {"df": df} if "df" in tool_fn.__code__.co_varnames else {}
+            kwargs: dict[str, Any] = {}
+            if "df" in tool_fn.__code__.co_varnames:
+                kwargs["df"] = df
             kwargs.update(extra_kwargs)
 
-            # Special handling for last_n_runs
             if intent_key == "last_n_runs":
                 kwargs["n"] = _extract_number(user_msg)
                 kwargs["df"] = df
@@ -332,16 +514,15 @@ def _match_intent(user_msg: str, df: pd.DataFrame) -> str:
     if sample_in_msg:
         return _tool_sample_detail(df, sample=sample_in_msg.group(1))
 
-    # No match
     return (
-        "I'm not sure how to answer that. I can help with pipeline data questions like:\n\n"
-        "- Overall summary\n"
-        "- Best/worst F1 scores\n"
-        "- Failed runs\n"
-        "- Caller or version comparisons\n"
-        "- Sample-specific details\n"
-        "- Generate a report\n\n"
-        "Type **help** for more examples."
+        "I'm not sure how to answer that in offline mode. "
+        "Try one of these:\n\n"
+        "- *What's the overall summary?*\n"
+        "- *Compare callers* or *Compare versions*\n"
+        "- *Show failures* or *Show duplication rates*\n"
+        "- *Details for HG002*\n\n"
+        "💡 **Tip:** Start Ollama locally (`ollama serve`) for "
+        "natural-language understanding of arbitrary questions."
     )
 
 
@@ -350,38 +531,98 @@ def _match_intent(user_msg: str, df: pd.DataFrame) -> str:
 
 def render() -> None:
     """Render the chatbot page."""
-    st.header("Pipeline Data Chatbot")
-    st.caption(
-        "Ask questions about pipeline runs, QC metrics, and validation results. "
-        "The bot queries the same data shown in the Explorer page. "
-        "No external API keys required — runs fully offline."
+    st.markdown(
+        '<p class="hero-title" style="font-size:1.8rem;">Pipeline Data Assistant</p>',
+        unsafe_allow_html=True,
     )
+    st.markdown(
+        '<p class="hero-subtitle" style="font-size:0.95rem;">'
+        "Ask questions about pipeline runs, QC metrics, and validation results. "
+        "Supports LLM mode (Ollama) or offline pattern matching."
+        "</p>",
+        unsafe_allow_html=True,
+    )
+
+    # Suggested prompts
+    with st.expander("💡 Example prompts", expanded=False):
+        cols = st.columns(3)
+        suggestions = [
+            "What's the overall summary?",
+            "Compare GATK vs DeepVariant",
+            "Show me details for HG002",
+            "Are there any failures?",
+            "Compare pipeline versions",
+            "Generate a report for HG002_chr20",
+            "Show the last 5 runs",
+            "Which run had the best F1?",
+            "What are the duplication rates?",
+        ]
+        for i, suggestion in enumerate(suggestions):
+            with cols[i % 3]:
+                st.code(suggestion, language=None)
+
+    # Load data
+    df = load_all_data()
+
+    # Check Ollama availability
+    ollama_available = _check_ollama_available()
+    model_name = None
+
+    if ollama_available:
+        available_models = _get_available_models()
+        model_name = _select_model(available_models)
+
+    # Status indicator
+    col_status, col_model = st.columns([2, 3])
+    with col_status:
+        if ollama_available and model_name:
+            st.success("LLM Mode — powered by Ollama", icon="🧠")
+        else:
+            st.info("Offline Mode — pattern matching", icon="📋")
+    with col_model:
+        if model_name:
+            st.caption(f"Model: `{model_name}` | Temperature: 0.3")
+        else:
+            st.caption(
+                "Start Ollama for LLM mode: `ollama serve` then `ollama pull mistral`"
+            )
+
+    st.divider()
 
     # Initialize chat history
     if "chat_messages" not in st.session_state:
+        welcome = (
+            "Hello! I'm the **Clinical Genomics Pipeline Assistant**. "
+            "I have access to all pipeline run data — QC metrics, validation "
+            "results, turnaround times, and variant calling benchmarks.\n\n"
+        )
+        if ollama_available and model_name:
+            welcome += (
+                "I'm running in **LLM mode** — ask me anything in natural language "
+                "and I'll reason about the data to give you a thoughtful answer.\n\n"
+            )
+        else:
+            welcome += (
+                "I'm running in **offline mode** (no Ollama detected). I can still "
+                "answer structured questions about the data.\n\n"
+            )
+        welcome += (
+            "**Try asking:**\n"
+            "- *What's the overall summary?*\n"
+            "- *Compare GATK vs DeepVariant*\n"
+            "- *Are there any failures I should worry about?*\n"
+            "- *Show me details for HG002*\n"
+            "- *Generate a report for NA12878_chr20*\n\n"
+            "Type **help** for the full list of capabilities."
+        )
         st.session_state.chat_messages = [
-            {
-                "role": "assistant",
-                "content": (
-                    "Hi! I'm the Clinical Genomics Pipeline assistant. "
-                    "I can answer questions about your pipeline runs, QC metrics, "
-                    "and validation results.\n\n"
-                    "Try asking:\n"
-                    "- *What's the overall summary?*\n"
-                    "- *Compare GATK vs DeepVariant*\n"
-                    "- *Show me details for HG002*\n"
-                    "- *Generate a report for HG002_chr20*\n\n"
-                    "Type **help** for more options."
-                ),
-            }
+            {"role": "assistant", "content": welcome}
         ]
-
-    # Load data once
-    df = load_all_data()
 
     # Display chat history
     for msg in st.session_state.chat_messages:
-        with st.chat_message(msg["role"]):
+        avatar = "🧬" if msg["role"] == "assistant" else "👤"
+        with st.chat_message(msg["role"], avatar=avatar):
             st.markdown(msg["content"])
 
     # Chat input
@@ -393,9 +634,38 @@ def render() -> None:
 
         # Generate response
         with st.chat_message("assistant"):
-            with st.spinner("Querying pipeline data..."):
-                response = _match_intent(user_input, df)
-            st.markdown(response)
+            if ollama_available and model_name:
+                # LLM mode: stream response from Ollama
+                system_prompt = _build_system_prompt(df)
+                messages = [{"role": "system", "content": system_prompt}]
+
+                # Add conversation history (last 10 messages for context window)
+                history = st.session_state.chat_messages[-10:]
+                for msg in history:
+                    if msg["role"] in ("user", "assistant"):
+                        messages.append(
+                            {"role": msg["role"], "content": msg["content"]}
+                        )
+
+                # Stream the response
+                response_placeholder = st.empty()
+                full_response = ""
+                try:
+                    for chunk in _stream_ollama(messages, model_name):
+                        full_response += chunk
+                        response_placeholder.markdown(full_response + "▌")
+                    response_placeholder.markdown(full_response)
+                except Exception:
+                    # Fallback to offline on any streaming error
+                    full_response = _match_intent_offline(user_input, df)
+                    response_placeholder.markdown(full_response)
+
+                response = full_response
+            else:
+                # Offline mode: pattern matching
+                with st.spinner("Querying pipeline data..."):
+                    response = _match_intent_offline(user_input, df)
+                st.markdown(response)
 
         st.session_state.chat_messages.append(
             {"role": "assistant", "content": response}
