@@ -1,4 +1,10 @@
-# Demo app dependencies — interactive data explorer + chatbot
+# Demo app dependencies — interactive data explorer + LLM-powered assistant
+#
+# Core:
 streamlit==1.59.2
 plotly==6.9.0
 pandas==3.0.3
+numpy==2.2.6
+
+# LLM assistant (Ollama integration) — optional but recommended:
+httpx==0.28.1
