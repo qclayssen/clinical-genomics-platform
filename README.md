@@ -28,6 +28,7 @@ From raw WGS reads to validated variants, structured provenance, ops dashboards,
 
 [![CI — Pipeline](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/pipeline-ci.yml?label=Pipeline%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/pipeline-ci.yml)
 [![CI — Infra](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/infra-ci.yml?label=Infra%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/infra-ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/qclayssen/COVERAGE_GIST_ID/raw/coverage-badge.json&style=flat-square)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/coverage.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 [![Nextflow DSL2](https://img.shields.io/badge/Nextflow-DSL2-23b45e?style=flat-square&logo=nextflow&logoColor=white)](https://www.nextflow.io/)
 [![AWS CDK](https://img.shields.io/badge/AWS-CDK-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com/cdk/)
