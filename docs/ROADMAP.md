@@ -20,7 +20,7 @@ Nothing here invents a new capability to look impressive.
 The **serverless infrastructure migration** (Lambda + Step Functions + DynamoDB) and the
 **RAG reporter** (FAISS + Ollama) are owned by the Kiro spec and tracked in
 [`.kiro/specs/clinical-genomics-platform/tasks.md`](../.kiro/specs/clinical-genomics-platform/tasks.md)
-(AI-assisted planning spec — Kiro is the IDE used to develop this project).
+(Kiro AI-assisted spec — a structured planning feature in the Kiro IDE used to develop this project).
 Do **not** re-plan or double-track them here. Specifically out of scope for this roadmap:
 
 - `metadata-stack.ts` (DynamoDB single-table), `orchestration-stack.ts` (Step Functions +
@@ -130,8 +130,8 @@ This roadmap only picks up the **consequences** those changes leave behind for d
   diagram (and update it for the serverless topology once Kiro's migration settles). (b) Record a
   ~3-minute demo GIF/clip of the clickthrough (stub DAG → DB query → Metabase → AI report), the
   M8 milestone artifact. (c) **Make the repo public** (`gh repo edit --visibility public`) — but
-  gate this behind P0-3 and a `security-reviewer` pass (a Claude-backed code-review agent defined
-  in [`.claude/agents/`](../.claude/agents/README.md)).
+  gate this behind P0-3 and a `security-reviewer` pass (a Claude Code agent configuration used
+  during development — see [`.claude/agents/`](../.claude/agents/README.md)).
 - **Why it matters:** A private repo with no diagram/GIF is invisible in a job hunt; a public one
   with real numbers and a 3-minute demo is the whole point of a portfolio project.
 - **Effort:** M · **Depends on:** P0-3 (real numbers) + a security review before flipping to public.

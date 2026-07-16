@@ -648,3 +648,7 @@ class ToolRegistry:
     def reset_log(self) -> None:
         """Clear the invocation log."""
         self._invocation_log.clear()
+
+    def close(self) -> None:
+        """Close the underlying knowledge base connection."""
+        self._kb.close()
