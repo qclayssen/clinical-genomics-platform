@@ -4,7 +4,7 @@ process DEEPVARIANT {
     container 'google/deepvariant:1.6.1'
 
     input:
-    tuple val(meta), path(bam)
+    tuple val(meta), path(bam), path(bai)
     tuple path(fasta), path(index)
 
     output:
@@ -14,6 +14,10 @@ process DEEPVARIANT {
     script:
     """
     samtools faidx ${fasta}
+    # Ensure BAM index is discoverable (some tools expect .bam.bai)
+    if [ ! -f ${bam}.bai ] && [ -f ${bai} ]; then
+        ln -s ${bai} ${bam}.bai
+    fi
     /opt/deepvariant/bin/run_deepvariant \\
         --model_type=WGS \\
         --ref=${fasta} \\

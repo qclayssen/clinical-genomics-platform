@@ -4,7 +4,7 @@ process HAPLOTYPECALLER {
     container 'quay.io/biocontainers/gatk4:4.5.0.0--py36hdfd78af_0'
 
     input:
-    tuple val(meta), path(bam)
+    tuple val(meta), path(bam), path(bai)
     tuple path(fasta), path(index)
 
     output:

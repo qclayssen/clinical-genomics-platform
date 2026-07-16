@@ -7,9 +7,9 @@ process MARKDUPLICATES {
     tuple val(meta), path(bam)
 
     output:
-    tuple val(meta), path("${meta.id}.markdup.bam"),     emit: bam
-    tuple val(meta), path("${meta.id}.markdup.metrics"), emit: metrics
-    path  "versions.yml",                                emit: versions
+    tuple val(meta), path("${meta.id}.markdup.bam"), path("${meta.id}.markdup.{bai,bam.bai}"), emit: bam
+    tuple val(meta), path("${meta.id}.markdup.metrics"),                                       emit: metrics
+    path  "versions.yml",                                                                      emit: versions
 
     script:
     """
