@@ -1,0 +1,135 @@
+name: maintenance
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 6 AM UTC
+  workflow_dispatch:       # Manual trigger for testing
+
+permissions:
+  contents: read
+  security-events: write
+  issues: write
+
+jobs:
+  trivy-full-scan:
+    name: Full Trivy filesystem scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy (full repository scan)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-weekly-results.sarif
+          severity: CRITICAL,HIGH,MEDIUM
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-weekly-results.sarif
+          category: trivy-weekly-maintenance
+
+      - name: Fail on critical vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL
+          exit-code: '1'
+
+  license-check:
+    name: License compliance check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - name: Install dependencies and pip-licenses
+        run: |
+          pip install pip-licenses
+          pip install -r ai-report/requirements-lock.txt 2>/dev/null || true
+          pip install -r lambdas/requirements.txt 2>/dev/null || true
+          pip install -r demo/requirements.txt 2>/dev/null || true
+
+      - name: Check for problematic licenses
+        run: |
+          echo "=== Python dependency licenses ==="
+          pip-licenses --format=table --with-urls
+
+          echo ""
+          echo "=== Checking for GPL/AGPL licenses (incompatible with MIT) ==="
+          PROBLEMATIC=$(pip-licenses --format=csv | grep -iE "GPL|AGPL" | grep -viE "LGPL" || true)
+
+          if [ -n "$PROBLEMATIC" ]; then
+            echo "WARNING: Potentially incompatible licenses found:"
+            echo "$PROBLEMATIC"
+            echo ""
+            echo "Review required: GPL/AGPL dependencies in a MIT-licensed project."
+            exit 1
+          else
+            echo "All licenses compatible with MIT — no GPL/AGPL found."
+          fi
+
+  create-issue-on-failure:
+    name: Create issue on scan failure
+    needs: [trivy-full-scan, license-check]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `[Maintenance] Security/license scan failure — ${new Date().toISOString().split('T')[0]}`;
+            const body = [
+              '## Scheduled Maintenance Scan Failed',
+              '',
+              `**Workflow run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'One or more maintenance checks failed:',
+              '- **Trivy full scan**: checks for CRITICAL/HIGH/MEDIUM vulnerabilities',
+              '- **License check**: validates no GPL/AGPL in production dependencies',
+              '',
+              'Please review the workflow logs and address the findings.',
+              '',
+              '---',
+              '_This issue was created automatically by the weekly maintenance workflow._'
+            ].join('\n');
+
+            // Check if a similar open issue already exists
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'maintenance,security'
+            });
+
+            const existing = issues.find(i => i.title.startsWith('[Maintenance]'));
+            if (existing) {
+              // Comment on existing issue instead of creating duplicate
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `New failure detected on ${new Date().toISOString().split('T')[0]}.\n\n${body}`
+              });
+              console.log(`Commented on existing issue #${existing.number}`);
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['maintenance', 'security']
+              });
+              console.log('Created new maintenance issue');
+            }
