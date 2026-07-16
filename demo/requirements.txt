@@ -1,0 +1,4 @@
+# Demo app dependencies — interactive data explorer + chatbot
+streamlit>=1.45.0
+plotly>=6.0.0
+pandas>=2.2.0
