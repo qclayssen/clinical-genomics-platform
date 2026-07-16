@@ -13,7 +13,6 @@ from __future__ import annotations
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import streamlit as st
 
 from demo.data_loader import get_summary_stats, load_all_data

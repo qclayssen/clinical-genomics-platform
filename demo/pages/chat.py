@@ -18,14 +18,12 @@ from __future__ import annotations
 
 import json
 import re
-import time
 from typing import Any
 
 import pandas as pd
 import streamlit as st
 
 from demo.data_loader import get_summary_stats, load_all_data
-
 
 # ── Ollama LLM integration ────────────────────────────────────────────────────
 
