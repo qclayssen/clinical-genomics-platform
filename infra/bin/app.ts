@@ -59,8 +59,10 @@ new ObservabilityStack(app, 'CgpObservability', {
 
 // 6. Demo Hosting — EC2 t2.micro (free tier) running Docker Compose
 //    Streamlit demo on :8501, Metabase on :3000, Postgres internal
-//    Requires AWS credentials (uses Vpc.fromLookup for the default VPC).
-if (env.account) {
+//    Requires real AWS credentials (uses Vpc.fromLookup for the default VPC).
+//    Skipped in CI where CDK_DEFAULT_ACCOUNT is a dummy placeholder.
+const isRealAccount = env.account && env.account !== '000000000000';
+if (isRealAccount) {
   new DemoHostingStack(app, 'CgpDemoHosting', { env, tags });
 }
 
