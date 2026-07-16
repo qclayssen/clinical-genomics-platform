@@ -6,7 +6,7 @@ datasets>=2.20
 peft>=0.12
 trl>=0.9
 bitsandbytes>=0.43
-accelerate>=0.33
+accelerate>=1.14.0
 
 # RAG layer — vector store and embedding model
 sentence-transformers>=2.7
