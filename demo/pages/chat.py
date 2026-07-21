@@ -24,6 +24,7 @@ import pandas as pd
 import streamlit as st
 
 from demo.data_loader import get_summary_stats, load_all_data
+from demo.intents import SAMPLE_EXTRACT, match_intent
 
 # ── Ollama LLM integration ────────────────────────────────────────────────────
 
@@ -360,27 +361,9 @@ def _tool_help(**kwargs: Any) -> str:
 
 
 # ── Intent matching (offline fallback) ────────────────────────────────────────
-
-_INTENTS: list[tuple[re.Pattern, str, dict]] = [
-    (re.compile(r"\b(summary|overview|overall|how many|status)\b", re.I), "summary", {}),
-    (re.compile(r"\b(best|highest|top).*(f1|score|precision)\b", re.I), "best_f1", {}),
-    (re.compile(r"\b(worst|lowest|bottom).*(f1|score)\b", re.I), "worst_f1", {}),
-    (re.compile(r"\b(fail|failed|failures|didn.t pass)\b", re.I), "failures", {}),
-    (re.compile(r"\b(compare|vs|versus).*(caller|gatk|deepvariant)\b", re.I), "compare_callers", {}),
-    (re.compile(r"\b(compare|vs|versus).*(version|pipeline)\b", re.I), "version_compare", {}),
-    (re.compile(r"\b(version|pipeline).*(compare|vs|versus)\b", re.I), "version_compare", {}),
-    (re.compile(r"\b(last|recent|latest)\s*(\d+)?\s*(run)?\b", re.I), "last_n_runs", {}),
-    (re.compile(r"\b(dup|duplication)\b", re.I), "duplication", {}),
-    (re.compile(r"\b(help|what can you|commands|capabilities)\b", re.I), "help", {}),
-]
-
-_SAMPLE_PATTERN = re.compile(
-    r"\b(detail|show|info|about|for)\b.*\b(HG\d+|NA\d+)\w*", re.I
-)
-_SAMPLE_EXTRACT = re.compile(r"\b(HG\d+\w*|NA\d+\w*)", re.I)
-_REPORT_PATTERN = re.compile(
-    r"\b(report|generate|draft|summarize|summarise)\b.*\b(HG\d+|NA\d+)\w*", re.I
-)
+#
+# The routing rules live in demo/intents.py so they can be unit-tested without
+# streamlit — see tests/test_demo_chat.py.
 
 _TOOL_MAP = {
     "summary": _tool_summary,
@@ -475,43 +458,34 @@ def _generate_report(df: pd.DataFrame, sample: str) -> str:
 
 def _match_intent_offline(user_msg: str, df: pd.DataFrame) -> str:
     """Match user message to an intent and execute (offline fallback)."""
-    # Check for report generation request
-    report_match = _REPORT_PATTERN.search(user_msg)
-    if report_match:
-        sample_match = _SAMPLE_EXTRACT.search(user_msg)
-        sample = sample_match.group(1) if sample_match else ""
+    intent_key = match_intent(user_msg)
+
+    if intent_key is None:
+        return _no_match_message()
+
+    if intent_key == "help":
+        return _tool_help()
+
+    sample_match = SAMPLE_EXTRACT.search(user_msg)
+    sample = sample_match.group(1) if sample_match else ""
+
+    if intent_key == "report":
         return _generate_report(df, sample)
 
-    # Check for sample-specific queries
-    sample_match = _SAMPLE_PATTERN.search(user_msg)
-    if sample_match:
-        sample_name = _SAMPLE_EXTRACT.search(user_msg)
-        if sample_name:
-            return _tool_sample_detail(df, sample=sample_name.group(1))
+    if intent_key == "sample_detail":
+        return _tool_sample_detail(df, sample=sample)
 
-    # Check standard intents
-    for pattern, intent_key, extra_kwargs in _INTENTS:
-        if pattern.search(user_msg):
-            tool_fn = _TOOL_MAP[intent_key]
-            kwargs: dict[str, Any] = {}
-            if "df" in tool_fn.__code__.co_varnames:
-                kwargs["df"] = df
-            kwargs.update(extra_kwargs)
+    tool_fn = _TOOL_MAP[intent_key]
+    kwargs: dict[str, Any] = {"df": df}
+    if intent_key == "last_n_runs":
+        kwargs["n"] = _extract_number(user_msg)
 
-            if intent_key == "last_n_runs":
-                kwargs["n"] = _extract_number(user_msg)
-                kwargs["df"] = df
+    return tool_fn(**kwargs)
 
-            if intent_key == "help":
-                return _tool_help()
 
-            return tool_fn(**kwargs)
-
-    # Fallback: check if the message contains a sample name
-    sample_in_msg = _SAMPLE_EXTRACT.search(user_msg)
-    if sample_in_msg:
-        return _tool_sample_detail(df, sample=sample_in_msg.group(1))
-
+def _no_match_message() -> str:
+    """Shown when nothing routes. Every phrase listed here is covered by
+    demo.intents.SUGGESTED_PHRASES and asserted in tests/test_demo_chat.py."""
     return (
         "I'm not sure how to answer that in offline mode. "
         "Try one of these:\n\n"
