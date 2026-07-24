@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0013-qc-warnings-adaptive-thresholds-self-healing.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR 0013: QC Warnings with Adaptive Thresholds and Self-Healing",
+  "summary": "Decision to add a QC warning layer with multi-metric thresholds, adaptive mean±2σ tuning, multi-level self-healing, and notify-then-auto-execute remediation.",
+  "scope": ["QC threshold evaluation", "adaptive thresholds", "retry profiles", "quarantine", "healer Lambda", "Step Functions orchestration", "CloudWatch alarms", "MultiQC", "DynamoDB", "Metabase", "Postgres schema"],
+  "cross_refs": ["pipeline/conf/qc_thresholds.yaml", "pipeline/bin/qc_thresholds.py", "pipeline/bin/qc_adaptive.py", "pipeline/bin/qc_evaluate.py", "pipeline/modules/qc/qc_evaluate.nf", "pipeline/assets/multiqc_config.yaml", "pipeline/conf/retry_profiles.config", "pipeline/bin/quarantine.py", "lambdas/healer/handler.py", "infra/lib/observability-stack.ts", "infra/lib/orchestration-stack.ts", "db/schema.sql", "lambdas/shared/models.py"],
+  "locked": true,
+  "precedence": 0,
+  "notes": "Prompt noted a missing bold '**Status:**' line; the document instead uses a '## Status' section reading 'Accepted', so locked=true."
+}

@@ -38,7 +38,7 @@ graph LR
 
 **Current:** Lambda orchestrators (512 MB, 15-min timeout) invoke pipeline stages via Step Functions. Nextflow runs locally with stub mode for CI.
 
-**Production:** AWS HealthOmics private workflows provide a managed Nextflow runtime for genomics. The existing `main.nf` and all 11 modules upload directly — HealthOmics natively executes Nextflow DSL2. Container directives already reference Biocontainers images; no changes needed.
+**Production:** AWS HealthOmics private workflows provide a managed Nextflow runtime for genomics. The existing `main.nf` and all 12 modules upload directly — HealthOmics natively executes Nextflow DSL2. Container directives already reference Biocontainers images; no changes needed.
 
 **Benefits:** No timeout constraints, automatic compute scaling, per-run pricing, native Nextflow `resume`, HIPAA-eligible.
 
