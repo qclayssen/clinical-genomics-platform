@@ -9,7 +9,7 @@ Each milestone produces something you can screen-share, not just code that compi
 | **M1** | Core pipeline local: QC → align → mark-dup → HaplotypeCaller | A real chr20 VCF + MultiQC HTML report |
 | **M2** | Validation: `hap.py` vs GIAB truth; provenance stamp into `metrics.json` | One-page validation summary: precision / recall / F1 |
 | **M3** | Per-stage pinned Dockerfiles; GitHub Actions (lint + stub + tests) | Green CI badge; PR auto-runs the test profile |
-| **M4** | CDK: S3 data lake, Batch, scoped IAM, CloudWatch | `cdk deploy`, then the same pipeline runs on AWS Batch unmodified |
+| **M4** | CDK: S3 data lake, Lambda + Step Functions orchestration, scoped IAM, CloudWatch | `cdk deploy` provisions serverless orchestration; pipeline runs locally with cloud metadata recording |
 | **M5** | Postgres schema + ingestion step | SQL query joining a sample → run → tool versions → QC metrics |
 | **M6** | Metabase on the same Postgres | Live dashboard: QC trends, turnaround, pass/fail |
 | **M7** | QLoRA fine-tune; mandatory review flag on every report | Structured JSON beside its generated summary, with field citations |
@@ -19,17 +19,23 @@ Each milestone produces something you can screen-share, not just code that compi
 
 | Layer | State |
 |---|---|
-| Pipeline (Nextflow DSL2, 11 modules) | ✅ scaffolded, stub-runnable |
+| Pipeline (Nextflow DSL2, 12 modules) | ✅ scaffolded, stub-runnable |
 | Helper scripts + provenance | ✅ implemented, unit-tested |
 | AWS CDK (4 stacks + guardrail tests) | ✅ scaffolded |
 | Postgres schema (insert-only + triggers) | ✅ implemented, demo seed |
 | Metabase dashboard definitions | ✅ documented + SQL provided |
 | AI reporting (offline + fine-tune paths) | ✅ implemented, offline path tested |
 | ML fine-tuning (PyTorch QLoRA + CPU smoke test) | ✅ smoke test verified running on CPU |
-| Architecture Decision Records (9 ADRs) | ✅ written |
+| Architecture Decision Records (16 ADRs) | ✅ written |
 | Small committed test data + fixtures | ✅ pipeline stub + ML both self-contained |
 | CI (pipeline + infra + ML smoke) | ✅ workflows in place |
+| Streamlit demo app (`demo/`) | ✅ runnable locally — explorer, variant interpretation, assistant |
 
 > "Scaffolded" = structure and logic are in place and the dependency-free parts run
 > and are tested. Running the full pipeline end-to-end needs Nextflow + Docker + the
 > staged GIAB data on your machine; deploying infra needs an AWS account.
+
+The quickest thing to look at is the demo app — `pip install -r demo/requirements.txt`
+then `streamlit run demo/app.py`. It reads committed seed data and fixtures, and its
+Variant Interpretation page runs the deterministic interpreter, so it needs no database,
+no cloud account, and no LLM. See [demo/README.md](../demo/README.md).

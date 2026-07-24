@@ -61,7 +61,7 @@ Combine profiles with commas (e.g. `-profile test,docker`).
 |--------------|--------|
 | `test`       | Tiny committed inputs + a 1 Mb `--intervals` window so a full run is minutes-long. Sets `--input` to `assets/samplesheet.test.csv` and points reference/truth at the `assets/testdata/` placeholders. See [`conf/test.config`](../pipeline/conf/test.config). |
 | `docker`     | Enables Docker so each step runs in its pinned container. Pass alongside `test` or on its own for a real local run. |
-| `aws`        | Runs on AWS Batch, writing results/work to the S3 data lake and enabling DB ingest. Reads `CGP_S3_BUCKET`, `CGP_BATCH_QUEUE`, `CGP_DB_URL`, `AWS_REGION` from the environment; bucket/queue names come from the CDK stack outputs in `infra/`. See [`conf/aws.config`](../pipeline/conf/aws.config). |
+| `aws`        | Enables S3 result publishing and DynamoDB metadata ingest. Real compute still runs locally (ADR-0017); this profile writes results to the S3 data lake and records metadata in DynamoDB. Reads `CGP_S3_BUCKET`, `CGP_DB_URL`, `AWS_REGION` from the environment; names come from CDK stack outputs in `infra/`. See [`conf/aws.config`](../pipeline/conf/aws.config). |
 
 There is no bundled `singularity`/`conda` profile — containers are Docker/Biocontainers, pinned
 per step in the module `container` directives.
@@ -88,8 +88,8 @@ nextflow run main.nf -profile docker \
 # 4. Try the alternative caller
 nextflow run main.nf -profile test,docker --caller deepvariant
 
-# 5. On AWS Batch (after `cdk deploy` and exporting the env vars above)
-nextflow run main.nf -profile aws
+# 5. Local compute with AWS metadata recording (after `cdk deploy` and exporting env vars)
+nextflow run main.nf -profile docker,aws
 ```
 
 Nextflow's `-resume` reuses completed steps; the config uses `cache = 'lenient'` so cached
