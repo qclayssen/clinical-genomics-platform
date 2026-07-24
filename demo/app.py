@@ -192,7 +192,7 @@ st.sidebar.divider()
 
 page = st.sidebar.radio(
     "Navigation",
-    options=["Home", "Data Explorer", "Pipeline Assistant"],
+    options=["Home", "Data Explorer", "Variant Interpretation", "Pipeline Assistant"],
     index=0,
     label_visibility="collapsed",
 )
@@ -230,6 +230,10 @@ if page == "Home":
     render()
 elif page == "Data Explorer":
     from demo.pages.explorer import render
+
+    render()
+elif page == "Variant Interpretation":
+    from demo.pages.interpret import render
 
     render()
 elif page == "Pipeline Assistant":
