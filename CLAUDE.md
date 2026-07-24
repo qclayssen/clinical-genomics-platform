@@ -17,7 +17,7 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 
 | Path | What's here |
 |---|---|
-| `pipeline/` | Nextflow DSL2 pipeline: `main.nf`, `nextflow.config`, 11 one-process modules under `modules/`, helper scripts in `bin/`, `assets/`, `conf/` |
+| `pipeline/` | Nextflow DSL2 pipeline: `main.nf`, `nextflow.config`, 12 one-process modules under `modules/`, helper scripts in `bin/`, `assets/`, `conf/` |
 | `infra/` | AWS CDK (TypeScript) app: 4 stacks in `lib/`, wired in `bin/app.ts`, guardrail tests in `test/` |
 | `db/` | Postgres `schema.sql` (insert-only tables + immutability triggers), migrations, seed |
 | `dashboards/metabase/` | Version-controlled Metabase dashboard + question/SQL definitions |

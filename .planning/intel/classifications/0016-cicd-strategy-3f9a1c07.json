@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0016-cicd-strategy.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0016: Tiered CI/CD Strategy",
+  "summary": "Accepted decision to implement a three-tier GitHub Actions CI/CD architecture covering lint, security scanning, DB validation, coverage, and release engineering.",
+  "scope": ["CI/CD", "GitHub Actions", "lint.yml", "security.yml", "pipeline-ci.yml", "db-ci.yml", "docker.yml", "coverage.yml", "maintenance.yml", "release.yml", "Dependabot", "Trivy", "pip-audit", "GHCR"],
+  "cross_refs": [],
+  "locked": true,
+  "precedence": 0,
+  "notes": ""
+}

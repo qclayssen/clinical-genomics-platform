@@ -1,0 +1,13 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0014-agentic-variant-interpretation.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0014 — Agentic Variant Interpretation with ReAct Loop",
+  "summary": "Decision to implement a ReAct-style agentic loop with deterministic fallback and multi-provider LLM support for ACMG variant interpretation.",
+  "scope": ["ReAct agent", "react.py", "deterministic.py", "llm.py", "chr20_knowledge.db", "ACMG/AMP classification", "Ollama/OpenAI/Anthropic providers", "safety guardrails"],
+  "cross_refs": ["ADR-0007", "ADR-0008"],
+  "locked": true,
+  "precedence": 0,
+  "notes": ""
+}

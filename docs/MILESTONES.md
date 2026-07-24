@@ -19,7 +19,7 @@ Each milestone produces something you can screen-share, not just code that compi
 
 | Layer | State |
 |---|---|
-| Pipeline (Nextflow DSL2, 11 modules) | ✅ scaffolded, stub-runnable |
+| Pipeline (Nextflow DSL2, 12 modules) | ✅ scaffolded, stub-runnable |
 | Helper scripts + provenance | ✅ implemented, unit-tested |
 | AWS CDK (4 stacks + guardrail tests) | ✅ scaffolded |
 | Postgres schema (insert-only + triggers) | ✅ implemented, demo seed |

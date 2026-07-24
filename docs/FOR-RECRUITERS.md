@@ -24,7 +24,7 @@ finished and runnable, not a half-built sprawl.
 
 | Skill area | What's shown | Where |
 |---|---|---|
-| **Bioinformatics pipelines** | Nextflow DSL2, nf-core style, 11 modules, QC→align→call→validate | `pipeline/` |
+| **Bioinformatics pipelines** | Nextflow DSL2, nf-core style, 12 modules, QC→align→call→validate | `pipeline/` |
 | **Analytical validation** | `hap.py` vs GIAB truth; precision/recall/F1; explicit acceptance criterion | `pipeline/modules/validate/`, `docs/VALIDATION.md` |
 | **Cloud / IaC** | AWS CDK (TypeScript), 4 stacks, Batch/Fargate, least-privilege IAM, CloudWatch | `infra/` |
 | **Data engineering** | Insert-only Postgres schema, provenance + audit trail, migrations | `db/` |
