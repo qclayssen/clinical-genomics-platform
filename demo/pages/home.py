@@ -263,7 +263,7 @@ cdk deploy CgpDemoHosting
     st.divider()
 
     # ── Demo data description ──────────────────────────────────────────────────
-    st.markdown("### Demo Data")
+    st.markdown("### Demo Data & Validation")
     st.markdown("")
 
     col_left, col_right = st.columns(2)
@@ -271,7 +271,19 @@ cdk deploy CgpDemoHosting
     with col_left:
         st.markdown(
             """
-            The demo includes **6 pipeline runs** with embedded seed data:
+            **Measured Validation Results** (from real `hap.py` runs):
+
+            | Run | Region | SNV Precision | SNV Recall | SNV F1 | Status |
+            |-----|--------|---------------|------------|--------|--------|
+            | 2026-07-15 | chr20:1M-2M | 0.9934 | 0.9894 | **0.9914** | ✅ PASS |
+
+            *Measured on real GIAB HG002 reads (255.8× depth), GRCh38 reference,
+            GIAB v4.2.1 truth set, GATK HaplotypeCaller, `hap.py` xcmp engine.
+            See `docs/VALIDATION.md` for full provenance.*
+
+            ---
+
+            **Demo seed data** (6 synthetic runs for chart exploration):
 
             | Sample | Caller | Version | F1 |
             |--------|--------|---------|----|
@@ -287,17 +299,28 @@ cdk deploy CgpDemoHosting
     with col_right:
         st.markdown(
             """
-            **Data Sources:**
+            **Project Scope & Limitations:**
 
-            1. **Embedded seed** — mirrors `db/seed_demo.sql`, hardcoded in
-               `data_loader.py` for zero-dependency operation
+            📍 **Validated region:** GRCh38 chr20:1,000,000-2,000,000 (1 Mb window)
+            🧬 **Variant type:** Germline SNVs only
+            👥 **Sample:** GIAB HG002 / NA24385 (single sample)
+            🎯 **Acceptance criterion:** SNV F1 ≥ 0.99
+
+            ⚠️ **This is a portfolio project demonstrating methodology** —
+            it is **not an accredited clinical test** and must not be used
+            for clinical decisions.
+
+            ---
+
+            **Data Sources in this Demo:**
+
+            1. **Embedded seed** — 6 synthetic runs mirroring `db/seed_demo.sql`,
+               hardcoded in `data_loader.py` for zero-dependency operation
 
             2. **Test fixtures** — any `*.metrics.json` files under
                `tests/fixtures/` are loaded automatically
 
-            **Validation threshold:** SNP F1 >= 0.99 (PASS/FAIL)
-
-            **No Postgres required** for this demo — all data is in-memory.
+            **No Postgres required** — all data is in-memory.
             """
         )
 
