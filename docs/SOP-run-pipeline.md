@@ -8,9 +8,9 @@
 
 ## 1. Scope
 
-Applies to germline SNV analysis of paired-end WGS FASTQs against GRCh38, run either
-locally (validation/dev) or on AWS Batch (scale). Out of scope: somatic calling,
-structural variants, non-human samples.
+Applies to germline SNV analysis of paired-end WGS FASTQs against GRCh38, run locally
+with Nextflow + Docker. Cloud orchestration (Lambda + Step Functions) handles metadata
+and provenance recording. Out of scope: somatic calling, structural variants, non-human samples.
 
 ## 2. Responsibilities
 
@@ -30,9 +30,9 @@ structural variants, non-human samples.
 1. **Prepare inputs.** Add one row per sample to `pipeline/assets/samplesheet.csv`
    conforming to `assets/schema_input.json`.
 2. **Dry run.** `nextflow run main.nf -profile test,docker -stub` — confirm the DAG resolves.
-3. **Execute.**
-   - Local: `nextflow run main.nf -profile test,docker`
-   - AWS:   set `CGP_S3_BUCKET`, `CGP_BATCH_QUEUE`, `CGP_DB_URL`; `nextflow run main.nf -profile aws`
+3. **Execute.** `nextflow run main.nf -profile test,docker` (real data requires staged GIAB
+   HG002 chr20 via `scripts/fetch_testdata.sh`). Cloud orchestration (if deployed) records
+   metadata and provenance to DynamoDB; the genomics compute runs locally.
 4. **Verify completion.** Check the `onComplete` banner reports `SUCCESS` and that
    `results/<sample>/export/<sample>.metrics.json` exists.
 5. **Confirm acceptance.** Confirm `validation_pass = true` (below-threshold runs stop here).
