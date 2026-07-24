@@ -24,7 +24,7 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | `ai-report/` | PyTorch QLoRA fine-tune + inference (`infer.py`, `train_lora.py`, `train_smoke.py`, `make_dataset.py`), `MODEL_CARD.md` |
 | `docker/` | One pinned Dockerfile per stage plus `Dockerfile.tools` for the helper scripts |
 | `docs/` | Beginner's guide, glossary, `VALIDATION.md`, `SOP-run-pipeline.md`, `MILESTONES.md`, `FOR-RECRUITERS.md` |
-| `docs/adr/` | 9 Architecture Decision Records (append-only) |
+| `docs/adr/` | 17 Architecture Decision Records (append-only); see `README.md` there for the index |
 | `tests/` | Python unit tests + small committed fixtures in `tests/fixtures/` |
 | `.github/workflows/` | CI: nf-core-style config check, pipeline test profile, CDK synth, ML smoke test |
 

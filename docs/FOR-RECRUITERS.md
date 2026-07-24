@@ -1,7 +1,7 @@
 <!-- markdownlint-configure-file { "MD013": { "line_length": 120 }, "MD033": false }
      doc-index: skills=[bioinformatics, AWS CDK, data engineering, applied ML, agentic AI];
      scope: complete solo-built platform; validation: ISO 15189 patterns, hap.py benchmarking;
-     delivery: autonomous, end-to-end, 14 architecture decision records documenting trade-offs. -->
+     delivery: autonomous, end-to-end, 17 architecture decision records documenting trade-offs. -->
 
 # For Recruiters & Hiring Managers
 

@@ -39,6 +39,12 @@ Each ADR follows the same tiny structure:
 | [0013](0013-qc-warnings-adaptive-thresholds-self-healing.md) | QC warnings with adaptive thresholds and self-healing | Accepted |
 | [0014](0014-agentic-variant-interpretation.md) | Agentic variant interpretation with a ReAct loop (ACMG/AMP) | Accepted |
 | [0015](0015-happy-xcmp-engine-not-vcfeval.md) | Use hap.py's xcmp engine, not vcfeval | Accepted (supersedes engine choice in 0003) |
+| [0016](0016-cicd-strategy.md) | Tiered CI/CD strategy (lint/security/db/docker/coverage/maintenance) | Accepted |
+| [0017](0017-local-nextflow-sole-real-compute.md) | Local Nextflow is the sole real-compute path; cloud execution is orchestration-only | Accepted |
+
+---
+
+**Count: 17 ADRs** (0001–0017). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 

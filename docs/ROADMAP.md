@@ -38,34 +38,21 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 
 ## P0 — Do now (cheap, unblocking, or highest-credibility)
 
-### P0-1 · ADR-0011: supersede ADR-0004 (Batch/Fargate → serverless)
+### P0-1 · ADR-0011: supersede ADR-0004 (Batch/Fargate → serverless) ✅ Done
 - **What:** Write `docs/adr/0011-serverless-lambda-stepfunctions.md`. Status `Accepted`; record
   the decision to move compute from AWS Batch/Fargate to Lambda + Step Functions + EventBridge.
   Set [ADR-0004](adr/0004-aws-cdk-batch-fargate.md) status to `Superseded by ADR-0011` and add
-  ADR-0011 to the index table in [`docs/adr/README.md`](adr/README.md) (currently stops at 0010).
-- **Why it matters:** [CLAUDE.md](../CLAUDE.md) makes ADRs a non-negotiable rule — "supersede it
-  and update its status; never silently edit history." The serverless pivot has already landed in
-  `infra/` and `lambdas/` with **no superseding ADR**, so the repo is currently violating its own
-  governance rule. For a role screening on engineering judgement, an *unrecorded* architecture
-  reversal is worse than the reversal itself. Fixing it demonstrates the discipline the project
-  claims to have.
-- **Effort:** S · **Depends on:** nothing (pure docs; the code change is Kiro's).
+  ADR-0011 to the index table in [`docs/adr/README.md`](adr/README.md).
+- **Status:** Complete — ADR-0011 through ADR-0017 are now written and indexed.
+- **Effort:** S · **Depends on:** nothing (pure docs).
 
-### P0-2 · ADR-0012: supersede ADR-0005 (insert-only Postgres → DynamoDB primary)
+### P0-2 · ADR-0012: supersede ADR-0005 (insert-only Postgres → DynamoDB primary) ✅ Done
 - **What:** Write `docs/adr/0012-dynamodb-primary-metadata-store.md`. Status `Accepted`; DynamoDB
   single-table becomes the primary metadata store, Postgres becomes a Metabase read-bridge fed by
   the DynamoDB→Postgres sync. Set [ADR-0005](adr/0005-insert-only-postgres.md) to
   `Superseded by ADR-0012`; update the index.
-- **Why it matters — flag the integrity nuance honestly:** ADR-0005's whole selling point was
-  **tamper-evidence enforced at the database level** by `forbid_mutation()` triggers
-  (`db/schema.sql`) that reject UPDATE/DELETE. DynamoDB append-only is instead enforced by
-  **IAM explicit-DENY** on `dynamodb:DeleteItem`/`UpdateItem` in the per-Lambda roles. This is a
-  **weaker, different** boundary: an actor with IAM-policy-edit rights can lift the DENY, whereas
-  the Postgres trigger lives inside the data engine. ADR-0012 must state this trade-off plainly
-  (append-only is now a *policy* control, not a *data-layer* control) rather than pretending the
-  guarantee is unchanged. Note the mitigation: the roles also DENY `iam:PutRolePolicy` /
-  `AttachRolePolicy` on themselves. A reviewer will respect the project far more for naming this
-  regression than for glossing it.
+- **Status:** Complete — ADR-0012 written and indexed. The integrity nuance (IAM-based vs.
+  database-trigger enforcement) is documented in ADR-0012's Consequences section.
 - **Effort:** S · **Depends on:** nothing (docs).
 
 ### P0-3 · Real validation numbers (the credibility keystone)
@@ -195,8 +182,8 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 
 | ID | Item | Phase | Effort | Depends on | Owner-lane |
 |---|---|---|---|---|---|
-| P0-1 | ADR-0011 supersedes ADR-0004 (Batch → serverless) | P0 | S | — | documentation-writer |
-| P0-2 | ADR-0012 supersedes ADR-0005 (Postgres → DynamoDB); flag IAM-vs-trigger integrity nuance | P0 | S | — | documentation-writer |
+| P0-1 | ~~ADR-0011 supersedes ADR-0004 (Batch → serverless)~~ ✅ Done | P0 | S | — | documentation-writer |
+| P0-2 | ~~ADR-0012 supersedes ADR-0005 (Postgres → DynamoDB); flag IAM-vs-trigger integrity nuance~~ ✅ Done | P0 | S | — | documentation-writer |
 | P0-3 | ~~**Run real GIAB HG002 chr20; fill VALIDATION.md + README**~~ ✅ Done | P0 | M | Docker on machine | pipeline-engineer |
 | P1-1 | Pipeline finalize: real versions.yml collation, clean `nf-core lint`, add `nf-test` | P1 | M | P0-3 | pipeline-engineer + test-engineer |
 | P1-2 | Write `docs/NEXTFLOW-MIGRATION.md` (strict-DSL fixes + P1-1) | P1 | S | P1-1 | documentation-writer |
