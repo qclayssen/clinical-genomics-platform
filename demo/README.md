@@ -1,14 +1,17 @@
-# Interactive Demo — Data Explorer + LLM Pipeline Assistant
+# Interactive Demo — Data Explorer, Variant Interpretation + LLM Pipeline Assistant
 
 A self-contained Streamlit app for exploring clinical genomics pipeline results
-interactively. Features rich Plotly visualizations and an LLM-powered conversational
-assistant that understands genomics context.
+interactively. Features rich Plotly visualizations, a step-by-step view of the ACMG
+interpretation agent, and an LLM-powered conversational assistant that understands
+genomics context.
 
 ## What's included
 
 | Page | Description |
 |------|-------------|
+| **Home** | Landing page — what the platform is and where to look first. |
 | **Data Explorer** | 8 interactive Plotly charts: SNP F1 trend with regression zone, turnaround time, duplication rates, precision vs recall scatter, QC metrics heatmap, run timeline (Gantt), validation pass/fail breakdown, and caller performance radar. All filterable by sample, caller, and pipeline version. |
+| **Variant Interpretation** | Surfaces the interpretation agent in `ai-report/agent/`: parses a VCF, classifies each variant against ACMG evidence codes, and replays the reasoning trace one tool call at a time. Ends with the guardrail check on the drafted report. |
 | **Pipeline Assistant** | Conversational interface powered by a local LLM (via Ollama) that reasons about pipeline data. Falls back gracefully to pattern matching when Ollama is unavailable. Supports streaming responses, report generation, and arbitrary natural-language questions. |
 
 ## Quickstart
@@ -58,6 +61,11 @@ The assistant still works — it uses regex-based intent matching to handle comm
 queries like summaries, comparisons, failure lists, and report generation. You'll
 see an "Offline Mode" indicator in the UI.
 
+The intent table lives in `demo/intents.py`, deliberately separate from the page so
+it imports without Streamlit and can be tested directly. Every phrase offered as a
+suggestion chip in the UI is covered by a test in `tests/test_demo_chat.py`, so a
+suggestion can't silently stop matching.
+
 ## Data Explorer Charts
 
 The explorer page includes 8 production-quality visualizations:
@@ -75,6 +83,29 @@ The explorer page includes 8 production-quality visualizations:
 
 All charts use a consistent clinical genomics colour palette (teal/cyan/coral/amber)
 with a dark theme optimised for extended viewing.
+
+## Variant Interpretation
+
+This page is a window onto the interpretation agent in `ai-report/agent/` — the
+reasoning is the interesting part, and a table of final classifications hides exactly
+the work worth showing.
+
+It reads `tests/fixtures/tiny_truth.vcf` (committed, PRNP variants on chr20), looks
+each variant up in the SQLite knowledge base at `ai-report/agent/data/`, applies ACMG
+evidence codes, and renders:
+
+- **Summary counts** per classification (Pathogenic → Benign)
+- **A reasoning trace** per variant — thought, tool call, observation, answer — with
+  raw tool output available in an expander, and a "Replay step by step" button
+- **The classification panel** — ACMG evidence chips coloured by direction (P vs B),
+  confidence, and a plain-language summary
+- **The guardrailed report** — the drafted report is passed through
+  `enforce_report_guardrails()` and the pass/fail result is shown, matching the same
+  human-review rule the rest of the platform enforces ([ADR-0008](../docs/adr/0008-guardrails-human-in-the-loop.md))
+
+The **deterministic interpreter is the default, not a fallback** — no LLM, no network,
+no setup, so the page behaves identically on a laptop and in a container. Ollama, when
+present, is an upgrade rather than a requirement.
 
 ## Data source
 
@@ -175,9 +206,24 @@ demo/
 │   └── config.toml         # Theme: dark navy + teal clinical palette
 ├── app.py                  # Main entry point (streamlit run demo/app.py)
 ├── data_loader.py          # Data loading: seed + fixtures → DataFrame
+├── intents.py              # Offline intent patterns (no Streamlit import; tested directly)
 ├── pages/
+│   ├── home.py             # Landing page
 │   ├── explorer.py         # 8-chart interactive visualization page
+│   ├── interpret.py        # Variant interpretation — ACMG trace + guardrail check
 │   └── chat.py             # LLM-powered pipeline assistant
 ├── requirements.txt        # Pinned dependencies
 └── README.md               # This file
 ```
+
+## Tests
+
+The demo's testable logic is covered by the repo-root `pytest` suite — no Streamlit
+or Ollama needed:
+
+```bash
+pytest tests/test_demo_chat.py
+```
+
+`conftest.py` at the repo root puts the project on `sys.path`, so `demo.*` and
+`lambdas.*` import in tests without any environment setup.
