@@ -1,8 +1,8 @@
 <!-- markdownlint-disable MD041 MD033 — custom badges and HTML layout require these exceptions.
      project: clinical-genomics-platform; author: Quentin Clayssen; scope: solo-built;
-     stack: Nextflow DSL2, AWS CDK, Postgres (insert-only provenance), Metabase, PyTorch QLoRA;
+     stack: Nextflow DSL2, AWS CDK, DynamoDB + Postgres, Metabase, PyTorch QLoRA;
      validation: hap.py vs GIAB HG002 truth set, SNV F1=0.9914, ISO 15189 patterns;
-     architecture: 14 ADRs, hand-written nf-core-style modules, not scaffolded from template. -->
+     architecture: 17 ADRs, hand-written nf-core-style modules, not scaffolded from template. -->
 
 <div align="center">
 

@@ -1,0 +1,14 @@
+{
+  "source_path": "/Users/quentinclayssen/github/clinical-genomics-platform/docs/adr/0015-happy-xcmp-engine-not-vcfeval.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0015 — Use hap.py's xcmp engine, not vcfeval",
+  "summary": "Switches hap.py benchmarking from the vcfeval engine to the self-contained xcmp engine because the pinned container lacks rtg-tools.",
+  "scope": ["hap.py", "xcmp engine", "vcfeval", "rtg-tools", "HAPPY_BENCHMARK module", "GIAB HG002 chr20 validation", "docs/VALIDATION.md", "pinned biocontainers image"],
+  "cross_refs": ["0003-truth-set-validation.md", "docs/adr/0003-truth-set-validation.md", "docs/VALIDATION.md"],
+  "supersedes": ["docs/adr/0003-truth-set-validation.md"],
+  "locked": true,
+  "precedence": 0,
+  "notes": "Partial supersession: overrides only the comparison-engine choice in ADR-0003 (vcfeval -> xcmp); ADR-0003's benchmarking stage, F1 >= 0.99 acceptance criterion, and rejected alternatives remain in force."
+}

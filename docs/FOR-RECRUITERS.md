@@ -1,7 +1,7 @@
 <!-- markdownlint-configure-file { "MD013": { "line_length": 120 }, "MD033": false }
      doc-index: skills=[bioinformatics, AWS CDK, data engineering, applied ML, agentic AI];
      scope: complete solo-built platform; validation: ISO 15189 patterns, hap.py benchmarking;
-     delivery: autonomous, end-to-end, 14 architecture decision records documenting trade-offs. -->
+     delivery: autonomous, end-to-end, 17 architecture decision records documenting trade-offs. -->
 
 # For Recruiters & Hiring Managers
 
@@ -24,7 +24,7 @@ finished and runnable, not a half-built sprawl.
 
 | Skill area | What's shown | Where |
 |---|---|---|
-| **Bioinformatics pipelines** | Nextflow DSL2, nf-core style, 11 modules, QC→align→call→validate | `pipeline/` |
+| **Bioinformatics pipelines** | Nextflow DSL2, nf-core style, 12 modules, QC→align→call→validate | `pipeline/` |
 | **Analytical validation** | `hap.py` vs GIAB truth; precision/recall/F1; explicit acceptance criterion | `pipeline/modules/validate/`, `docs/VALIDATION.md` |
 | **Cloud / IaC** | AWS CDK (TypeScript), 4 stacks, Batch/Fargate, least-privilege IAM, CloudWatch | `infra/` |
 | **Data engineering** | Insert-only Postgres schema, provenance + audit trail, migrations | `db/` |

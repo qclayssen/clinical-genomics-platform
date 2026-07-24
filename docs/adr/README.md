@@ -42,6 +42,10 @@ Each ADR follows the same tiny structure:
 | [0016](0016-cicd-strategy.md) | Tiered CI/CD strategy (lint/security/db/docker/coverage/maintenance) | Accepted |
 | [0017](0017-local-nextflow-sole-real-compute.md) | Local Nextflow is the sole real-compute path; cloud execution is orchestration-only | Accepted |
 
+---
+
+**Count: 17 ADRs** (0001–0017). ADRs 0004 and 0005 are superseded but retained for history.
+
 ## Conventions
 
 - One decision per file, numbered sequentially, never renumbered.

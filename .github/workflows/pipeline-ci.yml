@@ -17,7 +17,6 @@ jobs:
   lint-and-stub:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
@@ -36,7 +35,7 @@ jobs:
         working-directory: pipeline
         run: |
           nextflow -version
-          nextflow config -profile test,docker > /dev/null   # fails on config errors
+          nextflow config -profile test,docker > /dev/null
 
       - name: Stub run (full DAG, no containers needed)
         working-directory: pipeline
@@ -60,26 +59,29 @@ jobs:
 
       - name: Validate Lambda handler imports
         run: |
-          python -c "from lambdas.ingestion_trigger import handler"
-          python -c "from lambdas.qc_orchestrator import handler"
-          python -c "from lambdas.variant_calling import handler"
-          python -c "from lambdas.validation_checker import handler"
-          python -c "from lambdas.export_handler import handler"
-          python -c "from lambdas.metadata_ingestor import handler"
-          python -c "from lambdas.report_generator import handler"
-          python -c "from lambdas.healer import handler"
-          echo "All Lambda handlers import successfully"
+          FAILED=0
+          for mod in ingestion_trigger qc_orchestrator variant_calling validation_checker export_handler metadata_ingestor report_generator healer; do
+            if ! python -c "from lambdas.${mod} import handler" 2>/dev/null; then
+              echo "ERROR: lambdas.${mod} import failed"
+              FAILED=$((FAILED+1))
+            fi
+          done
+          if [ $FAILED -eq 0 ]; then
+            echo "All Lambda handlers import successfully"
+          else
+            echo "${FAILED} handler(s) failed to import"
+            exit 1
+          fi
 
   ai-guardrails:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with: { python-version: '3.11' }
       - name: Report renderer produces guardrail-compliant output
         run: |
-          python ai-report/make_dataset.py --n 3 --out /tmp/pairs.jsonl
+          python ai-report/make_dataset.py --n 3 --out /tmp/pairs.jsonl && \
           python - <<'PY'
           import json, subprocess, sys, tempfile
           rec = json.loads(open('/tmp/pairs.jsonl').readline())
@@ -98,7 +100,6 @@ jobs:
     # Proves the PyTorch LoRA fine-tuning loop runs end-to-end on CPU (tiny model).
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
@@ -112,7 +113,6 @@ jobs:
     # Proves the variant interpretation agent loop works end-to-end (deterministic, no LLM).
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
@@ -130,7 +130,7 @@ jobs:
             --metrics tests/fixtures/HG002_chr20.metrics.json \
             --backend deterministic \
             --out /tmp/interp.json \
-            --run-id ci_e2e
+            --run-id ci_e2e && \
           python -c "
           import json
           data = json.load(open('/tmp/interp.json'))
@@ -140,4 +140,3 @@ jobs:
           print(f'Agent CI: {len(data[\"variants\"])} variants classified')
           print(f'Classifications: {data[\"classification_counts\"]}')
           "
-
