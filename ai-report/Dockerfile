@@ -3,11 +3,17 @@
 # Reproducibility note: production builds MUST pin the base by immutable digest
 # (ADR-0009). Resolve the current digest and pin it deliberately:
 #     docker pull python:3.12-slim
-#     docker inspect --format='{{index .RepoDigests 0}}' python:3.12-slim
+#     docker inspect --format='{{index .RepoDigets 0}}' python:3.12-slim
 #     # -> FROM python:3.12-slim@sha256:<real-digest>
 # A version tag is used here so the image builds without a stale digest;
 # swap in the resolved @sha256 digest at release time.
 FROM python:3.12-slim
+
+# Upgrade pip, setuptools, wheel to patch CVE-2026-8643, CVE-2026-24049, CVE-2026-23949
+RUN pip install --no-cache-dir --upgrade \
+        pip>=26.0.0 \
+        setuptools>=75.0.0 \
+        wheel>=0.46.0
 
 # ---------- system deps ----------
 # libgomp1: required by FAISS for OpenMP parallelism
