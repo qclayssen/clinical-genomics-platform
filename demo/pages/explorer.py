@@ -41,10 +41,17 @@ def render() -> None:
     )
     st.markdown(
         '<p class="hero-subtitle" style="font-size:0.95rem;">'
-        "Interactive QC, validation, and throughput metrics across all pipeline runs. "
+        "Interactive QC, validation, and throughput metrics. "
         "Charts mirror the production Metabase dashboard — rendered locally with Plotly."
         "</p>",
         unsafe_allow_html=True,
+    )
+
+    # Data source indicator
+    st.info(
+        "📊 **Data source:** Embedded seed data (6 synthetic runs) + test fixtures. "
+        "No database required. Real measured validation results available on the Home page.",
+        icon="ℹ️"
     )
 
     df = load_all_data()
@@ -505,7 +512,7 @@ def render() -> None:
     # ── Footer ─────────────────────────────────────────────────────────────────
     st.divider()
     st.caption(
-        "This dashboard mirrors the production Metabase instance (port 3000). "
-        "Data source: embedded seed data (6 runs) + any test fixtures. "
-        "Charts update in real time as new pipeline runs complete and ingest into Postgres."
+        "📊 **Data source:** Embedded seed data (6 synthetic runs for chart exploration) + "
+        "test fixtures (`tests/fixtures/*.metrics.json`). This demo runs offline with no database. "
+        "For real measured validation results (SNV F1=0.9914 from actual `hap.py` run), see the Home page."
     )

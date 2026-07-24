@@ -17,7 +17,6 @@ jobs:
   synth-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     defaults:
       run: { working-directory: infra }
     steps:
@@ -42,8 +41,9 @@ jobs:
 
       - name: Validate no Batch/Fargate/NAT resources
         run: |
-          if grep -rl "AWS::Batch\|AWS::ECS::Service\|AWS::EC2::NatGateway\|AWS::RDS\|AWS::Bedrock\|AWS::SageMaker::Endpoint" cdk.out/*.template.json; then
+          if grep -rl "AWS::Batch\|AWS::ECS::Service\|AWS::EC2::NatGateway\|AWS::RDS\|AWS::Bedrock\|AWS::SageMaker::Endpoint" cdk.out/*.template.json 2>/dev/null; then
             echo "ERROR: Banned resource types found in synthesized templates"
             exit 1
+          else
+            echo "No banned resources found — cost guardrails pass"
           fi
-          echo "No banned resources found — cost guardrails pass"
