@@ -3,6 +3,12 @@
 
 FROM python:3.14-slim AS base
 
+# Upgrade pip, setuptools, wheel to patch CVE-2026-8643, CVE-2026-24049, CVE-2026-23949
+RUN pip install --no-cache-dir --upgrade \
+        pip>=26.0.0 \
+        setuptools>=75.0.0 \
+        wheel>=0.46.0
+
 WORKDIR /app
 
 # Install dependencies

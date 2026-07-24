@@ -9,11 +9,18 @@
 # builds; swap in the resolved @sha256 digest at release time.
 FROM python:3.14-slim
 
+# Upgrade pip, setuptools, wheel to patch CVE-2026-8643, CVE-2026-24049, CVE-2026-23949
+RUN pip install --no-cache-dir --upgrade \
+        pip>=26.0.0 \
+        setuptools>=75.0.0 \
+        wheel>=0.46.0
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         bcftools \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir psycopg2-binary==2.9.9 pyarrow==15.0.0
+# Upgrade pyarrow to patch CVE-2026-25087 (Use After Free DoS)
+RUN pip install --no-cache-dir psycopg2-binary==2.9.9 pyarrow>=18.0.0
 
 COPY pipeline/bin/build_metrics.py  /usr/local/bin/build_metrics.py
 COPY pipeline/bin/ingest_metrics.py /usr/local/bin/ingest_metrics.py
