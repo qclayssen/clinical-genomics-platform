@@ -109,8 +109,22 @@ describe('CGP infrastructure invariants', () => {
           expect(matches).toHaveLength(0);
         });
       }
+
+      // Additional guard: no Lambda is configured with a localhost LLM endpoint
+      test(`${name} stack has no Lambda with a localhost LLM endpoint`, () => {
+        const resources = template.toJSON().Resources ?? {};
+        for (const r of Object.values(resources) as any[]) {
+          if (r.Type !== 'AWS::Lambda::Function') continue;
+          const env = r.Properties?.Environment?.Variables ?? {};
+          for (const [k, v] of Object.entries(env)) {
+            if (!/OLLAMA|LLM_URL|LLM_ENDPOINT/i.test(k)) continue;
+            expect(String(v)).not.toMatch(/localhost|127\.0\.0\.1|11434/);
+          }
+        }
+      });
     }
   });
+
 
   // =========================================================================
   // 3. DynamoDB — on-demand billing and PITR
