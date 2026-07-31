@@ -20,7 +20,6 @@ Usage:
 """
 import argparse
 import asyncio
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -351,7 +350,7 @@ def main() -> int:
         try:
             phases = [int(p.strip()) for p in args.phase.split(",")]
             if not all(p in PHASE_PROFILES for p in phases):
-                print(f"Invalid phase(s). Must be 1-5.", file=sys.stderr)
+                print("Invalid phase(s). Must be 1-5.", file=sys.stderr)
                 return 1
         except ValueError:
             print(f"Invalid phase format: {args.phase}", file=sys.stderr)

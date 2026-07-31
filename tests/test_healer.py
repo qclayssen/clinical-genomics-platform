@@ -105,8 +105,9 @@ class TestNoInLambdaLLMRequired:
     """ADR-0018: the deployed healer path must never need a local LLM server."""
 
     def test_no_default_endpoint_means_no_network_call(self, monkeypatch):
-        import lambdas.healer.handler as handler_mod
         from unittest.mock import patch
+
+        import lambdas.healer.handler as handler_mod
         monkeypatch.delenv("OLLAMA_URL", raising=False)
         with patch("urllib.request.urlopen") as mock_open:
             assert handler_mod._call_ollama("probe") is None
@@ -120,8 +121,9 @@ class TestNoInLambdaLLMRequired:
         assert out["action"] in VALID_ACTIONS
 
     def test_source_has_no_localhost_llm_default(self):
-        import lambdas.healer.handler as handler_mod
         from pathlib import Path
+
+        import lambdas.healer.handler as handler_mod
         src = Path(handler_mod.__file__).read_text()
         assert "http://localhost:11434" not in src
 
