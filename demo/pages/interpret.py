@@ -32,6 +32,7 @@ from agent.report import (  # noqa: E402
     enforce_report_guardrails,
     render_report,
 )
+from agent.review_store import ReviewStore, variant_key  # noqa: E402
 from agent.vcf_parser import parse_vcf  # noqa: E402
 
 _DEFAULT_VCF = _REPO_ROOT / "tests" / "fixtures" / "tiny_truth.vcf"
@@ -64,6 +65,12 @@ _STEP_ICONS = {
 def _load_knowledge_base() -> KnowledgeBase:
     """The SQLite KB is read-only and shared across sessions."""
     return KnowledgeBase()
+
+
+@st.cache_resource(show_spinner=False)
+def _load_review_store() -> ReviewStore:
+    """One append-only reviewer-decision log, shared across sessions."""
+    return ReviewStore()
 
 
 @st.cache_data(show_spinner=False)
@@ -253,6 +260,60 @@ def render() -> None:
 
     with st.expander("Full report", expanded=False):
         st.code(render_report(report), language="markdown")
+
+    st.divider()
+
+    # ── Reviewer sign-off ─────────────────────────────────────────────────────
+    st.subheader("Reviewer sign-off")
+    st.caption(
+        "The guardrail banner tells the reader a clinician must review this "
+        "draft. This records that the review happened — an insert-only decision "
+        "log, never edited, only appended to (ADR-0019)."
+    )
+
+    store = _load_review_store()
+    v = selected["variant"]
+    vkey = variant_key(v["chrom"], v["pos"], v["ref"], v["alt"])
+
+    with st.form(key=f"review_form_{choice}"):
+        reviewer = st.text_input("Reviewer name", key=f"reviewer_{choice}")
+        comment = st.text_area("Comment (optional)", key=f"comment_{choice}")
+        col_a, col_r = st.columns(2)
+        approve = col_a.form_submit_button("✅ Approve", use_container_width=True)
+        reject = col_r.form_submit_button("⛔ Reject", use_container_width=True)
+
+        if approve or reject:
+            if not reviewer.strip():
+                st.error("Reviewer name is required to record a decision.")
+            else:
+                store.record_decision(
+                    run_id="demo",
+                    variant_key=vkey,
+                    classification=selected["classification"],
+                    decision="approved" if approve else "rejected",
+                    reviewer=reviewer,
+                    comment=comment,
+                )
+                st.success(f"Recorded {'approval' if approve else 'rejection'} by {reviewer}.")
+
+    history = store.list_decisions(variant_key=vkey)
+    if history:
+        st.markdown("**Decision history for this variant**")
+        st.dataframe(
+            [
+                {
+                    "Decided at": d.decided_at,
+                    "Reviewer": d.reviewer,
+                    "Decision": d.decision,
+                    "Comment": d.comment,
+                }
+                for d in history
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No reviewer decisions recorded yet for this variant.")
 
 
 @st.cache_data(show_spinner=False)
