@@ -78,3 +78,26 @@ checksums of all inputs — captured automatically in `run_provenance`.
 
 Any change to reference, caller, or filtering re-triggers this validation before the
 new pipeline version is tagged in `CHANGELOG.md`. Re-validation on change is the point.
+
+## 8. Mapping to computer-system-validation (IQ/OQ/PQ) vocabulary
+
+> This section maps existing validation practices onto standard GxP vocabulary for
+> readability to reviewers familiar with that framework. It does not claim GxP
+> certification, IQ/OQ/PQ sign-off, or regulatory validation status — see the portfolio
+> scope note at the top of this document and in [CLAUDE.md](../CLAUDE.md), which remains
+> the authoritative scope statement for this project.
+
+Regulated computer-system validation typically breaks into Installation Qualification (IQ),
+Operational Qualification (OQ), and Performance Qualification (PQ). Each already has a
+concrete counterpart in this repository:
+
+| GxP concept | What it verifies | Existing mechanism here |
+|---|---|---|
+| **IQ** — is the system installed as specified? | The right software, at the right version, is what actually runs. | Docker images pinned by SHA-256 digest, not floating tags ([ADR-0009](adr/0009-docker-pinned-by-digest.md)); every run's exact tool/container identity is captured in `run_provenance` (§6). CDK guardrail tests (`infra/test/stacks.test.ts`) assert infrastructure invariants — bucket versioning, public-access block, TLS-only, IAM deny-delete — before any environment is considered correctly installed. |
+| **OQ** — does the system operate correctly across its intended range? | The pipeline runs end-to-end and produces the expected artifacts under normal and stub conditions. | The Nextflow `-stub` profile (`pipeline/main.nf`) exercises every process's structure without real compute; `pytest` covers the provenance/guardrail logic deterministically (`tests/test_build_metrics.py` and this repo's other `tests/test_*.py` files); CI (`.github/workflows/`) runs both on every change. |
+| **PQ** — does the system perform correctly against real-world data and acceptance criteria? | The actual analytical result meets a defined, justified threshold. | The `hap.py`-vs-GIAB benchmark in §4 of this document, against the SNV F1 ≥ 0.99 acceptance criterion in §3, run on real GIAB HG002 reads (not synthetic/stub data) — the result recorded per run as `validation_pass` in `metrics.json` and enforced insert-only in `db/schema.sql`. |
+
+This mapping is a vocabulary bridge, not new validation work — every cited mechanism already
+existed before this section was written. What it does not claim: formal IQ/OQ/PQ protocol
+documents with named approvers, a quality management system, or any regulatory submission.
+Those are organizational processes this solo portfolio project has no occasion to build.
