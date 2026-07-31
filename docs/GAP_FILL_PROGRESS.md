@@ -88,11 +88,27 @@ The stuck sessions were abandoned and this phase was completed directly instead.
 
 **Verification:** `pytest tests/test_triage_agent.py -q` → 5 passed.
 
-## Phase 4 — Enterprise data platform integration ADR (in progress)
+## Phase 4 — Enterprise data platform integration ADR ✅ (2026-08-01)
 
-Being completed directly in-session after the background `cc-task` dispatch stalled (same
-permission-prompt issue as Phase 3). Target:
-`docs/adr/0022-enterprise-data-platform-integration.md` (next free ADR number).
+**Shipped**
+- `docs/adr/0022-enterprise-data-platform-integration.md` — a design note (explicitly
+  "Proposed, not implemented," no infra code changed) covering three points, each anchored to
+  a file that already exists rather than invented capability: (1) publishing the existing
+  provenance-stamped `metrics.json` to a shared object store via the `DataLakeStack`'s
+  existing EventBridge notifications, (2) registering the `MetadataStack`'s DynamoDB key shape
+  in an external catalog without committing to a specific product, (3) one-way, read-only
+  consumption by an external ELN/LIMS that preserves the insert-only invariant (ADR-0005) —
+  never a two-way sync that could let an external system overwrite results.
+
+**Why:** answers the JD's "Support platform integration with enterprise data platforms and
+existing scientific workflows" line. Framed explicitly as a design note rather than shipped
+infrastructure, since there is no real target organization's catalog to integrate against in
+a solo portfolio project — the value here is demonstrating the integration *thinking*, not
+overclaiming a deployed capability.
+
+**Verification:** docs-only; reviewed against `infra/lib/data-lake-stack.ts` and
+`infra/lib/metadata-stack.ts` for factual accuracy (bucket EventBridge notifications, table
+key structure) before writing the ADR, so no claim in it is invented.
 
 ## Phase 5 — GxP-flavored validation language (in progress)
 
