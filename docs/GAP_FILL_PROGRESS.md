@@ -32,11 +32,35 @@ local edits to that file).
 
 ---
 
-## Phase 2 — Usage/value metrics (in progress)
+## Phase 2 — Usage/value metrics ✅ (2026-08-01)
 
-Dispatched to a parallel agent — depends on Phase 1's `review_decisions` table, which is now
-in place. Target: approval rate, review turnaround, F1 trend, sourced from `review_decisions`
-+ existing `v_run_summary`.
+**Shipped**
+- `docs/METRICS.md` — four usage/value metrics with runnable Postgres SQL, each sourced from
+  data the platform already writes: AI-draft approval rate (overall and by `classification`,
+  from `review_decisions`), SNP F1 trend over runs (via the existing `v_run_summary` view,
+  including a windowed drop-below-threshold flag), and AI-review adoption/coverage rate
+  (distinct reviewed `run_id`s vs. total `runs`). Review turnaround is documented as **not**
+  cleanly derivable from the current schema — `review_decisions.decided_at` has no matching
+  "draft produced at" timestamp — rather than faked via a misleading join against
+  `runs.exported_at`; the doc specifies the `drafted_at` field that would make it derivable.
+- `ai-report/agent/metrics.py` — `summarize_decisions()`, a pure, DB-free function over
+  `list[ReviewDecision]` returning approval rate, counts by decision, and counts by
+  classification. Mirrors the SQL in `docs/METRICS.md` for the SQLite/demo path.
+- `docs/adr/0020-usage-value-metrics.md` — records the decision, including why review
+  turnaround was left as a documented gap instead of an invented join.
+- `docs/adr/README.md` — added the ADR-0019 and ADR-0020 index entries (0019 had shipped in
+  Phase 1 but was never indexed).
+- `tests/test_review_metrics.py` — 4 tests: empty-input edge case, overall approval rate
+  through a real `ReviewStore(db_path=":memory:")`, per-classification breakdown, and an
+  all-rejected classification.
+
+**Why:** ADR-0019 gave the platform an insert-only record of reviewer decisions but no way to
+answer "is the AI draft actually useful," "is accuracy holding up run over run," or "is the
+review workflow being adopted." This turns that log into the JD's "track usage, performance,
+and value delivered" line, using only data already captured — no new insert-only table, no
+schema churn — while being explicit about what the current schema can't yet answer honestly.
+
+**Verification:** `pytest tests/test_review_metrics.py -q` → 4 passed.
 
 ## Phase 3 — Lightweight triage agent (in progress)
 
