@@ -62,15 +62,37 @@ schema churn — while being explicit about what the current schema can't yet an
 
 **Verification:** `pytest tests/test_review_metrics.py -q` → 4 passed.
 
-## Phase 3 — Lightweight triage agent (in progress)
+## Phase 3 — Lightweight triage agent ✅ (2026-08-01)
 
-Dispatched to a background `cc-task` agent. Target: `ai-report/triage_agent.py` +
-`docs/adr/0020-triage-agent.md`.
+**Shipped**
+- `ai-report/triage_agent.py` — plain perceive/decide/act/log script over a single
+  `metrics.json`: `triage()` (pure function) checks SNP F1 against the platform's existing
+  ≥0.99 acceptance threshold and `validation_pass`, returning `flagged_for_revalidation` or
+  `drafted_and_queued`. `run()` drafts a guardrailed summary (reusing `infer.py`'s
+  `render_offline()` + `enforce_guardrails()`) only when queued. Every decision logs as one
+  structured JSON line; a Postgres `audit_log` write is documented as a deliberate TODO rather
+  than implemented, to keep the script dependency-free.
+- `docs/adr/0021-triage-agent.md` — records the decision and explicitly scopes this apart from
+  the existing AWS healer (`lambdas/healer/handler.py`, pipeline-failure retries) and the
+  ReAct variant-interpretation agent (per-variant reasoning) so it reads as a new capability,
+  not a duplicate of what was already there.
+- `tests/test_triage_agent.py` — 5 tests: passing metrics queue+draft, below-threshold and
+  missing-F1 metrics flag without drafting, and `run()`'s draft/no-draft branching.
+
+**Why:** answers the JD's "intelligent agents, automation scripts" line with something
+distinct from the fine-tuned summarizer — a small, inspectable decision script, not a new
+framework. (Note: this was originally dispatched to a background `cc-task` agent, which
+stalled indefinitely on an unanswerable permission prompt — confirmed via
+`claude agents --json --all` showing `"waitingFor": "permission prompt", "state": "blocked"`.
+The stuck sessions were abandoned and this phase was completed directly instead.)
+
+**Verification:** `pytest tests/test_triage_agent.py -q` → 5 passed.
 
 ## Phase 4 — Enterprise data platform integration ADR (in progress)
 
-Dispatched to a background `cc-task` agent (docs only). Target:
-`docs/adr/0021-enterprise-data-platform-integration.md`.
+Being completed directly in-session after the background `cc-task` dispatch stalled (same
+permission-prompt issue as Phase 3). Target:
+`docs/adr/0022-enterprise-data-platform-integration.md` (next free ADR number).
 
 ## Phase 5 — GxP-flavored validation language (in progress)
 
