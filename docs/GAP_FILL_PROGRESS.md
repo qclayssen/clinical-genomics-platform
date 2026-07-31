@@ -110,7 +110,25 @@ overclaiming a deployed capability.
 `infra/lib/metadata-stack.ts` for factual accuracy (bucket EventBridge notifications, table
 key structure) before writing the ADR, so no claim in it is invented.
 
-## Phase 5 — GxP-flavored validation language (in progress)
+## Phase 5 — GxP-flavored validation language ✅ (2026-08-01)
 
-Dispatched to a background `cc-task` agent (docs only). Target: edit `docs/VALIDATION.md`
-with an IQ/OQ/PQ-style mapping section, no scope/certification overclaims.
+Appended a new §8 to `docs/VALIDATION.md` mapping the platform's existing, already-implemented
+validation mechanisms onto standard IQ/OQ/PQ vocabulary — Docker digest pinning and CDK
+guardrail tests for IQ, the pipeline run + insert-only storage for OQ, the hap.py-vs-GIAB
+benchmark for PQ — each claim cited to the actual file/table/script that satisfies it. The
+section opens with an explicit disclaimer that this is vocabulary mapping for reviewer
+readability, not a GxP certification or IQ/OQ/PQ sign-off claim, preserving the scope-honesty
+framing required by CLAUDE.md and README.md.
+
+**Why:** answers the JD's "Exposure to regulated/validated environments (GxP, IRB, FDA
+risk/validation documentation) a plus" line, without overclaiming certification status the
+project doesn't have.
+
+**Verification:** docs-only; reviewed against CLAUDE.md's scope-honesty requirement —
+disclaimer present, no capability overclaims, every IQ/OQ/PQ mapping cites a real file
+(confirmed `infra/test/stacks.test.ts` exists before citing it).
+
+---
+
+All 5 phases complete. See individual PRs for review history:
+Phase 1 (#52), Phase 2 (#53), Phase 3 (#54), Phase 4 (#55), Phase 5 (this PR).
