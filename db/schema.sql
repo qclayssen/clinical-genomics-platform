@@ -79,6 +79,23 @@ CREATE INDEX IF NOT EXISTS idx_qc_warnings_run ON qc_warnings(run_pk);
 CREATE INDEX IF NOT EXISTS idx_qc_warnings_sample ON qc_warnings(sample_id);
 CREATE INDEX IF NOT EXISTS idx_qc_warnings_metric ON qc_warnings(metric_name, recorded_at);
 
+-- ── review_decisions: human sign-off on AI-drafted interpretations ────────────
+-- Mirrors ai-report/agent/review_store.py (the SQLite-backed store used by the
+-- demo). Insert-only: a changed mind is a new row, never an edit to the old one.
+CREATE TABLE IF NOT EXISTS review_decisions (
+    id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    run_pk         BIGINT REFERENCES runs(id),
+    run_id         TEXT NOT NULL,
+    variant_key    TEXT NOT NULL,                    -- "chrom:pos:ref>alt"
+    classification TEXT NOT NULL,
+    decision       TEXT NOT NULL CHECK (decision IN ('approved', 'rejected')),
+    reviewer       TEXT NOT NULL,
+    comment        TEXT NOT NULL DEFAULT '',
+    decided_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_review_variant ON review_decisions(variant_key);
+CREATE INDEX IF NOT EXISTS idx_review_run ON review_decisions(run_id);
+
 -- ── Guardrail: block UPDATE/DELETE on the immutable tables at the DB level ─────
 CREATE OR REPLACE FUNCTION forbid_mutation() RETURNS trigger AS $$
 BEGIN
@@ -89,7 +106,7 @@ $$ LANGUAGE plpgsql;
 DO $$
 DECLARE t TEXT;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['runs','qc_metrics','run_provenance','audit_log','qc_warnings'] LOOP
+    FOREACH t IN ARRAY ARRAY['runs','qc_metrics','run_provenance','audit_log','qc_warnings','review_decisions'] LOOP
         EXECUTE format(
             'DROP TRIGGER IF EXISTS trg_immutable_%1$s ON %1$s;
              CREATE TRIGGER trg_immutable_%1$s
