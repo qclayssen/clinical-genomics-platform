@@ -2,7 +2,9 @@
   "name": "cgp-infra",
   "version": "1.0.0",
   "description": "AWS CDK infrastructure for the Clinical Genomics Insight Platform",
-  "bin": { "cgp-infra": "bin/app.js" },
+  "bin": {
+    "cgp-infra": "bin/app.js"
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
@@ -19,7 +21,7 @@
     "typescript": "~5.8.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.147.0",
+    "aws-cdk-lib": "^2.266.0",
     "constructs": "^10.7.0"
   }
 }
