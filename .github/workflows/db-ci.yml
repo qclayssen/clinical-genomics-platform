@@ -107,7 +107,8 @@ jobs:
           if [ "$PASS" = true ]; then
             echo "=== All immutability triggers verified ==="
           else
-            echo "⚠️ Some immutability triggers did not fire as expected (non-blocking)"
+            echo "❌ Some immutability triggers did not fire — insert-only integrity is broken"
+            exit 1
           fi
 
       - name: Validate views are queryable
