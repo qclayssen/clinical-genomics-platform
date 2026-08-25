@@ -101,6 +101,33 @@ class TestRuleBasedClassify:
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+class TestNoInLambdaLLMRequired:
+    """ADR-0018: the deployed healer path must never need a local LLM server."""
+
+    def test_no_default_endpoint_means_no_network_call(self, monkeypatch):
+        from unittest.mock import patch
+
+        import lambdas.healer.handler as handler_mod
+        monkeypatch.delenv("OLLAMA_URL", raising=False)
+        with patch("urllib.request.urlopen") as mock_open:
+            assert handler_mod._call_ollama("probe") is None
+            mock_open.assert_not_called()
+
+    def test_clean_env_handler_is_rule_based(self, monkeypatch):
+        monkeypatch.delenv("OLLAMA_URL", raising=False)
+        out = handler({"run_id": "r1", "sample_id": "HG002",
+                       "error": {"Cause": "exit code 137"}})
+        assert out["source"] == "rule_based"
+        assert out["action"] in VALID_ACTIONS
+
+    def test_source_has_no_localhost_llm_default(self):
+        from pathlib import Path
+
+        import lambdas.healer.handler as handler_mod
+        src = Path(handler_mod.__file__).read_text()
+        assert "http://localhost:11434" not in src
+
+
 class TestParseLlmResponse:
     """Test LLM response parsing and validation."""
 

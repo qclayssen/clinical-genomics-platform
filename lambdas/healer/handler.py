@@ -135,7 +135,12 @@ def _call_ollama(prompt: str, timeout_seconds: int = 30) -> str | None:
     Returns:
         LLM response text, or None on failure.
     """
-    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+    # No default endpoint: the deployed Lambda has no LLM runtime (ADR-0018).
+    # Set OLLAMA_URL explicitly for local development only.
+    ollama_url = os.environ.get("OLLAMA_URL")
+    if not ollama_url:
+        logger.info(json.dumps({"action": "llm_skipped", "reason": "no_endpoint_configured"}))
+        return None
     model = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
 
     try:
