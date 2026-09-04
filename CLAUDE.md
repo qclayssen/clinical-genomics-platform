@@ -37,6 +37,12 @@ unless noted.
 ```bash
 # Refresh the Metabase warehouse layer (star schema over runs/qc_metrics)
 # after loading db/schema.sql + db/seed_demo.sql — see dashboards/metabase/README.md
+psql "$CGP_DB_URL" -c "
+  INSERT INTO dim_pipeline_version (pipeline_version)
+  SELECT DISTINCT pipeline_version FROM runs ON CONFLICT (pipeline_version) DO NOTHING;
+  INSERT INTO dim_caller (caller)
+  SELECT DISTINCT caller FROM runs ON CONFLICT (caller) DO NOTHING;
+"
 psql "$CGP_DB_URL" -c "REFRESH MATERIALIZED VIEW fact_run;"
 
 # Python unit tests (provenance + guardrail logic; dependency-free)

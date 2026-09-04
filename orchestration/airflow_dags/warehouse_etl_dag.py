@@ -47,10 +47,27 @@ with DAG(
         python_callable=sync_all,
     )
 
+    # dim_pipeline_version/dim_caller are identity-keyed tables (db/schema.sql),
+    # not views — a new distinct value must be upserted before fact_run's
+    # refresh joins against it, or that run is silently dropped.
+    populate_dimensions = PostgresOperator(
+        task_id="populate_dimensions",
+        postgres_conn_id="cgp_postgres",
+        sql="""
+            INSERT INTO dim_pipeline_version (pipeline_version)
+            SELECT DISTINCT pipeline_version FROM runs
+            ON CONFLICT (pipeline_version) DO NOTHING;
+
+            INSERT INTO dim_caller (caller)
+            SELECT DISTINCT caller FROM runs
+            ON CONFLICT (caller) DO NOTHING;
+        """,
+    )
+
     refresh_fact_run = PostgresOperator(
         task_id="refresh_fact_run",
         postgres_conn_id="cgp_postgres",
         sql="REFRESH MATERIALIZED VIEW CONCURRENTLY fact_run;",
     )
 
-    extract_load >> refresh_fact_run
+    extract_load >> populate_dimensions >> refresh_fact_run

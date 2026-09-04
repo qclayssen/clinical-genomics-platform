@@ -8,12 +8,17 @@ alongside the AWS Step Functions orchestration already implemented in
 
 ## What it does
 
-`airflow_dags/warehouse_etl_dag.py` runs two tasks every 15 minutes:
+`airflow_dags/warehouse_etl_dag.py` runs three tasks every 15 minutes:
 
 1. **`sync_dynamodb_to_postgres`** — the existing
    [`db/sync_dynamodb_to_postgres.py`](../db/sync_dynamodb_to_postgres.py)
    script, unchanged, wrapped in a `PythonOperator`.
-2. **`refresh_fact_run`** — `REFRESH MATERIALIZED VIEW CONCURRENTLY fact_run;`
+2. **`populate_dimensions`** — idempotently upserts any pipeline_version/
+   caller not yet in `dim_pipeline_version`/`dim_caller` (identity-keyed
+   tables, not views — see [`db/schema.sql`](../db/schema.sql)). Must run
+   before the refresh, or a run with a brand-new pipeline_version/caller
+   has nothing to join to and is silently dropped from `fact_run`.
+3. **`refresh_fact_run`** — `REFRESH MATERIALIZED VIEW CONCURRENTLY fact_run;`
    against the star-schema view defined in
    [`db/schema.sql`](../db/schema.sql), so Metabase dashboards see fresh data
    without recomputing joins/aggregates on every card load.

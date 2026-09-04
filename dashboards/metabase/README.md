@@ -12,8 +12,15 @@ docker compose -f docker-compose.yml up -d      # (compose file at repo root)
 # 2. Load schema + demo data so cards render immediately
 psql "$CGP_DB_URL" -f db/schema.sql
 psql "$CGP_DB_URL" -f db/seed_demo.sql
-# 3. fact_run (the warehouse layer, cards 7-10 below) was created empty by
-#    schema.sql before the seed data existed — refresh it once:
+# 3. The warehouse layer (fact_run + dims, cards 7-10 below) was created
+#    empty by schema.sql before the seed data existed — populate the
+#    dimensions, then refresh fact_run:
+psql "$CGP_DB_URL" -c "
+  INSERT INTO dim_pipeline_version (pipeline_version)
+  SELECT DISTINCT pipeline_version FROM runs ON CONFLICT (pipeline_version) DO NOTHING;
+  INSERT INTO dim_caller (caller)
+  SELECT DISTINCT caller FROM runs ON CONFLICT (caller) DO NOTHING;
+"
 psql "$CGP_DB_URL" -c "REFRESH MATERIALIZED VIEW fact_run;"
 # 4. In Metabase, add the Postgres DB, then create one Native Question per query below.
 ```

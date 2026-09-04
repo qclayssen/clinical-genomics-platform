@@ -24,25 +24,34 @@ manual.
 ## Decision
 
 **1. Add a star schema over the existing insert-only tables, not beside them.**
-`dim_sample`, `dim_pipeline_version`, `dim_caller`, and `dim_date` are thin
-views derived from `samples`/`runs` — no new source of truth, no risk of the
-warehouse drifting from the OLTP tables. `fact_run` is a materialized view
+`dim_sample` and `dim_date` are thin views derived from `samples`/`runs` — no
+new source of truth. `dim_pipeline_version` and `dim_caller` are real tables
+with a `GENERATED ALWAYS AS IDENTITY` surrogate key, populated by an
+idempotent `INSERT ... ON CONFLICT DO NOTHING` upsert rather than computed
+as a view — a warehouse surrogate key has to stay permanent once assigned,
+and an earlier version of this design used `dense_rank() OVER (...)` in a
+view instead, which renumbers existing keys the moment a new distinct value
+sorts ahead of them (caught in review before merge; see the git history of
+this ADR for the corrected shape). `fact_run` is a materialized view
 (grain = one row per pipeline run) joining those dimensions with
-`qc_metrics` and a rolled-up count of `qc_warnings`. It's materialized,
-not a plain view, because Metabase dashboards should read a precomputed
-table rather than re-run the join/aggregate on every card load — the
-standard batch-warehouse pattern once a dashboard has more than a couple of
-viewers.
+`qc_metrics` and a `LEFT JOIN LATERAL` that rolls up `qc_warnings` counts in
+a single scan. It's materialized, not a plain view, because Metabase
+dashboards should read a precomputed table rather than re-run the
+join/aggregate on every card load — the standard batch-warehouse pattern
+once a dashboard has more than a couple of viewers.
 
 **2. Document the refresh as a scheduled job, using Airflow.** Nextflow
 (the pipeline orchestrator) and Step Functions (the AWS deployment
 orchestrator, `infra/lib/`) already exist in this repo for different jobs;
 neither is a natural fit for "periodically refresh a Postgres materialized
-view." `orchestration/airflow_dags/warehouse_etl_dag.py` adds a two-task DAG
-— sync DynamoDB → Postgres, then `REFRESH MATERIALIZED VIEW CONCURRENTLY
-fact_run` — on a 15-minute schedule, which is what "near real-time
-monitoring" means in a batch-warehouse context without standing up
-streaming infrastructure that this scope doesn't need.
+view." `orchestration/airflow_dags/warehouse_etl_dag.py` adds a three-task
+DAG — sync DynamoDB → Postgres, populate the dimension tables, then
+`REFRESH MATERIALIZED VIEW CONCURRENTLY fact_run` — on a 15-minute
+schedule, which is what "near real-time monitoring" means in a
+batch-warehouse context without standing up streaming infrastructure that
+this scope doesn't need. Task ordering matters here: the dimension upsert
+must run before the refresh, or a run with a brand-new pipeline_version/
+caller has nothing to join to and silently drops out of `fact_run`.
 
 **3. Point new Metabase cards at the warehouse layer, not raw joins.**
 `dashboards/metabase/README.md` gains cards for SLA/turnaround
@@ -68,6 +77,11 @@ the existing `v_run_summary`-based cards.
   Metabase dashboard to work.
 
 **Bad / accepted limitations**
+- The dimension tables need their own upsert step kept in sync with every
+  place that refreshes `fact_run` (the Airflow DAG, and the manual runbook
+  in `CLAUDE.md`/`dashboards/metabase/README.md`) — one more moving part
+  than a self-contained view, in exchange for surrogate keys that don't
+  silently renumber.
 - The Airflow DAG is not deployed or exercised by CI — there's no Airflow
   instance in `docker-compose.yml`. It's a design artifact in the same
   spirit as `infra/` needing a real AWS account: structurally correct,

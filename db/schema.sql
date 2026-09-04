@@ -176,15 +176,31 @@ CREATE OR REPLACE VIEW dim_sample AS
 SELECT sample_id, reference_build, created_at
 FROM samples;
 
-CREATE OR REPLACE VIEW dim_pipeline_version AS
-SELECT DISTINCT pipeline_version,
-       dense_rank() OVER (ORDER BY pipeline_version) AS pipeline_version_key
-FROM runs;
+-- dim_pipeline_version / dim_caller are real tables with generated identity
+-- surrogate keys, not views computed on the fly: a key must stay permanent
+-- once assigned, and a dense_rank()-over-live-data view can renumber
+-- existing keys the moment a new distinct value sorts ahead of them.
+-- Populated by an idempotent upsert — safe to re-run any time new runs may
+-- have introduced a pipeline_version/caller not yet in the dimension; see
+-- orchestration/airflow_dags/warehouse_etl_dag.py for where that runs on a
+-- schedule.
+CREATE TABLE IF NOT EXISTS dim_pipeline_version (
+    pipeline_version_key BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pipeline_version     TEXT NOT NULL UNIQUE
+);
 
-CREATE OR REPLACE VIEW dim_caller AS
-SELECT DISTINCT caller,
-       dense_rank() OVER (ORDER BY caller) AS caller_key
-FROM runs;
+CREATE TABLE IF NOT EXISTS dim_caller (
+    caller_key BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    caller     TEXT NOT NULL UNIQUE
+);
+
+INSERT INTO dim_pipeline_version (pipeline_version)
+SELECT DISTINCT pipeline_version FROM runs
+ON CONFLICT (pipeline_version) DO NOTHING;
+
+INSERT INTO dim_caller (caller)
+SELECT DISTINCT caller FROM runs
+ON CONFLICT (caller) DO NOTHING;
 
 CREATE OR REPLACE VIEW dim_date AS
 SELECT DISTINCT date_trunc('day', started_at)::date AS date_key,
@@ -218,19 +234,26 @@ SELECT
     q.snp_f1,
     q.percent_duplication,
     q.n_variants,
-    (SELECT count(*) FROM qc_warnings w
-      WHERE w.run_pk = r.id AND w.overall_status = 'warn')     AS n_warn,
-    (SELECT count(*) FROM qc_warnings w
-      WHERE w.run_pk = r.id AND w.overall_status = 'fail')     AS n_fail
+    coalesce(qw.n_warn, 0)                                     AS n_warn,
+    coalesce(qw.n_fail, 0)                                     AS n_fail
 FROM runs r
 JOIN qc_metrics q            ON q.run_pk = r.id
 JOIN dim_pipeline_version pv ON pv.pipeline_version = r.pipeline_version
-JOIN dim_caller c             ON c.caller = r.caller;
+JOIN dim_caller c             ON c.caller = r.caller
+LEFT JOIN LATERAL (
+    SELECT count(*) FILTER (WHERE w.overall_status = 'warn') AS n_warn,
+           count(*) FILTER (WHERE w.overall_status = 'fail') AS n_fail
+    FROM qc_warnings w
+    WHERE w.run_pk = r.id
+) qw ON true;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_fact_run_key ON fact_run(run_key);
 CREATE INDEX IF NOT EXISTS idx_fact_run_date ON fact_run(date_key);
 CREATE INDEX IF NOT EXISTS idx_fact_run_pipeline ON fact_run(pipeline_version_key);
 
--- Refresh after ingest: `REFRESH MATERIALIZED VIEW CONCURRENTLY fact_run;`
--- (CONCURRENTLY needs the unique index above, and keeps the view readable —
--- no dashboard-facing lock — while it rebuilds).
+-- Refresh order matters: dim_pipeline_version/dim_caller must be populated
+-- (re-run the upsert above) before `REFRESH MATERIALIZED VIEW CONCURRENTLY
+-- fact_run;` — otherwise a brand-new pipeline_version/caller from the
+-- latest ingest has no dimension row yet and its run is silently dropped
+-- by fact_run's JOIN. CONCURRENTLY needs the unique index above, and keeps
+-- the view readable — no dashboard-facing lock — while it rebuilds.
