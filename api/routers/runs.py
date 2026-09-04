@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from api.dependencies import get_repository
 from api.models import ErrorDetail, Provenance, QcWarning, ReviewDecision, ReviewDecisionCreate, Run
-from api.repository import Repository, RunNotFoundError
+from api.repository import Repository
 
 router = APIRouter(prefix="/runs", tags=["runs"])
+
+NOT_FOUND_RESPONSE = {404: {"model": ErrorDetail, "description": "Run not found"}}
 
 
 @router.get("", response_model=list[Run], summary="List pipeline runs")
@@ -24,53 +26,41 @@ def list_runs(
 @router.get(
     "/{run_id}",
     response_model=Run,
-    responses={404: {"model": ErrorDetail, "description": "Run not found"}},
+    responses=NOT_FOUND_RESPONSE,
     summary="Get a run's summary and latest QC metrics",
 )
 def get_run(run_id: str, repository: Repository = Depends(get_repository)) -> Run:
-    try:
-        return repository.get_run(run_id)
-    except RunNotFoundError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"run '{run_id}' not found") from None
+    return repository.get_run(run_id)
 
 
 @router.get(
     "/{run_id}/provenance",
     response_model=Provenance,
-    responses={404: {"model": ErrorDetail, "description": "Run not found"}},
+    responses=NOT_FOUND_RESPONSE,
     summary="Get a run's full provenance stamp",
 )
 def get_provenance(run_id: str, repository: Repository = Depends(get_repository)) -> Provenance:
-    try:
-        return repository.get_provenance(run_id)
-    except RunNotFoundError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"run '{run_id}' not found") from None
+    return repository.get_provenance(run_id)
 
 
 @router.get(
     "/{run_id}/qc-warnings",
     response_model=list[QcWarning],
-    responses={404: {"model": ErrorDetail, "description": "Run not found"}},
+    responses=NOT_FOUND_RESPONSE,
     summary="List QC threshold breaches for a run",
 )
 def list_qc_warnings(run_id: str, repository: Repository = Depends(get_repository)) -> list[QcWarning]:
-    try:
-        return repository.list_qc_warnings(run_id)
-    except RunNotFoundError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"run '{run_id}' not found") from None
+    return repository.list_qc_warnings(run_id)
 
 
 @router.post(
     "/{run_id}/review-decisions",
     response_model=ReviewDecision,
     status_code=status.HTTP_201_CREATED,
-    responses={404: {"model": ErrorDetail, "description": "Run not found"}},
+    responses=NOT_FOUND_RESPONSE,
     summary="Record a reviewer's sign-off on an AI-drafted variant classification",
 )
 def create_review_decision(
     run_id: str, decision: ReviewDecisionCreate, repository: Repository = Depends(get_repository)
 ) -> ReviewDecision:
-    try:
-        return repository.create_review_decision(run_id, decision)
-    except RunNotFoundError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"run '{run_id}' not found") from None
+    return repository.create_review_decision(run_id, decision)

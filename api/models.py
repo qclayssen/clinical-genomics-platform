@@ -27,7 +27,9 @@ class QcMetrics(BaseModel):
     percent_duplication: float | None = Field(None, description="Fraction of reads marked as PCR/optical duplicates")
     snp_precision: float | None = None
     snp_recall: float | None = None
-    snp_f1: float = Field(..., description="hap.py SNP F1 vs the GIAB truth set; acceptance threshold is 0.99")
+    snp_f1: float | None = Field(
+        None, description="hap.py SNP F1 vs the GIAB truth set; acceptance threshold is 0.99. Null until validated."
+    )
     n_variants: int | None = None
 
 

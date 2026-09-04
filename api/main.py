@@ -14,8 +14,10 @@ instance (see db/schema.sql) — the routes and response shapes are identical.
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
+from api.repository import RunNotFoundError
 from api.routers import runs
 
 DESCRIPTION = """
@@ -43,6 +45,11 @@ app = FastAPI(
 )
 
 app.include_router(runs.router)
+
+
+@app.exception_handler(RunNotFoundError)
+def handle_run_not_found(request: Request, exc: RunNotFoundError) -> JSONResponse:
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
 @app.get("/healthz", tags=["meta"], summary="Liveness check")

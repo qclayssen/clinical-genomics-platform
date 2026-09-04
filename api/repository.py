@@ -129,15 +129,38 @@ class PostgresRepository:
 
         return psycopg.connect(self._dsn, row_factory=dict_row)
 
-    def list_runs(
+    @staticmethod
+    def _row_to_run(row: dict) -> Run:
+        return Run(
+            run_id=row["run_id"],
+            sample_id=row["sample_id"],
+            pipeline_version=row["pipeline_version"],
+            caller=row["caller"],
+            validation_pass=row["validation_pass"],
+            started_at=row["started_at"],
+            exported_at=row["exported_at"],
+            qc=QcMetrics(
+                percent_duplication=row["percent_duplication"],
+                snp_precision=row["snp_precision"],
+                snp_recall=row["snp_recall"],
+                snp_f1=row["snp_f1"],
+                n_variants=row["n_variants"],
+            ),
+        )
+
+    def _query_runs(
         self,
+        run_id: str | None = None,
         sample_id: str | None = None,
         caller: str | None = None,
         validation_pass: bool | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> list[Run]:
+    ) -> list[dict]:
         clauses, params = [], []
+        if run_id is not None:
+            clauses.append("r.run_id = %s")
+            params.append(run_id)
         if sample_id is not None:
             clauses.append("r.sample_id = %s")
             params.append(sample_id)
@@ -162,32 +185,26 @@ class PostgresRepository:
         """
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute(query, [*params, limit, offset])
-            rows = cur.fetchall()
-        return [
-            Run(
-                run_id=row["run_id"],
-                sample_id=row["sample_id"],
-                pipeline_version=row["pipeline_version"],
-                caller=row["caller"],
-                validation_pass=row["validation_pass"],
-                started_at=row["started_at"],
-                exported_at=row["exported_at"],
-                qc=QcMetrics(
-                    percent_duplication=row["percent_duplication"],
-                    snp_precision=row["snp_precision"],
-                    snp_recall=row["snp_recall"],
-                    snp_f1=row["snp_f1"],
-                    n_variants=row["n_variants"],
-                ),
-            )
-            for row in rows
-        ]
+            return cur.fetchall()
+
+    def list_runs(
+        self,
+        sample_id: str | None = None,
+        caller: str | None = None,
+        validation_pass: bool | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Run]:
+        rows = self._query_runs(
+            sample_id=sample_id, caller=caller, validation_pass=validation_pass, limit=limit, offset=offset
+        )
+        return [self._row_to_run(row) for row in rows]
 
     def get_run(self, run_id: str) -> Run:
-        for r in self.list_runs(limit=1_000_000, offset=0):
-            if r.run_id == run_id:
-                return r
-        raise RunNotFoundError(run_id)
+        rows = self._query_runs(run_id=run_id, limit=1, offset=0)
+        if not rows:
+            raise RunNotFoundError(run_id)
+        return self._row_to_run(rows[0])
 
     def get_provenance(self, run_id: str) -> Provenance:
         query = """
