@@ -18,7 +18,7 @@ from itertools import count
 from pathlib import Path
 from typing import Protocol
 
-from api.models import Provenance, QcMetrics, QcWarning, Run, ReviewDecision, ReviewDecisionCreate
+from api.models import Provenance, QcMetrics, QcWarning, ReviewDecision, ReviewDecisionCreate, Run
 
 DEMO_DATA_PATH = Path(__file__).parent / "data" / "demo_runs.json"
 
