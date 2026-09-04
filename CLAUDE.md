@@ -21,6 +21,7 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | `infra/` | AWS CDK (TypeScript) app: 4 stacks in `lib/`, wired in `bin/app.ts`, guardrail tests in `test/` |
 | `db/` | Postgres `schema.sql` (insert-only tables + immutability triggers, star-schema warehouse layer), migrations, seed |
 | `dashboards/metabase/` | Version-controlled Metabase dashboard + question/SQL definitions |
+| `api/` | FastAPI REST service over run/QC/provenance data, with OpenAPI docs (`/docs`, `/redoc`); fixture-backed by default, optional `CGP_DB_URL` for Postgres |
 | `orchestration/` | Illustrative Airflow DAG scheduling the warehouse ETL/refresh (design note, see ADR-0023) |
 | `ai-report/` | PyTorch QLoRA fine-tune + inference (`infer.py`, `train_lora.py`, `train_smoke.py`, `make_dataset.py`), `MODEL_CARD.md` |
 | `docker/` | One pinned Dockerfile per stage plus `Dockerfile.tools` for the helper scripts |
@@ -47,6 +48,10 @@ psql "$CGP_DB_URL" -c "REFRESH MATERIALIZED VIEW fact_run;"
 
 # Python unit tests (provenance + guardrail logic; dependency-free)
 pytest
+
+# REST API with OpenAPI docs — fixture-backed, no DB/AWS needed
+pip install -r api/requirements.txt
+uvicorn api.main:app --reload   # then open http://127.0.0.1:8000/docs
 
 # Deterministic offline report renderer (no ML deps at all)
 python3 ai-report/infer.py --metrics tests/fixtures/HG002_chr20.metrics.json --offline
@@ -95,7 +100,8 @@ templates without an AWS account.
 ## Verified vs. needs-environment
 
 - **Verified running:** `pytest` suite, the metrics/provenance builder, `infer.py --offline`,
-  and the CPU LoRA smoke test (`train_smoke.py`).
+  the CPU LoRA smoke test (`train_smoke.py`), and the FastAPI service (`uvicorn api.main:app`,
+  fixture-backed by default).
 - **Needs Nextflow + Docker:** the full genomics pipeline on real GIAB data.
 - **Needs an AWS account:** `cdk deploy` (CI only runs `cdk synth`).
 - **Needs a GPU:** the full QLoRA fine-tune of the 3B model (the CPU smoke test proves the loop).

@@ -1,0 +1,104 @@
+{
+  "runs": [
+    {
+      "sample": "HG002_chr20",
+      "schema_version": "1.0",
+      "qc": { "percent_duplication": 0.061 },
+      "validation": {
+        "snp": { "precision": 0.9985, "recall": 0.9971, "f1": 0.9978 },
+        "indel": { "precision": 0.9929, "recall": 0.9911, "f1": 0.9920 }
+      },
+      "validation_pass": true,
+      "provenance": {
+        "pipeline_version": "0.3.0",
+        "git_commit": "abc1234",
+        "run_id": "run_2026_0301_a",
+        "caller": "gatk",
+        "reference_build": "GRCh38.p14",
+        "truth_version": "GIAB-v4.2.1",
+        "n_variants": 61234,
+        "started_at": "2026-03-01T09:00:00Z",
+        "exported_at": "2026-03-01T10:12:00Z",
+        "input_checksums": {
+          "HG002_chr20.markdup.metrics": "943f06a03b3d8ee556a1ac269406378d941bb1d2704300221d32f4d2c942c2af",
+          "HG002_chr20.happy.summary.csv": "c471a7b25a29b4f5eeb85d5dc0d32e522b12d15f774fa2dfb87896d1b233b580"
+        }
+      },
+      "qc_warnings": []
+    },
+    {
+      "sample": "HG002_chr20",
+      "schema_version": "1.0",
+      "qc": { "percent_duplication": 0.142 },
+      "validation": {
+        "snp": { "precision": 0.9911, "recall": 0.9803, "f1": 0.9857 },
+        "indel": { "precision": 0.9820, "recall": 0.9744, "f1": 0.9782 }
+      },
+      "validation_pass": true,
+      "provenance": {
+        "pipeline_version": "0.3.0",
+        "git_commit": "def5678",
+        "run_id": "run_2026_0308_b",
+        "caller": "gatk",
+        "reference_build": "GRCh38.p14",
+        "truth_version": "GIAB-v4.2.1",
+        "n_variants": 60877,
+        "started_at": "2026-03-08T09:00:00Z",
+        "exported_at": "2026-03-08T10:20:00Z",
+        "input_checksums": {
+          "HG002_chr20.markdup.metrics": "1a2b3c4d5e6f7089aabbccddeeff00112233445566778899aabbccddeeff001",
+          "HG002_chr20.happy.summary.csv": "0011223344556677889900aabbccddeeff112233445566778899aabbccddee"
+        }
+      },
+      "qc_warnings": [
+        {
+          "sample_id": "HG002_chr20",
+          "overall_status": "warn",
+          "metric_name": "percent_duplication",
+          "metric_value": 0.142,
+          "threshold_warn": 0.10,
+          "threshold_fail": 0.20,
+          "threshold_source": "adaptive",
+          "recorded_at": "2026-03-08T10:20:00Z"
+        }
+      ]
+    },
+    {
+      "sample": "HG002_chr20",
+      "schema_version": "1.0",
+      "qc": { "percent_duplication": 0.058 },
+      "validation": {
+        "snp": { "precision": 0.9450, "recall": 0.9612, "f1": 0.9530 },
+        "indel": { "precision": 0.9301, "recall": 0.9188, "f1": 0.9244 }
+      },
+      "validation_pass": false,
+      "provenance": {
+        "pipeline_version": "0.4.0-rc1",
+        "git_commit": "9f8e7d6",
+        "run_id": "run_2026_0315_c",
+        "caller": "deepvariant",
+        "reference_build": "GRCh38.p14",
+        "truth_version": "GIAB-v4.2.1",
+        "n_variants": 59012,
+        "started_at": "2026-03-15T09:00:00Z",
+        "exported_at": "2026-03-15T10:05:00Z",
+        "input_checksums": {
+          "HG002_chr20.markdup.metrics": "aa11bb22cc33dd44ee55ff6600aa11bb22cc33dd44ee55ff6600aa11bb22cc3",
+          "HG002_chr20.happy.summary.csv": "bb22cc33dd44ee55ff6600aa11bb22cc33dd44ee55ff6600aa11bb22cc33dd4"
+        }
+      },
+      "qc_warnings": [
+        {
+          "sample_id": "HG002_chr20",
+          "overall_status": "fail",
+          "metric_name": "snp_f1",
+          "metric_value": 0.9530,
+          "threshold_warn": 0.9900,
+          "threshold_fail": 0.9700,
+          "threshold_source": "bootstrap",
+          "recorded_at": "2026-03-15T10:05:00Z"
+        }
+      ]
+    }
+  ]
+}
