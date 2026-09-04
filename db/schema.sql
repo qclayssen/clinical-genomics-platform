@@ -165,3 +165,72 @@ SELECT w.metric_name,
        w.sample_id
 FROM qc_warnings w
 ORDER BY w.recorded_at DESC;
+
+-- ── Dimensional warehouse layer (star schema) ─────────────────────────────────
+-- A BI-facing dimensional model over the OLTP tables above, for Metabase and
+-- ad-hoc SQL analytics. Dimensions are thin views derived from the existing
+-- insert-only tables — this is a warehouse *shape* over the same source of
+-- truth, not a second copy that could drift from it. See ADR-0023.
+
+CREATE OR REPLACE VIEW dim_sample AS
+SELECT sample_id, reference_build, created_at
+FROM samples;
+
+CREATE OR REPLACE VIEW dim_pipeline_version AS
+SELECT DISTINCT pipeline_version,
+       dense_rank() OVER (ORDER BY pipeline_version) AS pipeline_version_key
+FROM runs;
+
+CREATE OR REPLACE VIEW dim_caller AS
+SELECT DISTINCT caller,
+       dense_rank() OVER (ORDER BY caller) AS caller_key
+FROM runs;
+
+CREATE OR REPLACE VIEW dim_date AS
+SELECT DISTINCT date_trunc('day', started_at)::date AS date_key,
+       EXTRACT(ISOYEAR FROM started_at)::int AS iso_year,
+       EXTRACT(WEEK FROM started_at)::int AS iso_week,
+       EXTRACT(DOW FROM started_at)::int AS day_of_week,
+       trim(to_char(started_at, 'Day')) AS day_name
+FROM runs
+WHERE started_at IS NOT NULL;
+
+-- fact_run: one row per pipeline run (grain = run). Materialized so Metabase
+-- cards query a precomputed table rather than re-aggregating qc_warnings on
+-- every dashboard load. Refreshed by the warehouse ETL job — see
+-- orchestration/airflow_dags/warehouse_etl_dag.py and ADR-0023.
+CREATE MATERIALIZED VIEW IF NOT EXISTS fact_run AS
+SELECT
+    r.id                                                      AS run_key,
+    r.run_id,
+    r.sample_id,
+    r.pipeline_version,
+    pv.pipeline_version_key,
+    r.caller,
+    c.caller_key,
+    date_trunc('day', r.started_at)::date                     AS date_key,
+    r.started_at,
+    r.exported_at,
+    EXTRACT(EPOCH FROM (r.exported_at - r.started_at)) / 60.0  AS turnaround_min,
+    r.validation_pass,
+    q.snp_precision,
+    q.snp_recall,
+    q.snp_f1,
+    q.percent_duplication,
+    q.n_variants,
+    (SELECT count(*) FROM qc_warnings w
+      WHERE w.run_pk = r.id AND w.overall_status = 'warn')     AS n_warn,
+    (SELECT count(*) FROM qc_warnings w
+      WHERE w.run_pk = r.id AND w.overall_status = 'fail')     AS n_fail
+FROM runs r
+JOIN qc_metrics q            ON q.run_pk = r.id
+JOIN dim_pipeline_version pv ON pv.pipeline_version = r.pipeline_version
+JOIN dim_caller c             ON c.caller = r.caller;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_fact_run_key ON fact_run(run_key);
+CREATE INDEX IF NOT EXISTS idx_fact_run_date ON fact_run(date_key);
+CREATE INDEX IF NOT EXISTS idx_fact_run_pipeline ON fact_run(pipeline_version_key);
+
+-- Refresh after ingest: `REFRESH MATERIALIZED VIEW CONCURRENTLY fact_run;`
+-- (CONCURRENTLY needs the unique index above, and keeps the view readable —
+-- no dashboard-facing lock — while it rebuilds).
