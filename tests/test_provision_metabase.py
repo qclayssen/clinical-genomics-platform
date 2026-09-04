@@ -104,6 +104,42 @@ def test_add_card_to_dashboard_sends_expected_payload():
     )
 
 
+def test_template_tags_for_extracts_each_distinct_variable():
+    sql = (
+        "SELECT * FROM fact_run WHERE 1=1 "
+        "[[AND sample_id = {{sample_id}}]] [[AND caller = {{caller}}]] "
+        "[[AND caller = {{ caller }}]]"
+    )
+
+    tags = provision_metabase.template_tags_for(sql)
+
+    assert set(tags) == {"sample_id", "caller"}
+    assert tags["sample_id"]["type"] == "text"
+    assert tags["sample_id"]["name"] == "sample_id"
+    assert tags["sample_id"]["display-name"] == "Sample Id"
+
+
+def test_template_tags_for_empty_when_no_variables():
+    assert provision_metabase.template_tags_for("SELECT 1;") == {}
+
+
+def test_get_or_create_card_includes_template_tags_when_creating():
+    client, session = _client_with_mock_session()
+    session.get.return_value = _json_response([])
+    session.post.return_value = _json_response({"id": 5})
+
+    client.get_or_create_card(
+        "Self-service cohort explorer",
+        "SELECT * FROM fact_run WHERE 1=1 [[AND sample_id = {{sample_id}}]]",
+        "table",
+        database_id=1,
+        collection_id=2,
+    )
+
+    posted = session.post.call_args.kwargs["json"]
+    assert "sample_id" in posted["dataset_query"]["native"]["template-tags"]
+
+
 def test_manifest_loads_and_matches_expected_shape():
     manifest = provision_metabase.load_manifest(provision_metabase.DEFAULT_MANIFEST)
 

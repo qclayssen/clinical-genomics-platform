@@ -17,6 +17,8 @@ Usage:
 from __future__ import annotations
 
 import os
+import re
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +26,33 @@ import requests
 import yaml
 
 DEFAULT_MANIFEST = Path(__file__).with_name("dashboard_manifest.yaml")
+
+_TEMPLATE_TAG_RE = re.compile(r"\{\{\s*(\w+)\s*\}\}")
+
+
+def template_tags_for(sql: str) -> dict[str, Any]:
+    """Build the native-query template-tags Metabase requires for every {{tag}}.
+
+    Metabase's card-creation API rejects (or silently can't run) a native
+    query containing `{{tag}}` unless `dataset_query.native.template-tags`
+    describes each tag — the frontend normally computes this, but nothing
+    does it automatically when a card is created via the API directly. This
+    declares each tag as a plain text Variable, not a Field Filter: a real
+    Field Filter needs the target column's live Metabase field ID, which is
+    only known after Metabase finishes syncing the database's schema — a
+    round trip this script doesn't perform. See ADR-0024.
+    """
+    tags: dict[str, Any] = {}
+    for tag_name in _TEMPLATE_TAG_RE.findall(sql):
+        if tag_name in tags:
+            continue
+        tags[tag_name] = {
+            "id": str(uuid.uuid4()),
+            "name": tag_name,
+            "display-name": tag_name.replace("_", " ").title(),
+            "type": "text",
+        }
+    return tags
 
 
 class MetabaseClient:
@@ -93,7 +122,7 @@ class MetabaseClient:
                 "visualization_settings": {},
                 "dataset_query": {
                     "type": "native",
-                    "native": {"query": sql},
+                    "native": {"query": sql, "template-tags": template_tags_for(sql)},
                     "database": database_id,
                 },
             },

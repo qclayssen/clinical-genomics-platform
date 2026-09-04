@@ -112,9 +112,15 @@ FROM fact_run;
 ### 9. Self-service cohort explorer (table, with dashboard filters)
 A single filterable table is the "self-service analytics" ask: add Metabase
 dashboard filters bound to `{{sample_id}}`, `{{caller}}`, and
-`{{pipeline_version}}` (Field Filters mapped to the columns below) so a
-non-technical stakeholder can slice the cohort themselves without writing
-SQL, instead of asking for a one-off query each time.
+`{{pipeline_version}}` so a non-technical stakeholder can slice the cohort
+themselves without writing SQL, instead of asking for a one-off query each
+time. Click-built through the UI, these can be true Field Filters (bound to
+a live Metabase column, with the search-as-you-type widget); created via
+`provision_metabase.py` they come through as plain SQL Variables instead —
+a real Field Filter needs the target column's Metabase field ID, which only
+exists after Metabase finishes syncing the database schema, a round trip
+the script doesn't perform. See `template_tags_for()` in
+`provision_metabase.py` and [ADR-0024](../../docs/adr/0024-metabase-as-code-and-oss-sandboxing.md).
 ```sql
 SELECT run_id, sample_id, pipeline_version, caller, started_at,
        round(turnaround_min::numeric, 1) AS turnaround_min,

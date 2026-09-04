@@ -89,6 +89,14 @@ would be complexity with no data to point it at.
   explicitly-applied file, not part of `docker-entrypoint-initdb.d`.
 
 **Bad / accepted limitations**
+- The cards created via the API get plain SQL Variables for their `{{}}`
+  parameters (declared by `template_tags_for()`, which regex-extracts each
+  distinct `{{tag}}` from the SQL), not true Field Filters — a real Field
+  Filter needs the target column's live Metabase field ID, only known after
+  a schema-sync round trip this script doesn't perform. Caught in review
+  before merge: the first version of `get_or_create_card()` sent no
+  `template-tags` at all, which would have made Metabase reject or fail to
+  run the self-service card the moment it tried to create it.
 - `provision_metabase.py` has never been run against a live Metabase in
   this environment — no Docker daemon is available here. Its correctness is
   argued from unit tests (`tests/test_provision_metabase.py`) that mock the
