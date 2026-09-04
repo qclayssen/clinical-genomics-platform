@@ -44,10 +44,13 @@ Each ADR follows the same tiny structure:
 | [0018](0018-execution-substrate-and-healer-llm-runtime.md) | Execution substrate matrix and healer LLM runtime placement | Accepted |
 | [0019](0019-reviewer-decision-log.md) | Capture reviewer sign-off as an insert-only decision log | Accepted |
 | [0020](0020-usage-value-metrics.md) | Usage/value metrics computed from the reviewer decision log | Accepted |
+| [0021](0021-triage-agent.md) | Triage agent | Accepted |
+| [0022](0022-enterprise-data-platform-integration.md) | Enterprise data platform integration (design note) | Proposed |
+| [0023](0023-star-schema-warehouse-airflow.md) | Star-schema warehouse layer + Airflow-orchestrated refresh | Accepted (warehouse) / design note (Airflow) |
 
 ---
 
-**Count: 20 ADRs** (0001–0020). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 23 ADRs** (0001–0023). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 

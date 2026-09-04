@@ -165,3 +165,95 @@ SELECT w.metric_name,
        w.sample_id
 FROM qc_warnings w
 ORDER BY w.recorded_at DESC;
+
+-- ── Dimensional warehouse layer (star schema) ─────────────────────────────────
+-- A BI-facing dimensional model over the OLTP tables above, for Metabase and
+-- ad-hoc SQL analytics. Dimensions are thin views derived from the existing
+-- insert-only tables — this is a warehouse *shape* over the same source of
+-- truth, not a second copy that could drift from it. See ADR-0023.
+
+CREATE OR REPLACE VIEW dim_sample AS
+SELECT sample_id, reference_build, created_at
+FROM samples;
+
+-- dim_pipeline_version / dim_caller are real tables with generated identity
+-- surrogate keys, not views computed on the fly: a key must stay permanent
+-- once assigned, and a dense_rank()-over-live-data view can renumber
+-- existing keys the moment a new distinct value sorts ahead of them.
+-- Populated by an idempotent upsert — safe to re-run any time new runs may
+-- have introduced a pipeline_version/caller not yet in the dimension; see
+-- orchestration/airflow_dags/warehouse_etl_dag.py for where that runs on a
+-- schedule.
+CREATE TABLE IF NOT EXISTS dim_pipeline_version (
+    pipeline_version_key BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pipeline_version     TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS dim_caller (
+    caller_key BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    caller     TEXT NOT NULL UNIQUE
+);
+
+INSERT INTO dim_pipeline_version (pipeline_version)
+SELECT DISTINCT pipeline_version FROM runs
+ON CONFLICT (pipeline_version) DO NOTHING;
+
+INSERT INTO dim_caller (caller)
+SELECT DISTINCT caller FROM runs
+ON CONFLICT (caller) DO NOTHING;
+
+CREATE OR REPLACE VIEW dim_date AS
+SELECT DISTINCT date_trunc('day', started_at)::date AS date_key,
+       EXTRACT(ISOYEAR FROM started_at)::int AS iso_year,
+       EXTRACT(WEEK FROM started_at)::int AS iso_week,
+       EXTRACT(DOW FROM started_at)::int AS day_of_week,
+       trim(to_char(started_at, 'Day')) AS day_name
+FROM runs
+WHERE started_at IS NOT NULL;
+
+-- fact_run: one row per pipeline run (grain = run). Materialized so Metabase
+-- cards query a precomputed table rather than re-aggregating qc_warnings on
+-- every dashboard load. Refreshed by the warehouse ETL job — see
+-- orchestration/airflow_dags/warehouse_etl_dag.py and ADR-0023.
+CREATE MATERIALIZED VIEW IF NOT EXISTS fact_run AS
+SELECT
+    r.id                                                      AS run_key,
+    r.run_id,
+    r.sample_id,
+    r.pipeline_version,
+    pv.pipeline_version_key,
+    r.caller,
+    c.caller_key,
+    date_trunc('day', r.started_at)::date                     AS date_key,
+    r.started_at,
+    r.exported_at,
+    EXTRACT(EPOCH FROM (r.exported_at - r.started_at)) / 60.0  AS turnaround_min,
+    r.validation_pass,
+    q.snp_precision,
+    q.snp_recall,
+    q.snp_f1,
+    q.percent_duplication,
+    q.n_variants,
+    coalesce(qw.n_warn, 0)                                     AS n_warn,
+    coalesce(qw.n_fail, 0)                                     AS n_fail
+FROM runs r
+JOIN qc_metrics q            ON q.run_pk = r.id
+JOIN dim_pipeline_version pv ON pv.pipeline_version = r.pipeline_version
+JOIN dim_caller c             ON c.caller = r.caller
+LEFT JOIN LATERAL (
+    SELECT count(*) FILTER (WHERE w.overall_status = 'warn') AS n_warn,
+           count(*) FILTER (WHERE w.overall_status = 'fail') AS n_fail
+    FROM qc_warnings w
+    WHERE w.run_pk = r.id
+) qw ON true;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_fact_run_key ON fact_run(run_key);
+CREATE INDEX IF NOT EXISTS idx_fact_run_date ON fact_run(date_key);
+CREATE INDEX IF NOT EXISTS idx_fact_run_pipeline ON fact_run(pipeline_version_key);
+
+-- Refresh order matters: dim_pipeline_version/dim_caller must be populated
+-- (re-run the upsert above) before `REFRESH MATERIALIZED VIEW CONCURRENTLY
+-- fact_run;` — otherwise a brand-new pipeline_version/caller from the
+-- latest ingest has no dimension row yet and its run is silently dropped
+-- by fact_run's JOIN. CONCURRENTLY needs the unique index above, and keeps
+-- the view readable — no dashboard-facing lock — while it rebuilds.

@@ -119,3 +119,38 @@ jobs:
           psql -c "SELECT count(*) AS warning_freq_rows FROM v_qc_warning_frequency;"
           psql -c "SELECT count(*) AS metric_vs_thresh_rows FROM v_qc_metric_vs_threshold;"
           echo "=== Views check done ==="
+
+      - name: Refresh and validate the warehouse layer (star schema)
+        run: |
+          echo "=== Populating dim_pipeline_version / dim_caller ==="
+          psql -c "
+            INSERT INTO dim_pipeline_version (pipeline_version)
+            SELECT DISTINCT pipeline_version FROM runs ON CONFLICT (pipeline_version) DO NOTHING;
+            INSERT INTO dim_caller (caller)
+            SELECT DISTINCT caller FROM runs ON CONFLICT (caller) DO NOTHING;
+          "
+          echo "=== Refreshing fact_run ==="
+          psql -c "REFRESH MATERIALIZED VIEW fact_run;"
+
+          echo "=== Validating warehouse layer has data ==="
+          FACT_ROWS=$(psql -tAc "SELECT count(*) FROM fact_run;")
+          echo "fact_run rows: $FACT_ROWS"
+          if [ "$FACT_ROWS" -lt 1 ]; then
+            echo "❌ fact_run has no rows after refresh — warehouse layer join is broken"
+            exit 1
+          fi
+
+          psql -c "SELECT count(*) AS dim_sample_rows FROM dim_sample;"
+          psql -c "SELECT count(*) AS dim_pipeline_version_rows FROM dim_pipeline_version;"
+          psql -c "SELECT count(*) AS dim_caller_rows FROM dim_caller;"
+          psql -c "SELECT count(*) AS dim_date_rows FROM dim_date;"
+
+          echo "=== Warehouse cards' queries (SLA percentiles, freshness, warning trend) ==="
+          psql -c "
+            SELECT pipeline_version,
+                   percentile_cont(0.5) WITHIN GROUP (ORDER BY turnaround_min) AS p50_min,
+                   percentile_cont(0.95) WITHIN GROUP (ORDER BY turnaround_min) AS p95_min
+            FROM fact_run GROUP BY pipeline_version ORDER BY pipeline_version;
+          "
+          psql -c "SELECT date_key, sum(n_warn) AS warn_count, sum(n_fail) AS fail_count FROM fact_run GROUP BY date_key ORDER BY date_key;"
+          echo "=== Warehouse layer check done ==="
