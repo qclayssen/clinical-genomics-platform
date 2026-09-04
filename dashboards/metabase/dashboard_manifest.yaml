@@ -1,0 +1,101 @@
+# Machine-readable source of truth for the "Clinical Genomics Ops" Metabase
+# dashboard. dashboards/metabase/README.md documents the same cards with
+# narrative context for a human reader; provision_metabase.py reads this
+# file to create them via the Metabase REST API. Keep both in sync when a
+# card changes — see ADR-0024 for why this exists alongside the README.
+
+database:
+  name: cgp
+  engine: postgres
+  details:
+    host: postgres
+    port: 5432
+    dbname: cgp
+    user: cgp
+    password: cgp
+
+collections:
+  - name: "CGP Ops"
+    dashboard: "Clinical Genomics Ops"
+    embed: true
+    cards:
+      - name: "Validation pass rate"
+        display: scalar
+        sql: |
+          SELECT round(100.0 * avg(validation_pass::int), 1) AS pass_rate_pct
+          FROM v_run_summary;
+      - name: "Turnaround time per run"
+        display: bar
+        sql: |
+          SELECT run_id, sample_id, round(turnaround_min::numeric, 1) AS turnaround_min
+          FROM v_run_summary
+          ORDER BY started_at DESC
+          LIMIT 20;
+      - name: "Failures needing review"
+        display: table
+        sql: |
+          SELECT run_id, sample_id, pipeline_version, caller,
+                 round(snp_f1::numeric, 4) AS snp_f1, started_at
+          FROM v_run_summary
+          WHERE validation_pass = false
+          ORDER BY started_at DESC;
+      - name: "Runs per week"
+        display: line
+        sql: |
+          SELECT date_trunc('week', started_at) AS week, count(*) AS runs
+          FROM v_run_summary
+          GROUP BY 1 ORDER BY 1;
+      - name: "Warehouse freshness"
+        display: scalar
+        sql: |
+          SELECT round(EXTRACT(EPOCH FROM (now() - max(started_at))) / 60.0, 1)
+                 AS minutes_since_last_run
+          FROM fact_run;
+
+  - name: "CGP Analytics"
+    dashboard: "Clinical Genomics Analytics"
+    embed: false
+    cards:
+      - name: "SNV F1 trend across pipeline versions"
+        display: line
+        sql: |
+          SELECT pipeline_version, caller, round(avg(snp_f1)::numeric, 4) AS mean_f1,
+                 count(*) AS n_runs
+          FROM v_run_summary
+          GROUP BY pipeline_version, caller
+          ORDER BY pipeline_version, caller;
+      - name: "Cohort QC: duplication rate distribution"
+        display: bar
+        sql: |
+          SELECT sample_id, round((percent_duplication*100)::numeric, 1) AS dup_pct
+          FROM v_run_summary
+          ORDER BY dup_pct DESC;
+      - name: "Turnaround SLA p50 / p95 by pipeline version"
+        display: bar
+        sql: |
+          SELECT pipeline_version,
+                 percentile_cont(0.5) WITHIN GROUP (ORDER BY turnaround_min) AS p50_min,
+                 percentile_cont(0.95) WITHIN GROUP (ORDER BY turnaround_min) AS p95_min,
+                 count(*) AS n_runs
+          FROM fact_run
+          GROUP BY pipeline_version
+          ORDER BY pipeline_version;
+      - name: "Self-service cohort explorer"
+        display: table
+        sql: |
+          SELECT run_id, sample_id, pipeline_version, caller, started_at,
+                 round(turnaround_min::numeric, 1) AS turnaround_min,
+                 round(snp_f1::numeric, 4) AS snp_f1, n_warn, n_fail
+          FROM fact_run
+          WHERE 1=1
+            [[AND sample_id = {{sample_id}}]]
+            [[AND caller = {{caller}}]]
+            [[AND pipeline_version = {{pipeline_version}}]]
+          ORDER BY started_at DESC;
+      - name: "QC warning rate trend"
+        display: line
+        sql: |
+          SELECT date_key, sum(n_warn) AS warn_count, sum(n_fail) AS fail_count
+          FROM fact_run
+          GROUP BY date_key
+          ORDER BY date_key;

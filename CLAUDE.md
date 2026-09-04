@@ -20,13 +20,13 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | `pipeline/` | Nextflow DSL2 pipeline: `main.nf`, `nextflow.config`, 12 one-process modules under `modules/`, helper scripts in `bin/`, `assets/`, `conf/` |
 | `infra/` | AWS CDK (TypeScript) app: 4 stacks in `lib/`, wired in `bin/app.ts`, guardrail tests in `test/` |
 | `db/` | Postgres `schema.sql` (insert-only tables + immutability triggers, star-schema warehouse layer), migrations, seed |
-| `dashboards/metabase/` | Version-controlled Metabase dashboard + question/SQL definitions |
+| `dashboards/metabase/` | Version-controlled Metabase dashboard (`dashboard_manifest.yaml`) + REST API provisioning script (`provision_metabase.py`) |
 | `api/` | FastAPI REST service over run/QC/provenance data, with OpenAPI docs (`/docs`, `/redoc`); fixture-backed by default, optional `CGP_DB_URL` for Postgres |
 | `orchestration/` | Illustrative Airflow DAG scheduling the warehouse ETL/refresh (design note, see ADR-0023) |
 | `ai-report/` | PyTorch QLoRA fine-tune + inference (`infer.py`, `train_lora.py`, `train_smoke.py`, `make_dataset.py`), `MODEL_CARD.md` |
 | `docker/` | One pinned Dockerfile per stage plus `Dockerfile.tools` for the helper scripts |
 | `docs/` | Beginner's guide, glossary, `VALIDATION.md`, `SOP-run-pipeline.md`, `MILESTONES.md`, `FOR-RECRUITERS.md` |
-| `docs/adr/` | 23 Architecture Decision Records (append-only); see `README.md` there for the index |
+| `docs/adr/` | 24 Architecture Decision Records (append-only); see `README.md` there for the index |
 | `tests/` | Python unit tests + small committed fixtures in `tests/fixtures/` |
 | `.github/workflows/` | CI: nf-core-style config check, pipeline test profile, CDK synth, ML smoke test |
 
@@ -48,6 +48,10 @@ psql "$CGP_DB_URL" -c "REFRESH MATERIALIZED VIEW fact_run;"
 
 # Python unit tests (provenance + guardrail logic; dependency-free)
 pytest
+
+# Row-sandboxing demo: two Postgres roles, each sees only its own cohort
+# through v_fact_run_secured — see dashboards/metabase/README.md, ADR-0024
+psql "$CGP_DB_URL" -f db/sandboxing_demo.sql
 
 # REST API with OpenAPI docs — fixture-backed, no DB/AWS needed
 pip install -r api/requirements.txt
