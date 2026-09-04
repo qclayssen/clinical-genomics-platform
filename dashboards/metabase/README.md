@@ -112,9 +112,15 @@ FROM fact_run;
 ### 9. Self-service cohort explorer (table, with dashboard filters)
 A single filterable table is the "self-service analytics" ask: add Metabase
 dashboard filters bound to `{{sample_id}}`, `{{caller}}`, and
-`{{pipeline_version}}` (Field Filters mapped to the columns below) so a
-non-technical stakeholder can slice the cohort themselves without writing
-SQL, instead of asking for a one-off query each time.
+`{{pipeline_version}}` so a non-technical stakeholder can slice the cohort
+themselves without writing SQL, instead of asking for a one-off query each
+time. Click-built through the UI, these can be true Field Filters (bound to
+a live Metabase column, with the search-as-you-type widget); created via
+`provision_metabase.py` they come through as plain SQL Variables instead —
+a real Field Filter needs the target column's Metabase field ID, which only
+exists after Metabase finishes syncing the database schema, a round trip
+the script doesn't perform. See `template_tags_for()` in
+`provision_metabase.py` and [ADR-0024](../../docs/adr/0024-metabase-as-code-and-oss-sandboxing.md).
 ```sql
 SELECT run_id, sample_id, pipeline_version, caller, started_at,
        round(turnaround_min::numeric, 1) AS turnaround_min,
@@ -154,13 +160,55 @@ the role description asks for:
   Metabase-built (non-SQL) questions once analysts start building their own.
 - **X-rays / auto-explore** on `fact_run` for ad-hoc exploration during a
   stakeholder conversation, without pre-writing a card.
-- **Collections + permissions** separating an "Ops" collection (cards 1, 5,
-  8 — pass/fail, freshness) from an "Analytics" collection (cards 2, 3, 7,
-  9, 10) mirrors how a real org scopes self-service access by audience.
+- **Collections + permissions** separating an "Ops" collection (cards 1, 3,
+  5, 6, 8) from an "Analytics" collection (cards 2, 4, 7, 9, 10) mirrors how
+  a real org scopes self-service access by audience — see `dashboard_manifest.yaml`
+  below, which encodes this exact split.
+
+## Provisioning as code
+
+Rather than clicking each card together by hand, `dashboard_manifest.yaml`
+declares the database connection, both collections, and all ten cards as
+data, and `provision_metabase.py` creates them via the Metabase REST API —
+idempotently, so re-running it against an existing instance is safe. It
+also enables signed embedding on the Ops dashboard. See
+[ADR-0024](../../docs/adr/0024-metabase-as-code-and-oss-sandboxing.md) for
+why this replaces the old "run the serialization export" step, and
+`tests/test_provision_metabase.py` for coverage (mocked API, no live
+Metabase needed to verify the request payloads are correct).
+
+```bash
+pip install -r dashboards/metabase/requirements.txt
+MB_USERNAME=admin@example.com MB_PASSWORD=... python dashboards/metabase/provision_metabase.py
+```
+
+Needs environment: a running Metabase instance with an admin account
+already created (first-run setup wizard) — not run in CI.
+
+## Row sandboxing without Metabase Enterprise
+
+Metabase's native Data Sandboxing (row filtering by user attribute) is a
+Pro/Enterprise feature. `db/sandboxing_demo.sql` demonstrates the
+open-source-achievable equivalent: a Postgres view (`v_fact_run_secured`)
+that filters `fact_run` by `current_user` against a `dim_sample_access`
+mapping table, with two demo roles each granted `SELECT` on the view only —
+never on `fact_run` or the mapping table directly. In Metabase, this maps
+to one database connection per role, each assigned to its own permission
+group, instead of Enterprise's single-connection-plus-attribute model. See
+[ADR-0024](../../docs/adr/0024-metabase-as-code-and-oss-sandboxing.md) for
+the full writeup, including the honest limits of this approximation.
+
+```bash
+psql "$CGP_DB_URL" -f db/sandboxing_demo.sql
+psql "$CGP_DB_URL" -U cgp_analyst_cohort_a -c "SELECT sample_id FROM v_fact_run_secured;"
+```
 
 ## Exporting for version control
 
-After building the dashboard, export it so it lives in git:
+`dashboard_manifest.yaml` (above) is the version-controlled artifact for
+this dashboard's definition. If you also want Metabase's own serialization
+export of a live, hand-tweaked instance (layout tweaks made in the UI that
+the manifest doesn't capture, for example):
 ```bash
 # Metabase serialization (v1.49+)
 docker exec metabase java -jar /app/metabase.jar export /tmp/cgp-dash

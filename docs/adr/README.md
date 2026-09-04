@@ -47,10 +47,11 @@ Each ADR follows the same tiny structure:
 | [0021](0021-triage-agent.md) | Triage agent | Accepted |
 | [0022](0022-enterprise-data-platform-integration.md) | Enterprise data platform integration (design note) | Proposed |
 | [0023](0023-star-schema-warehouse-airflow.md) | Star-schema warehouse layer + Airflow-orchestrated refresh | Accepted (warehouse) / design note (Airflow) |
+| [0024](0024-metabase-as-code-and-oss-sandboxing.md) | Metabase as code (manifest + provisioning API), OSS row sandboxing, custom-driver design note | Accepted |
 
 ---
 
-**Count: 23 ADRs** (0001–0023). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 24 ADRs** (0001–0024). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 

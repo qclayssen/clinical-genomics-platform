@@ -26,9 +26,11 @@ Each milestone produces something you can screen-share, not just code that compi
 | Metabase dashboard definitions | ✅ documented + SQL provided (OLTP view + star-schema warehouse cards) |
 | Star-schema warehouse layer (`fact_run` + `dim_*`) | ✅ implemented in `db/schema.sql`; refresh via `REFRESH MATERIALIZED VIEW` |
 | Airflow orchestration for warehouse refresh | ✅ DAG documented (`orchestration/`), not deployed — needs an Airflow instance |
+| Metabase provisioning as code (manifest + REST API script) | ✅ implemented, unit-tested (mocked API); needs a live Metabase to run end-to-end |
+| Row sandboxing without Metabase Enterprise (`db/sandboxing_demo.sql`) | ✅ implemented, verified against a local Postgres |
 | AI reporting (offline + fine-tune paths) | ✅ implemented, offline path tested |
 | ML fine-tuning (PyTorch QLoRA + CPU smoke test) | ✅ smoke test verified running on CPU |
-| Architecture Decision Records (23 ADRs) | ✅ written |
+| Architecture Decision Records (24 ADRs) | ✅ written |
 | Small committed test data + fixtures | ✅ pipeline stub + ML both self-contained |
 | CI (pipeline + infra + ML smoke) | ✅ workflows in place |
 | Streamlit demo app (`demo/`) | ✅ runnable locally — explorer, variant interpretation, assistant |
