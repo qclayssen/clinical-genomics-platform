@@ -1,0 +1,151 @@
+"""Variant Interpretation Assistant endpoint.
+
+This exposes the platform's *existing* agentic variant interpreter
+(`ai-report/agent/` — ReAct loop + tool use + ACMG/AMP combining rules,
+see ADR-0014) over REST for the first time; previously it was reachable only
+via the CLI (`ai-report/agent/interpret.py`) or the Streamlit demo
+(`demo/pages/interpret.py`). No new agent, tool, or classification logic is
+implemented here — this route is a thin adapter, matching the deterministic
+interpreter is the default policy `demo/pages/interpret.py` already
+documents: no LLM, no network, no setup, so the route behaves the same on a
+laptop and in a container.
+
+Sign-off deliberately reuses the existing insert-only
+`POST /runs/{run_id}/review-decisions` (see api/routers/runs.py, ADR-0019)
+rather than adding a second endpoint/table — `variant_key` ("chrom:pos:ref>alt",
+from `agent.review_store.variant_key`) is what links a decision back to the
+variant interpreted here. A second, competing sign-off mechanism would
+fragment the one audit trail this platform already has.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+from fastapi import APIRouter
+from pydantic import BaseModel, ConfigDict, Field
+
+# ai-report/ isn't a package root (see ai-report/agent/interpret.py and
+# demo/pages/interpret.py, which do the same sys.path insertion) — `agent`
+# below is ai-report/agent, imported as a bare top-level module.
+_AI_REPORT_DIR = Path(__file__).resolve().parents[2] / "ai-report"
+if str(_AI_REPORT_DIR) not in sys.path:
+    sys.path.insert(0, str(_AI_REPORT_DIR))
+
+from agent.deterministic import DeterministicInterpreter  # noqa: E402
+from agent.react import Variant  # noqa: E402
+from agent.report import INTERPRETATION_BANNER, build_report, enforce_report_guardrails  # noqa: E402
+from agent.review_store import variant_key  # noqa: E402
+
+router = APIRouter(prefix="/agent", tags=["agent"])
+
+# Stateless, cheap to construct (opens the read-only chr20 knowledge base) —
+# shared across requests like FixtureRepository's in-memory fixtures.
+_interpreter = DeterministicInterpreter()
+
+
+class VariantReviewRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "chrom": "chr20",
+            "pos": 4699605,
+            "ref": "G",
+            "alt": "A",
+            "gene": "PRNP",
+            "genotype": "heterozygous",
+            "run_id": "run_2026_0301_a",
+        }]
+    })
+
+    chrom: str
+    pos: int
+    ref: str
+    alt: str
+    gene: str = ""
+    genotype: str = Field("heterozygous", description="Zygosity, e.g. heterozygous/homozygous")
+    run_id: str = Field(
+        ..., description="An existing pipeline run id (see GET /runs) to tie this interpretation and any sign-off to"
+    )
+
+
+class AgentTraceStep(BaseModel):
+    """One Thought/Action/Observation step from the ReAct-style trace.
+
+    Field names mirror `agent.react.TraceStep.to_dict()` exactly, so the
+    detailed per-tool-call trace is passed through unmodified for the
+    transparency this feature is built around — never collapsed or summarized.
+    """
+
+    type: str
+    content: str
+    timestamp: float = 0.0
+    tool_name: str | None = None
+    tool_input: dict | None = None
+    tool_output: dict | None = None
+    duration_ms: float | None = None
+
+
+class VariantAssessment(BaseModel):
+    run_id: str
+    variant_key: str
+    chrom: str
+    pos: int
+    ref: str
+    alt: str
+    gene: str
+    genotype: str
+    classification: str
+    evidence_codes: list[str]
+    confidence: str
+    summary: str
+    citations: list[str]
+    banner: str
+    backend_used: str
+    agent_trace: list[AgentTraceStep]
+    provenance: dict
+    guardrail_violations: list[str] = Field(
+        default_factory=list, description="Empty when the report is fully guardrail-compliant"
+    )
+
+
+@router.post(
+    "/variant-review",
+    response_model=VariantAssessment,
+    status_code=201,
+    summary="Run the existing agentic variant interpreter (ADR-0014) on a single variant",
+)
+def create_variant_review(query: VariantReviewRequest) -> VariantAssessment:
+    variant = Variant(
+        chrom=query.chrom,
+        pos=query.pos,
+        ref=query.ref,
+        alt=query.alt,
+        gene=query.gene,
+        genotype=query.genotype,
+    )
+    result = _interpreter.run(variant)
+    report = build_report([result], backend_used=result.backend_used, run_id=query.run_id)
+    violations = enforce_report_guardrails(report)
+    interpretation = report.variants[0]
+
+    return VariantAssessment(
+        run_id=query.run_id,
+        variant_key=variant_key(variant.chrom, variant.pos, variant.ref, variant.alt),
+        chrom=variant.chrom,
+        pos=variant.pos,
+        ref=variant.ref,
+        alt=variant.alt,
+        gene=variant.gene,
+        genotype=variant.genotype,
+        classification=interpretation.classification,
+        evidence_codes=interpretation.evidence_codes,
+        confidence=interpretation.confidence,
+        summary=interpretation.summary,
+        citations=interpretation.citations,
+        banner=INTERPRETATION_BANNER,
+        backend_used=result.backend_used,
+        agent_trace=[AgentTraceStep(**step.to_dict()) for step in result.trace],
+        provenance=report.provenance,
+        guardrail_violations=violations,
+    )

@@ -21,7 +21,8 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | `infra/` | AWS CDK (TypeScript) app: 4 stacks in `lib/`, wired in `bin/app.ts`, guardrail tests in `test/` |
 | `db/` | Postgres `schema.sql` (insert-only tables + immutability triggers, star-schema warehouse layer), migrations, seed |
 | `dashboards/metabase/` | Version-controlled Metabase dashboard (`dashboard_manifest.yaml`) + REST API provisioning script (`provision_metabase.py`) |
-| `api/` | FastAPI REST service over run/QC/provenance data, with OpenAPI docs (`/docs`, `/redoc`); fixture-backed by default, optional `CGP_DB_URL` for Postgres |
+| `api/` | FastAPI REST service over run/QC/provenance data, with OpenAPI docs (`/docs`, `/redoc`); fixture-backed by default, optional `CGP_DB_URL` for Postgres. Includes `/agent/variant-review`, a thin adapter over the existing agentic variant interpreter (see `ai-report/agent/`) |
+| `web/` | React + TypeScript + Vite frontend for `/agent/variant-review`: submit a variant, see the agent's step-by-step trace, record clinician sign-off via `/runs/{run_id}/review-decisions` (ADR-0027) |
 | `orchestration/` | Airflow DAG scheduling the warehouse ETL/refresh — runnable via `docker-compose.airflow.yml` demo mode (ADR-0023, ADR-0026) |
 | `dbt/` | dbt project rebuilding the star-schema warehouse (staging + marts, schema tests) in its own `analytics` schema — additive alongside `db/schema.sql`'s production warehouse, see ADR-0025 |
 | `ai-report/` | PyTorch QLoRA fine-tune + inference (`infer.py`, `train_lora.py`, `train_smoke.py`, `make_dataset.py`), `MODEL_CARD.md` |

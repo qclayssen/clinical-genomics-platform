@@ -1,0 +1,24 @@
+{
+  "name": "cgp-variant-review-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Variant Review UI for the Clinical Genomics Insight Platform's agentic variant-review API (portfolio project, not an accredited clinical test).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}
