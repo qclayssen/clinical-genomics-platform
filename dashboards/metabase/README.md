@@ -203,6 +203,23 @@ psql "$CGP_DB_URL" -f db/sandboxing_demo.sql
 psql "$CGP_DB_URL" -U cgp_analyst_cohort_a -c "SELECT sample_id FROM v_fact_run_secured;"
 ```
 
+## Optional per-card chart axes
+
+A line/bar card grouped by more than one column (e.g. `pipeline_version` +
+`caller`) can render as an unhelpful "Which fields do you want to use for
+the X and Y axes?" prompt — Metabase can't always infer axes on its own.
+Set `graph_dimensions`/`graph_metrics` on the card in `dashboard_manifest.yaml`
+to pre-select them (see "SNV F1 trend across pipeline versions" for an
+example) so the card renders immediately with no manual step.
+
+## Dashboard screenshots
+
+See the root [README.md](../../README.md#dashboard-preview) for the current
+screenshots — captured with `docker compose up -d` + the setup/provisioning
+steps above, then a headless Playwright script logging into Metabase and
+saving each dashboard as a PNG (see git history of
+`docs/assets/metabase-clinical-genomics-*.png` for the exact commit).
+
 ## Exporting for version control
 
 `dashboard_manifest.yaml` (above) is the version-controlled artifact for

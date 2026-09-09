@@ -58,6 +58,8 @@ collections:
     cards:
       - name: "SNV F1 trend across pipeline versions"
         display: line
+        graph_dimensions: ["pipeline_version"]
+        graph_metrics: ["mean_f1"]
         sql: |
           SELECT pipeline_version, caller, round(avg(snp_f1)::numeric, 4) AS mean_f1,
                  count(*) AS n_runs

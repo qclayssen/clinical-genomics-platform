@@ -108,18 +108,38 @@ class MetabaseClient:
         return resp.json()
 
     def get_or_create_card(
-        self, name: str, sql: str, display: str, database_id: int, collection_id: int
+        self,
+        name: str,
+        sql: str,
+        display: str,
+        database_id: int,
+        collection_id: int,
+        graph_dimensions: list[str] | None = None,
+        graph_metrics: list[str] | None = None,
     ) -> dict[str, Any]:
         existing = self._find_by_name("/api/card", name)
         if existing:
             return existing
+
+        # Line/bar cards with more than one non-metric column (e.g. grouped
+        # by two dimensions) render as an unhelpful "Which fields do you
+        # want to use for the X and Y axes?" prompt until someone picks
+        # axes by hand — Metabase can't always infer them. Manifest entries
+        # can set graph_dimensions/graph_metrics to pre-select them so the
+        # card renders immediately, no manual step needed.
+        viz_settings: dict[str, Any] = {}
+        if graph_dimensions:
+            viz_settings["graph.dimensions"] = graph_dimensions
+        if graph_metrics:
+            viz_settings["graph.metrics"] = graph_metrics
+
         resp = self.session.post(
             f"{self.base_url}/api/card",
             json={
                 "name": name,
                 "display": display,
                 "collection_id": collection_id,
-                "visualization_settings": {},
+                "visualization_settings": viz_settings,
                 "dataset_query": {
                     "type": "native",
                     "native": {"query": sql, "template-tags": template_tags_for(sql)},
@@ -201,6 +221,8 @@ def provision(client: MetabaseClient, manifest: dict[str, Any]) -> None:
                 card_spec["display"],
                 database["id"],
                 collection["id"],
+                graph_dimensions=card_spec.get("graph_dimensions"),
+                graph_metrics=card_spec.get("graph_metrics"),
             )
             dashcards.append(
                 {"id": -(row + 1), "card_id": card["id"], "row": row * 4, "col": 0, "size_x": 12, "size_y": 4}
