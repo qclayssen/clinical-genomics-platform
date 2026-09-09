@@ -143,17 +143,35 @@ class MetabaseClient:
         resp.raise_for_status()
         return resp.json()
 
-    def add_card_to_dashboard(
-        self, dashboard_id: int, card_id: int, row: int, col: int = 0, size_x: int = 12, size_y: int = 4
-    ) -> None:
-        resp = self.session.post(
+    def add_cards_to_dashboard(self, dashboard_id: int, cards: list[dict[str, Any]]) -> None:
+        """Replace a dashboard's card layout in one call.
+
+        Metabase removed the old per-card `POST /api/dashboard/:id/cards` in
+        favor of a bulk `PUT` that takes the full desired card list — so this
+        is called once per dashboard with every card, not once per card. New
+        cards use a unique negative id (Metabase's marker for "not yet a
+        dashcard" — every new card in the same call needs a *distinct*
+        negative id, or the API rejects the whole batch with
+        "ids are unique").
+        """
+        resp = self.session.put(
             f"{self.base_url}/api/dashboard/{dashboard_id}/cards",
-            json={"cardId": card_id, "row": row, "col": col, "size_x": size_x, "size_y": size_y},
+            json={"cards": cards},
             timeout=10,
         )
         resp.raise_for_status()
 
     def enable_signed_embedding(self, dashboard_id: int) -> None:
+        # Per-dashboard embedding is rejected with "Embedding is not
+        # enabled." until the instance-wide setting is on — a fresh
+        # Metabase install has it off by default.
+        instance_resp = self.session.put(
+            f"{self.base_url}/api/setting/enable-embedding",
+            json={"value": True},
+            timeout=10,
+        )
+        instance_resp.raise_for_status()
+
         resp = self.session.put(
             f"{self.base_url}/api/dashboard/{dashboard_id}",
             json={"enable_embedding": True, "embedding_params": {}},
@@ -175,6 +193,7 @@ def provision(client: MetabaseClient, manifest: dict[str, Any]) -> None:
         collection = client.get_or_create_collection(collection_spec["name"])
         dashboard = client.get_or_create_dashboard(collection_spec["dashboard"], collection["id"])
 
+        dashcards = []
         for row, card_spec in enumerate(collection_spec["cards"]):
             card = client.get_or_create_card(
                 card_spec["name"],
@@ -183,7 +202,10 @@ def provision(client: MetabaseClient, manifest: dict[str, Any]) -> None:
                 database["id"],
                 collection["id"],
             )
-            client.add_card_to_dashboard(dashboard["id"], card["id"], row=row * 4)
+            dashcards.append(
+                {"id": -(row + 1), "card_id": card["id"], "row": row * 4, "col": 0, "size_x": 12, "size_y": 4}
+            )
+        client.add_cards_to_dashboard(dashboard["id"], dashcards)
 
         if collection_spec.get("embed"):
             client.enable_signed_embedding(dashboard["id"])

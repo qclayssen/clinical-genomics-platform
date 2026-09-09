@@ -91,15 +91,16 @@ def test_get_or_create_card_is_idempotent_by_name():
     session.post.assert_not_called()
 
 
-def test_add_card_to_dashboard_sends_expected_payload():
+def test_add_cards_to_dashboard_sends_bulk_payload():
     client, session = _client_with_mock_session()
-    session.post.return_value = _json_response({})
+    session.put.return_value = _json_response({})
 
-    client.add_card_to_dashboard(dashboard_id=10, card_id=20, row=8)
+    cards = [{"id": -1, "card_id": 20, "row": 8, "col": 0, "size_x": 12, "size_y": 4}]
+    client.add_cards_to_dashboard(dashboard_id=10, cards=cards)
 
-    session.post.assert_called_once_with(
+    session.put.assert_called_once_with(
         "http://mb.test/api/dashboard/10/cards",
-        json={"cardId": 20, "row": 8, "col": 0, "size_x": 12, "size_y": 4},
+        json={"cards": cards},
         timeout=10,
     )
 
@@ -138,6 +139,41 @@ def test_get_or_create_card_includes_template_tags_when_creating():
 
     posted = session.post.call_args.kwargs["json"]
     assert "sample_id" in posted["dataset_query"]["native"]["template-tags"]
+
+
+def test_provision_gives_each_new_dashcard_a_unique_negative_id():
+    """Regression test: Metabase's bulk PUT /api/dashboard/:id/cards rejects
+    the whole batch with "ids are unique" if two new cards share the same
+    placeholder id — caught by running provision_metabase.py against a real
+    Metabase instance, not by the mocked tests above."""
+    client = MagicMock()
+    client.get_or_create_database.return_value = {"id": 2}
+    client.get_or_create_collection.return_value = {"id": 5}
+    client.get_or_create_dashboard.return_value = {"id": 10}
+    client.get_or_create_card.side_effect = [{"id": 100}, {"id": 101}, {"id": 102}]
+
+    manifest = {
+        "database": {"name": "cgp", "engine": "postgres", "details": {}},
+        "collections": [
+            {
+                "name": "Clinical Genomics Ops",
+                "dashboard": "Clinical Genomics Ops",
+                "cards": [
+                    {"name": "Card A", "sql": "SELECT 1;", "display": "scalar"},
+                    {"name": "Card B", "sql": "SELECT 2;", "display": "scalar"},
+                    {"name": "Card C", "sql": "SELECT 3;", "display": "scalar"},
+                ],
+            }
+        ],
+    }
+
+    provision_metabase.provision(client, manifest)
+
+    client.add_cards_to_dashboard.assert_called_once()
+    dashcards = client.add_cards_to_dashboard.call_args.args[1]
+    ids = [c["id"] for c in dashcards]
+    assert len(ids) == len(set(ids)), f"dashcard ids must be unique, got {ids}"
+    assert all(i < 0 for i in ids), "new dashcards must use negative placeholder ids"
 
 
 def test_manifest_loads_and_matches_expected_shape():
