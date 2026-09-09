@@ -242,12 +242,28 @@ The build is demoable at every stage — see [`docs/MILESTONES.md`](docs/MILESTO
 ## Dashboard Preview
 
 <p align="center">
-  <sub>QC trends, turnaround time, and validation pass/fail — powered by Metabase over Postgres.</sub>
+  <sub>QC trends, turnaround time, and validation pass/fail — powered by Metabase over Postgres, provisioned entirely as code (<code>dashboards/metabase/dashboard_manifest.yaml</code> + <code>provision_metabase.py</code>).</sub>
 </p>
 
-> **Screenshot pending.** Run `docker compose up` from the repo root, open Metabase at
-> `localhost:3000`, configure cards from the `v_run_summary` view, and save the screenshot to
-> `docs/assets/metabase-dashboard.png` — it'll render here automatically once committed.
+<p align="center">
+  <img src="docs/assets/metabase-clinical-genomics-ops.png" alt="Clinical Genomics Ops dashboard — validation pass rate, turnaround time, runs per week" width="720"/>
+</p>
+
+<p align="center">
+  <sub><b>Clinical Genomics Ops</b> — the daily-standup view: validation pass rate, per-run turnaround, runs/week throughput.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/assets/metabase-clinical-genomics-analytics.png" alt="Clinical Genomics Analytics dashboard — SNV F1 trend, duplication rate, turnaround SLA, self-service cohort explorer" width="720"/>
+</p>
+
+<p align="center">
+  <sub><b>Clinical Genomics Analytics</b> — the star-schema warehouse layer: SNV F1 trend by pipeline version, turnaround SLA p50/p95, a self-service cohort explorer.</sub>
+</p>
+
+> Reproduce it yourself: `docker compose up -d`, complete Metabase's one-time setup at
+> `localhost:3000`, then `MB_USERNAME=... MB_PASSWORD=... python dashboards/metabase/provision_metabase.py`
+> — see [`dashboards/metabase/README.md`](dashboards/metabase/README.md).
 
 <br/>
 
