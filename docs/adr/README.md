@@ -50,10 +50,11 @@ Each ADR follows the same tiny structure:
 | [0024](0024-metabase-as-code-and-oss-sandboxing.md) | Metabase as code (manifest + provisioning API), OSS row sandboxing, custom-driver design note | Accepted |
 | [0025](0025-dbt-analytics-engineering-layer.md) | dbt as an additive analytics-engineering transformation layer | Accepted |
 | [0026](0026-runnable-airflow-demo.md) | Make the Airflow warehouse-ETL DAG runnable, not just illustrative | Accepted |
+| [0027](0027-rest-react-frontend-for-variant-interpreter.md) | REST API + React frontend as thin adapters over the existing variant interpreter (ADR-0014) | Accepted |
 
 ---
 
-**Count: 26 ADRs** (0001–0026). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 27 ADRs** (0001–0027). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 
