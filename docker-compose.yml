@@ -12,6 +12,13 @@
 # docker-entrypoint-initdb.d (Postgres initialises the cgp database).
 # In Metabase, add the Postgres DB: host 'postgres', port 5432, db 'cgp',
 # user 'cgp', password 'cgp'.
+#
+# db/sandboxing_demo.sql is NOT auto-run — it's a standalone demo you run
+# manually (see db/sandboxing_demo.sql's header / dashboards/metabase/README.md).
+# It's deliberately not bind-mounted below: Postgres runs every file under
+# docker-entrypoint-initdb.d in alphabetical order, and "sandboxing_demo.sql"
+# sorts before "schema.sql" — mounting the whole db/ directory used to make
+# Postgres try to run it first, against tables that don't exist yet.
 
 services:
   postgres:
@@ -23,7 +30,9 @@ services:
     ports: ['5432:5432']
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db:/docker-entrypoint-initdb.d:ro   # schema.sql + seed_demo.sql on first boot
+      - ./db/00_create_metabase_db.sql:/docker-entrypoint-initdb.d/00_create_metabase_db.sql:ro
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/10_schema.sql:ro
+      - ./db/seed_demo.sql:/docker-entrypoint-initdb.d/20_seed_demo.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U cgp']
       interval: 5s
