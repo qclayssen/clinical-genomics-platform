@@ -1,14 +1,20 @@
 """LLM backend abstraction for the variant interpretation agent.
 
 Provides a unified interface for multiple LLM providers (Ollama, OpenAI,
-Anthropic) with automatic fallback and a deterministic backend for CI.
+Anthropic, Azure AI Foundry, AWS Bedrock) with automatic fallback and a
+deterministic backend for CI.
 
 Environment variables:
-  AGENT_LLM_BACKEND: ollama|openai|anthropic|deterministic (default: deterministic)
+  AGENT_LLM_BACKEND: ollama|openai|anthropic|azure_foundry|bedrock|deterministic
+                     (default: deterministic)
   OPENAI_API_KEY: Required for OpenAI backend
   ANTHROPIC_API_KEY: Required for Anthropic backend
   OLLAMA_URL: Ollama server URL (default: http://localhost:11434)
   OLLAMA_MODEL: Ollama model name (default: llama3.2:3b)
+  AZURE_AI_FOUNDRY_ENDPOINT / AZURE_AI_FOUNDRY_API_KEY / AZURE_AI_FOUNDRY_DEPLOYMENT:
+                     Required for the Azure AI Foundry backend
+  BEDROCK_MODEL_ID / AWS_REGION: AWS Bedrock backend (uses boto3's standard
+                     credential chain, not an env-var API key)
 """
 
 from __future__ import annotations
@@ -524,6 +530,74 @@ class OllamaBackend(LLMBackend):
 # ═══ OpenAI Backend ═══════════════════════════════════════════════════════════
 
 
+def _messages_to_openai_format(messages: list[Message]) -> list[dict]:
+    """Shared by OpenAIBackend and AzureFoundryBackend — both speak the same
+    Chat Completions wire format via the `openai` package's client classes."""
+    oai_messages = []
+    for msg in messages:
+        if msg.role == "tool":
+            oai_messages.append({
+                "role": "tool",
+                "content": msg.content,
+                "tool_call_id": msg.tool_call_id or "call_0",
+            })
+        elif msg.role == "assistant" and msg.tool_calls:
+            oai_messages.append({
+                "role": "assistant",
+                "content": msg.content or None,
+                "tool_calls": [
+                    {
+                        "id": tc.id or f"call_{i}",
+                        "type": "function",
+                        "function": {
+                            "name": tc.name,
+                            "arguments": json.dumps(tc.arguments),
+                        },
+                    }
+                    for i, tc in enumerate(msg.tool_calls)
+                ],
+            })
+        else:
+            oai_messages.append({
+                "role": msg.role,
+                "content": msg.content,
+            })
+    return oai_messages
+
+
+def _parse_openai_style_response(response: Any, model_id: str) -> LLMResponse:
+    """Shared response parsing — the OpenAI SDK returns the same response
+    shape whether it's talking to api.openai.com or an Azure OpenAI /
+    Azure AI Foundry deployment."""
+    choice = response.choices[0]
+    message = choice.message
+
+    tool_calls = []
+    if message.tool_calls:
+        for tc in message.tool_calls:
+            tool_calls.append(ToolCall(
+                name=tc.function.name,
+                arguments=json.loads(tc.function.arguments),
+                id=tc.id,
+            ))
+
+    stop_reason = "tool_use" if tool_calls else "end_turn"
+    if choice.finish_reason == "length":
+        stop_reason = "max_tokens"
+
+    return LLMResponse(
+        content=message.content or "",
+        tool_calls=tool_calls,
+        stop_reason=stop_reason,
+        model=model_id,
+        usage={
+            "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+            "output_tokens": response.usage.completion_tokens if response.usage else 0,
+        },
+        raw=response,
+    )
+
+
 class OpenAIBackend(LLMBackend):
     """OpenAI API backend using the function-calling protocol."""
 
@@ -566,41 +640,9 @@ class OpenAIBackend(LLMBackend):
             raise ValueError("OPENAI_API_KEY not set")
 
         client = openai.OpenAI(api_key=self._api_key)
-
-        # Convert messages to OpenAI format
-        oai_messages = []
-        for msg in messages:
-            if msg.role == "tool":
-                oai_messages.append({
-                    "role": "tool",
-                    "content": msg.content,
-                    "tool_call_id": msg.tool_call_id or "call_0",
-                })
-            elif msg.role == "assistant" and msg.tool_calls:
-                oai_messages.append({
-                    "role": "assistant",
-                    "content": msg.content or None,
-                    "tool_calls": [
-                        {
-                            "id": tc.id or f"call_{i}",
-                            "type": "function",
-                            "function": {
-                                "name": tc.name,
-                                "arguments": json.dumps(tc.arguments),
-                            },
-                        }
-                        for i, tc in enumerate(msg.tool_calls)
-                    ],
-                })
-            else:
-                oai_messages.append({
-                    "role": msg.role,
-                    "content": msg.content,
-                })
-
         kwargs: dict[str, Any] = {
             "model": self._model,
-            "messages": oai_messages,
+            "messages": _messages_to_openai_format(messages),
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
@@ -609,40 +651,99 @@ class OpenAIBackend(LLMBackend):
 
         try:
             response = client.chat.completions.create(**kwargs)
-            choice = response.choices[0]
-            message = choice.message
-
-            tool_calls = []
-            if message.tool_calls:
-                for tc in message.tool_calls:
-                    tool_calls.append(ToolCall(
-                        name=tc.function.name,
-                        arguments=json.loads(tc.function.arguments),
-                        id=tc.id,
-                    ))
-
-            stop_reason = "tool_use" if tool_calls else "end_turn"
-            if choice.finish_reason == "length":
-                stop_reason = "max_tokens"
-
-            return LLMResponse(
-                content=message.content or "",
-                tool_calls=tool_calls,
-                stop_reason=stop_reason,
-                model=self.model_id,
-                usage={
-                    "input_tokens": response.usage.prompt_tokens if response.usage else 0,
-                    "output_tokens": response.usage.completion_tokens if response.usage else 0,
-                },
-                raw=response,
-            )
-
+            return _parse_openai_style_response(response, self.model_id)
         except openai.APIConnectionError as e:
             raise ConnectionError(f"OpenAI connection failed: {e}") from e
         except openai.AuthenticationError as e:
             raise ValueError(f"OpenAI authentication failed: {e}") from e
         except openai.APIError as e:
             raise RuntimeError(f"OpenAI API error: {e}") from e
+
+
+# ═══ Azure AI Foundry Backend ═════════════════════════════════════════════════
+
+
+class AzureFoundryBackend(LLMBackend):
+    """Azure AI Foundry backend, via its Azure-OpenAI-compatible Chat
+    Completions endpoint (the `openai` package's `AzureOpenAI` client —
+    the same client Azure AI Foundry's own SDK samples use for
+    OpenAI-family and OpenAI-compatible model deployments).
+
+    Environment variables:
+      AZURE_AI_FOUNDRY_ENDPOINT: e.g. https://<resource>.openai.azure.com
+      AZURE_AI_FOUNDRY_API_KEY: deployment/resource API key
+      AZURE_AI_FOUNDRY_DEPLOYMENT: deployment name (not the base model name)
+      AZURE_AI_FOUNDRY_API_VERSION: default '2024-10-21'
+    """
+
+    def __init__(
+        self,
+        endpoint: Optional[str] = None,
+        api_key: Optional[str] = None,
+        deployment: Optional[str] = None,
+        api_version: Optional[str] = None,
+    ) -> None:
+        self._endpoint = endpoint or os.environ.get("AZURE_AI_FOUNDRY_ENDPOINT", "")
+        self._api_key = api_key or os.environ.get("AZURE_AI_FOUNDRY_API_KEY", "")
+        self._deployment = deployment or os.environ.get("AZURE_AI_FOUNDRY_DEPLOYMENT", "")
+        self._api_version = api_version or os.environ.get("AZURE_AI_FOUNDRY_API_VERSION", "2024-10-21")
+
+    @property
+    def name(self) -> str:
+        return "azure_foundry"
+
+    @property
+    def model_id(self) -> str:
+        return f"azure_foundry/{self._deployment or 'unconfigured'}"
+
+    def is_available(self) -> bool:
+        return bool(self._endpoint and self._api_key and self._deployment)
+
+    def generate(
+        self,
+        messages: list[Message],
+        tools: Optional[list[dict]] = None,
+        temperature: float = 0.1,
+        max_tokens: int = 1024,
+    ) -> LLMResponse:
+        """Generate using an Azure AI Foundry chat-completions deployment."""
+        try:
+            import openai
+        except ImportError:
+            raise ImportError(
+                "openai package required for the Azure AI Foundry backend. "
+                "Install with: pip install openai"
+            )
+
+        if not self.is_available():
+            raise ValueError(
+                "AZURE_AI_FOUNDRY_ENDPOINT, AZURE_AI_FOUNDRY_API_KEY, and "
+                "AZURE_AI_FOUNDRY_DEPLOYMENT must all be set"
+            )
+
+        client = openai.AzureOpenAI(
+            azure_endpoint=self._endpoint,
+            api_key=self._api_key,
+            api_version=self._api_version,
+        )
+        kwargs: dict[str, Any] = {
+            "model": self._deployment,
+            "messages": _messages_to_openai_format(messages),
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if tools:
+            kwargs["tools"] = tools
+
+        try:
+            response = client.chat.completions.create(**kwargs)
+            return _parse_openai_style_response(response, self.model_id)
+        except openai.APIConnectionError as e:
+            raise ConnectionError(f"Azure AI Foundry connection failed: {e}") from e
+        except openai.AuthenticationError as e:
+            raise ValueError(f"Azure AI Foundry authentication failed: {e}") from e
+        except openai.APIError as e:
+            raise RuntimeError(f"Azure AI Foundry API error: {e}") from e
 
 
 # ═══ Anthropic Backend ════════════════════════════════════════════════════════
@@ -783,6 +884,175 @@ class AnthropicBackend(LLMBackend):
             raise RuntimeError(f"Anthropic API error: {e}") from e
 
 
+# ═══ AWS Bedrock Backend ══════════════════════════════════════════════════════
+
+
+class BedrockBackend(LLMBackend):
+    """AWS Bedrock backend via the model-agnostic Converse API, which
+    supports tool use uniformly across Bedrock's hosted model families
+    (Anthropic, Amazon Titan/Nova, Meta, etc.) — one integration instead of
+    one per model provider.
+
+    Credentials use boto3's standard resolution chain (env vars, shared
+    config/credentials files, or an instance/task role) rather than a
+    bespoke API-key env var, matching how this platform's other AWS
+    integrations (infra/, db/sync_dynamodb_to_postgres.py) authenticate.
+
+    Environment variables:
+      BEDROCK_MODEL_ID: default 'anthropic.claude-3-5-haiku-20241022-v1:0'
+      AWS_REGION: default 'us-east-1'
+    """
+
+    def __init__(self, model_id: Optional[str] = None, region: Optional[str] = None) -> None:
+        self._model_id_str = model_id or os.environ.get(
+            "BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0"
+        )
+        self._region = region or os.environ.get("AWS_REGION", "us-east-1")
+        self._client: Any = None
+
+    @property
+    def name(self) -> str:
+        return "bedrock"
+
+    @property
+    def model_id(self) -> str:
+        return f"bedrock/{self._model_id_str}"
+
+    def is_available(self) -> bool:
+        try:
+            import boto3  # noqa: F401
+        except ImportError:
+            return False
+        return True
+
+    def _get_client(self) -> Any:
+        if self._client is None:
+            import boto3
+            self._client = boto3.client("bedrock-runtime", region_name=self._region)
+        return self._client
+
+    def _messages_to_converse_format(
+        self, messages: list[Message]
+    ) -> tuple[list[dict], list[dict]]:
+        """Bedrock's Converse API separates `system` from `messages`, and
+        represents tool calls/results as typed content blocks rather than
+        OpenAI/Anthropic's message-level fields."""
+        system_blocks: list[dict] = []
+        converse_messages: list[dict] = []
+
+        for msg in messages:
+            if msg.role == "system":
+                system_blocks.append({"text": msg.content})
+            elif msg.role == "assistant":
+                content: list[dict] = []
+                if msg.content:
+                    content.append({"text": msg.content})
+                for tc in msg.tool_calls:
+                    content.append({
+                        "toolUse": {
+                            "toolUseId": tc.id or "tooluse_0",
+                            "name": tc.name,
+                            "input": tc.arguments,
+                        }
+                    })
+                converse_messages.append({"role": "assistant", "content": content})
+            elif msg.role == "tool":
+                converse_messages.append({
+                    "role": "user",
+                    "content": [{
+                        "toolResult": {
+                            "toolUseId": msg.tool_call_id or "tooluse_0",
+                            "content": [{"text": msg.content}],
+                        }
+                    }],
+                })
+            else:
+                converse_messages.append({"role": msg.role, "content": [{"text": msg.content}]})
+
+        return system_blocks, converse_messages
+
+    def generate(
+        self,
+        messages: list[Message],
+        tools: Optional[list[dict]] = None,
+        temperature: float = 0.1,
+        max_tokens: int = 1024,
+    ) -> LLMResponse:
+        """Generate using the Bedrock Converse API."""
+        try:
+            import boto3  # noqa: F401
+            from botocore.exceptions import BotoCoreError, ClientError
+        except ImportError:
+            raise ImportError(
+                "boto3 package required for the Bedrock backend. "
+                "Install with: pip install boto3"
+            )
+
+        system_blocks, converse_messages = self._messages_to_converse_format(messages)
+
+        kwargs: dict[str, Any] = {
+            "modelId": self._model_id_str,
+            "messages": converse_messages,
+            "inferenceConfig": {"temperature": temperature, "maxTokens": max_tokens},
+        }
+        if system_blocks:
+            kwargs["system"] = system_blocks
+        if tools:
+            tool_specs = []
+            for tool in tools:
+                func = tool.get("function", tool)
+                tool_specs.append({
+                    "toolSpec": {
+                        "name": func["name"],
+                        "description": func.get("description", ""),
+                        "inputSchema": {"json": func.get("parameters", {})},
+                    }
+                })
+            kwargs["toolConfig"] = {"tools": tool_specs}
+
+        try:
+            response = self._get_client().converse(**kwargs)
+        except (BotoCoreError, ClientError) as e:
+            raise ConnectionError(f"Bedrock request failed: {e}") from e
+
+        output_message = response.get("output", {}).get("message", {})
+        content_blocks = output_message.get("content", [])
+
+        text_content = ""
+        tool_calls = []
+        for block in content_blocks:
+            if "text" in block:
+                text_content += block["text"]
+            elif "toolUse" in block:
+                tu = block["toolUse"]
+                tool_calls.append(ToolCall(
+                    name=tu.get("name", ""),
+                    arguments=tu.get("input", {}),
+                    id=tu.get("toolUseId", ""),
+                ))
+
+        stop_reason_raw = response.get("stopReason", "end_turn")
+        if tool_calls:
+            stop_reason = "tool_use"
+        elif stop_reason_raw == "max_tokens":
+            stop_reason = "max_tokens"
+        else:
+            stop_reason = "end_turn"
+
+        usage = response.get("usage", {})
+        return LLMResponse(
+            content=text_content,
+            tool_calls=tool_calls,
+            stop_reason=stop_reason,
+            model=self.model_id,
+            usage={
+                "input_tokens": usage.get("inputTokens", 0),
+                "output_tokens": usage.get("outputTokens", 0),
+            },
+            raw=response,
+        )
+
+
 # ═══ Fallback LLM (tries backends in order) ══════════════════════════════════
 
 
@@ -863,8 +1133,9 @@ def create_backend(backend_name: Optional[str] = None) -> LLMBackend:
     Parameters
     ----------
     backend_name : str, optional
-        One of: 'ollama', 'openai', 'anthropic', 'deterministic', 'fallback'.
-        If None, reads from AGENT_LLM_BACKEND env var (default: 'deterministic').
+        One of: 'ollama', 'openai', 'anthropic', 'azure_foundry', 'bedrock',
+        'deterministic', 'fallback'. If None, reads from AGENT_LLM_BACKEND
+        env var (default: 'deterministic').
 
     Returns
     -------
@@ -882,6 +1153,10 @@ def create_backend(backend_name: Optional[str] = None) -> LLMBackend:
         return OpenAIBackend()
     elif name == "anthropic":
         return AnthropicBackend()
+    elif name in ("azure_foundry", "azure"):
+        return AzureFoundryBackend()
+    elif name == "bedrock":
+        return BedrockBackend()
     elif name == "fallback":
         return FallbackLLM()
     else:

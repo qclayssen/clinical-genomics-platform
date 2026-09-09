@@ -64,13 +64,42 @@ body {
 }
 
 .form-row input,
-.form-row select {
+.form-row select,
+.form-row textarea {
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 1rem;
   background: var(--color-surface);
   color: var(--color-text);
+}
+
+.form-row textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.intake-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.intake-tabs__tab {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 6px 6px 0 0;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.intake-tabs__tab--active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
 }
 
 button {

@@ -27,6 +27,8 @@ function resolveApiBase(): string {
   return configured || DEFAULT_API_BASE_URL;
 }
 
+export type AgentBackend = "deterministic" | "ollama" | "openai" | "anthropic" | "azure_foundry" | "bedrock";
+
 export interface VariantReviewRequest {
   chrom: string;
   pos: number;
@@ -35,6 +37,14 @@ export interface VariantReviewRequest {
   gene?: string;
   genotype?: string;
   run_id: string;
+  backend?: AgentBackend;
+}
+
+export interface FhirVariantReviewRequest {
+  /** A FHIR Observation resource — see ai-report/agent/fhir_intake.py for the recognized LOINC components. */
+  resource: Record<string, unknown>;
+  run_id: string;
+  backend?: AgentBackend;
 }
 
 export interface AgentTraceStep {
@@ -135,6 +145,11 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
 /** POST /agent/variant-review — runs the existing agentic interpreter on one variant. */
 export function submitVariantReview(input: VariantReviewRequest): Promise<VariantAssessment> {
   return postJson<VariantAssessment>("/agent/variant-review", input);
+}
+
+/** POST /agent/variant-review/fhir — same review, variant supplied as a FHIR Observation. */
+export function submitFhirVariantReview(input: FhirVariantReviewRequest): Promise<VariantAssessment> {
+  return postJson<VariantAssessment>("/agent/variant-review/fhir", input);
 }
 
 /**

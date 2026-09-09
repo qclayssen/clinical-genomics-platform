@@ -51,10 +51,11 @@ Each ADR follows the same tiny structure:
 | [0025](0025-dbt-analytics-engineering-layer.md) | dbt as an additive analytics-engineering transformation layer | Accepted |
 | [0026](0026-runnable-airflow-demo.md) | Make the Airflow warehouse-ETL DAG runnable, not just illustrative | Accepted |
 | [0027](0027-rest-react-frontend-for-variant-interpreter.md) | REST API + React frontend as thin adapters over the existing variant interpreter (ADR-0014) | Accepted |
+| [0028](0028-azure-bedrock-backends-and-fhir-intake.md) | Azure AI Foundry / AWS Bedrock LLM backends, and a minimal HL7 FHIR genomics intake | Accepted |
 
 ---
 
-**Count: 27 ADRs** (0001–0027). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 28 ADRs** (0001–0028). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 

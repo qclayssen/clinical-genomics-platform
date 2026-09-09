@@ -16,14 +16,29 @@ rather than adding a second endpoint/table — `variant_key` ("chrom:pos:ref>alt
 from `agent.review_store.variant_key`) is what links a decision back to the
 variant interpreted here. A second, competing sign-off mechanism would
 fragment the one audit trail this platform already has.
+
+Two additions on top of that thin adapter (ADR-0028):
+
+- An opt-in `backend` field selects among the LLM backends `agent/llm.py`
+  already supports (`ollama`, `openai`, `anthropic`, `azure_foundry`,
+  `bedrock`) to drive the real `ReActAgent` instead of the deterministic
+  default. If the agent can't complete cleanly on the chosen backend, it
+  falls back to the deterministic interpreter — the same policy
+  `ai-report/agent/interpret.py`'s CLI already uses, reused here rather
+  than reinvented.
+- `POST /agent/variant-review/fhir` accepts a (simplified) HL7 FHIR
+  genomics `Observation` instead of discrete chrom/pos/ref/alt fields, via
+  `agent.fhir_intake.variant_from_fhir_observation` — an EMR-shaped intake
+  path alongside the manual form.
 """
 
 from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 # ai-report/ isn't a package root (see ai-report/agent/interpret.py and
@@ -34,15 +49,15 @@ if str(_AI_REPORT_DIR) not in sys.path:
     sys.path.insert(0, str(_AI_REPORT_DIR))
 
 from agent.deterministic import DeterministicInterpreter  # noqa: E402
-from agent.react import Variant  # noqa: E402
+from agent.fhir_intake import FhirIntakeError, variant_from_fhir_observation  # noqa: E402
+from agent.llm import create_backend  # noqa: E402
+from agent.react import ReActAgent, Variant  # noqa: E402
 from agent.report import INTERPRETATION_BANNER, build_report, enforce_report_guardrails  # noqa: E402
 from agent.review_store import variant_key  # noqa: E402
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
-# Stateless, cheap to construct (opens the read-only chr20 knowledge base) —
-# shared across requests like FixtureRepository's in-memory fixtures.
-_interpreter = DeterministicInterpreter()
+_KNOWN_BACKENDS = {"deterministic", "ollama", "openai", "anthropic", "azure_foundry", "azure", "bedrock"}
 
 
 class VariantReviewRequest(BaseModel):
@@ -67,6 +82,24 @@ class VariantReviewRequest(BaseModel):
     run_id: str = Field(
         ..., description="An existing pipeline run id (see GET /runs) to tie this interpretation and any sign-off to"
     )
+    backend: str = Field(
+        "deterministic",
+        description=(
+            "One of deterministic|ollama|openai|anthropic|azure_foundry|bedrock. "
+            "Non-deterministic backends need their own credentials configured "
+            "(see ai-report/agent/llm.py) and fall back to deterministic on failure."
+        ),
+    )
+
+
+class FhirVariantReviewRequest(BaseModel):
+    """Same review, but the variant comes from a FHIR Observation instead of
+    discrete fields — see `agent.fhir_intake` for exactly which components
+    are read."""
+
+    resource: dict[str, Any] = Field(..., description="A FHIR Observation resource (see agent.fhir_intake)")
+    run_id: str
+    backend: str = "deterministic"
 
 
 class AgentTraceStep(BaseModel):
@@ -109,28 +142,42 @@ class VariantAssessment(BaseModel):
     )
 
 
-@router.post(
-    "/variant-review",
-    response_model=VariantAssessment,
-    status_code=201,
-    summary="Run the existing agentic variant interpreter (ADR-0014) on a single variant",
-)
-def create_variant_review(query: VariantReviewRequest) -> VariantAssessment:
-    variant = Variant(
-        chrom=query.chrom,
-        pos=query.pos,
-        ref=query.ref,
-        alt=query.alt,
-        gene=query.gene,
-        genotype=query.genotype,
-    )
-    result = _interpreter.run(variant)
-    report = build_report([result], backend_used=result.backend_used, run_id=query.run_id)
+def _run_interpretation(variant: Variant, backend_name: str):
+    """Run `variant` through the deterministic interpreter or a real
+    ReActAgent backend, mirroring `ai-report/agent/interpret.py`'s CLI
+    policy exactly: deterministic is default and needs nothing configured;
+    any other backend runs the real agent and falls back to deterministic
+    if it can't complete cleanly (loop detected, backend unavailable, etc.),
+    keeping the agent's partial trace prepended to the fallback's.
+    """
+    name = backend_name.lower().strip()
+    if name not in _KNOWN_BACKENDS:
+        raise HTTPException(status_code=422, detail=f"Unknown backend '{backend_name}'. One of: {sorted(_KNOWN_BACKENDS)}")
+
+    if name == "deterministic":
+        return DeterministicInterpreter().run(variant)
+
+    llm_backend = create_backend(name)
+    react_agent = ReActAgent(backend=llm_backend)
+    try:
+        result = react_agent.run(variant)
+    finally:
+        react_agent.close()
+
+    if result.fallback_triggered:
+        fallback_result = DeterministicInterpreter().run(variant)
+        fallback_result.trace = result.trace + fallback_result.trace
+        return fallback_result
+    return result
+
+
+def _to_assessment(variant: Variant, run_id: str, result) -> VariantAssessment:
+    report = build_report([result], backend_used=result.backend_used, run_id=run_id)
     violations = enforce_report_guardrails(report)
     interpretation = report.variants[0]
 
     return VariantAssessment(
-        run_id=query.run_id,
+        run_id=run_id,
         variant_key=variant_key(variant.chrom, variant.pos, variant.ref, variant.alt),
         chrom=variant.chrom,
         pos=variant.pos,
@@ -149,3 +196,38 @@ def create_variant_review(query: VariantReviewRequest) -> VariantAssessment:
         provenance=report.provenance,
         guardrail_violations=violations,
     )
+
+
+@router.post(
+    "/variant-review",
+    response_model=VariantAssessment,
+    status_code=201,
+    summary="Run the existing agentic variant interpreter (ADR-0014) on a single variant",
+)
+def create_variant_review(query: VariantReviewRequest) -> VariantAssessment:
+    variant = Variant(
+        chrom=query.chrom,
+        pos=query.pos,
+        ref=query.ref,
+        alt=query.alt,
+        gene=query.gene,
+        genotype=query.genotype,
+    )
+    result = _run_interpretation(variant, query.backend)
+    return _to_assessment(variant, query.run_id, result)
+
+
+@router.post(
+    "/variant-review/fhir",
+    response_model=VariantAssessment,
+    status_code=201,
+    summary="Same as /variant-review, but the variant comes from a FHIR genomics Observation",
+)
+def create_variant_review_from_fhir(query: FhirVariantReviewRequest) -> VariantAssessment:
+    try:
+        variant = variant_from_fhir_observation(query.resource)
+    except FhirIntakeError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    result = _run_interpretation(variant, query.backend)
+    return _to_assessment(variant, query.run_id, result)
