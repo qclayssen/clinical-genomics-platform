@@ -2,9 +2,9 @@ name: db-ci
 
 on:
   push:
-    paths: ['db/**', '.github/workflows/db-ci.yml']
+    paths: ['db/**', 'tests/fixtures/dynamodb_items_demo.json', '.github/workflows/db-ci.yml']
   pull_request:
-    paths: ['db/**', '.github/workflows/db-ci.yml']
+    paths: ['db/**', 'tests/fixtures/dynamodb_items_demo.json', '.github/workflows/db-ci.yml']
 
 concurrency:
   group: db-ci-${{ github.ref }}
@@ -154,3 +154,58 @@ jobs:
           "
           psql -c "SELECT date_key, sum(n_warn) AS warn_count, sum(n_fail) AS fail_count FROM fact_run GROUP BY date_key ORDER BY date_key;"
           echo "=== Warehouse layer check done ==="
+
+  sync-fixture-demo:
+    name: Fixture-mode sync (proves the Airflow demo DAG's ETL step actually runs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cgp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Apply schema.sql
+        run: PGHOST=localhost PGPORT=5432 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=cgp_test psql -f db/schema.sql
+
+      - name: Install sync script dependencies
+        run: pip install psycopg2-binary boto3
+
+      - name: Run sync_dynamodb_to_postgres.py against the demo fixture
+        env:
+          CGP_METADATA_SOURCE: fixture
+          CGP_METADATA_FIXTURE: tests/fixtures/dynamodb_items_demo.json
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cgp_test
+        run: python db/sync_dynamodb_to_postgres.py
+
+      - name: Verify the fixture's runs landed in Postgres
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: cgp_test
+        run: |
+          SYNCED=$(psql -tAc "SELECT count(*) FROM runs WHERE run_id IN ('run_2026_0910_demo1', 'run_2026_0910_demo2');")
+          echo "Synced demo runs: $SYNCED"
+          if [ "$SYNCED" -ne 2 ]; then
+            echo "❌ Expected 2 demo runs synced from the fixture, found $SYNCED"
+            exit 1
+          fi

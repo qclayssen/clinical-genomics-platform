@@ -1,0 +1,41 @@
+# Overlay adding a real, runnable Airflow instance on top of docker-compose.yml.
+# Not part of the default stack (docker-compose.yml stays lightweight for the
+# Metabase/demo-app portfolio walkthrough) — start it explicitly:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.airflow.yml up -d
+#
+# Airflow UI: http://localhost:8080 (standalone mode prints the generated
+# admin password to `docker compose logs airflow` on first boot).
+#
+# Runs orchestration/airflow_dags/warehouse_etl_dag.py for real: it syncs the
+# demo fixture (tests/fixtures/dynamodb_items_demo.json) into Postgres via
+# db/sync_dynamodb_to_postgres.py's CGP_METADATA_SOURCE=fixture demo mode
+# (no AWS account needed — see orchestration/README.md), then refreshes the
+# fact_run star-schema warehouse the same way the production DAG would.
+
+services:
+  airflow:
+    image: apache/airflow:2.9.3-python3.11
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports: ['8080:8080']
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW_CONN_CGP_POSTGRES: postgresql://cgp:cgp@postgres:5432/cgp
+      DATABASE_URL: postgresql://cgp:cgp@postgres:5432/cgp
+      PYTHONPATH: /opt/airflow/repo
+      CGP_METADATA_SOURCE: fixture
+      CGP_METADATA_FIXTURE: /opt/airflow/repo/tests/fixtures/dynamodb_items_demo.json
+    volumes:
+      - ./orchestration/airflow_dags:/opt/airflow/dags:ro
+      - ./db:/opt/airflow/repo/db:ro
+      - ./tests/fixtures:/opt/airflow/repo/tests/fixtures:ro
+      - airflow_data:/opt/airflow
+    command: >
+      bash -c "pip install --quiet --no-cache-dir psycopg2-binary && airflow standalone"
+    mem_limit: 1536m
+
+volumes:
+  airflow_data:

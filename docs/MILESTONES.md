@@ -25,13 +25,13 @@ Each milestone produces something you can screen-share, not just code that compi
 | Postgres schema (insert-only + triggers) | ✅ implemented, demo seed |
 | Metabase dashboard definitions | ✅ documented + SQL provided (OLTP view + star-schema warehouse cards) |
 | Star-schema warehouse layer (`fact_run` + `dim_*`) | ✅ implemented in `db/schema.sql`; refresh via `REFRESH MATERIALIZED VIEW` |
-| Airflow orchestration for warehouse refresh | ✅ DAG documented (`orchestration/`), not deployed — needs an Airflow instance |
+| Airflow orchestration for warehouse refresh | ✅ runnable — `docker-compose.airflow.yml` boots real Airflow running the DAG end-to-end (demo-fixture mode); fixture sync also covered in CI |
 | dbt analytics-engineering warehouse layer (`dbt/`) | ✅ implemented, `dbt run`/`dbt test` (38 schema tests) verified in CI against a seeded Postgres |
 | Metabase provisioning as code (manifest + REST API script) | ✅ implemented, unit-tested (mocked API); needs a live Metabase to run end-to-end |
 | Row sandboxing without Metabase Enterprise (`db/sandboxing_demo.sql`) | ✅ implemented, verified against a local Postgres |
 | AI reporting (offline + fine-tune paths) | ✅ implemented, offline path tested |
 | ML fine-tuning (PyTorch QLoRA + CPU smoke test) | ✅ smoke test verified running on CPU |
-| Architecture Decision Records (25 ADRs) | ✅ written |
+| Architecture Decision Records (26 ADRs) | ✅ written |
 | Small committed test data + fixtures | ✅ pipeline stub + ML both self-contained |
 | CI (pipeline + infra + ML smoke) | ✅ workflows in place |
 | Streamlit demo app (`demo/`) | ✅ runnable locally — explorer, variant interpretation, assistant |

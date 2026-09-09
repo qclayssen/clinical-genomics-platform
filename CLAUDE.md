@@ -22,12 +22,12 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | `db/` | Postgres `schema.sql` (insert-only tables + immutability triggers, star-schema warehouse layer), migrations, seed |
 | `dashboards/metabase/` | Version-controlled Metabase dashboard (`dashboard_manifest.yaml`) + REST API provisioning script (`provision_metabase.py`) |
 | `api/` | FastAPI REST service over run/QC/provenance data, with OpenAPI docs (`/docs`, `/redoc`); fixture-backed by default, optional `CGP_DB_URL` for Postgres |
-| `orchestration/` | Illustrative Airflow DAG scheduling the warehouse ETL/refresh (design note, see ADR-0023) |
+| `orchestration/` | Airflow DAG scheduling the warehouse ETL/refresh — runnable via `docker-compose.airflow.yml` demo mode (ADR-0023, ADR-0026) |
 | `dbt/` | dbt project rebuilding the star-schema warehouse (staging + marts, schema tests) in its own `analytics` schema — additive alongside `db/schema.sql`'s production warehouse, see ADR-0025 |
 | `ai-report/` | PyTorch QLoRA fine-tune + inference (`infer.py`, `train_lora.py`, `train_smoke.py`, `make_dataset.py`), `MODEL_CARD.md` |
 | `docker/` | One pinned Dockerfile per stage plus `Dockerfile.tools` for the helper scripts |
 | `docs/` | Beginner's guide, glossary, `VALIDATION.md`, `SOP-run-pipeline.md`, `MILESTONES.md`, `FOR-RECRUITERS.md` |
-| `docs/adr/` | 24 Architecture Decision Records (append-only); see `README.md` there for the index |
+| `docs/adr/` | 26 Architecture Decision Records (append-only); see `README.md` there for the index |
 | `tests/` | Python unit tests + small committed fixtures in `tests/fixtures/` |
 | `.github/workflows/` | CI: nf-core-style config check, pipeline test profile, CDK synth, ML smoke test |
 

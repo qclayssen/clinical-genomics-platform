@@ -46,13 +46,14 @@ Each ADR follows the same tiny structure:
 | [0020](0020-usage-value-metrics.md) | Usage/value metrics computed from the reviewer decision log | Accepted |
 | [0021](0021-triage-agent.md) | Triage agent | Accepted |
 | [0022](0022-enterprise-data-platform-integration.md) | Enterprise data platform integration (design note) | Proposed |
-| [0023](0023-star-schema-warehouse-airflow.md) | Star-schema warehouse layer + Airflow-orchestrated refresh | Accepted (warehouse) / design note (Airflow) |
+| [0023](0023-star-schema-warehouse-airflow.md) | Star-schema warehouse layer + Airflow-orchestrated refresh | Accepted (warehouse) / see [0026](0026-runnable-airflow-demo.md) (Airflow) |
 | [0024](0024-metabase-as-code-and-oss-sandboxing.md) | Metabase as code (manifest + provisioning API), OSS row sandboxing, custom-driver design note | Accepted |
 | [0025](0025-dbt-analytics-engineering-layer.md) | dbt as an additive analytics-engineering transformation layer | Accepted |
+| [0026](0026-runnable-airflow-demo.md) | Make the Airflow warehouse-ETL DAG runnable, not just illustrative | Accepted |
 
 ---
 
-**Count: 25 ADRs** (0001–0025). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 26 ADRs** (0001–0026). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 
