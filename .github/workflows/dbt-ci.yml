@@ -62,10 +62,10 @@ jobs:
       - name: Install dbt
         run: pip install dbt-postgres
 
-      - name: dbt run (build staging + marts into the analytics schema)
+      - name: "dbt run: build staging + marts into the analytics schema"
         working-directory: dbt
         run: dbt run --target ci
 
-      - name: dbt test (schema tests: not_null, unique, relationships, accepted_values)
+      - name: "dbt test: not_null, unique, relationships, accepted_values"
         working-directory: dbt
         run: dbt test --target ci
