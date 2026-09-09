@@ -2,12 +2,18 @@
 
 A small React + TypeScript + Vite frontend over the platform's existing
 agentic variant interpreter (`ai-report/agent/`, [ADR-0014](../docs/adr/0014-agentic-variant-interpretation.md)).
-A clinician enters a variant (chrom/pos/ref/alt, gene, zygosity), the agent
-drafts an ACMG classification with a full reasoning trace, and the UI records
+A clinician enters a variant — either as discrete chrom/pos/ref/alt fields, or
+by pasting a (simplified) HL7 FHIR genomics `Observation` — the agent drafts
+an ACMG classification with a full reasoning trace, and the UI records
 clinician sign-off through the platform's existing insert-only
 `/runs/{run_id}/review-decisions` endpoint ([ADR-0019](../docs/adr/0019-reviewer-decision-log.md)).
-See [ADR-0027](../docs/adr/0027-rest-react-frontend-for-variant-interpreter.md)
-for why this is a thin adapter over existing capability rather than a new agent.
+An "AI backend" selector picks among the deterministic default and the
+real `ReActAgent` backends `agent/llm.py` supports, including Azure AI
+Foundry and AWS Bedrock. See
+[ADR-0027](../docs/adr/0027-rest-react-frontend-for-variant-interpreter.md)
+for why this is a thin adapter over existing capability rather than a new
+agent, and [ADR-0028](../docs/adr/0028-azure-bedrock-backends-and-fhir-intake.md)
+for the backend/FHIR additions.
 
 **This is a portfolio project, not an accredited clinical test.** Every
 assessment rendered here is AI-drafted and carries the mandatory
@@ -34,10 +40,10 @@ pip install -r api/requirements.txt
 uvicorn api.main:app --reload
 ```
 
-This UI calls `POST /agent/variant-review` (`api/routers/agent.py`) — a thin
-adapter over the existing `ai-report/agent/` interpreter — and the platform's
-existing `POST /runs/{run_id}/review-decisions` for sign-off. Both are
-fixture-backed by default, no database required.
+This UI calls `POST /agent/variant-review` and `POST /agent/variant-review/fhir`
+(`api/routers/agent.py`) — thin adapters over the existing `ai-report/agent/`
+interpreter — and the platform's existing `POST /runs/{run_id}/review-decisions`
+for sign-off. All are fixture-backed by default, no database required.
 
 ## Pointing at a different API host
 

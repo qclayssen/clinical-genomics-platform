@@ -67,6 +67,69 @@ def test_variant_review_signoff_uses_existing_review_decisions_endpoint():
     assert body["reviewer"] == "j.smith"
 
 
+def test_variant_review_rejects_unknown_backend():
+    resp = client.post(
+        "/agent/variant-review",
+        json={"chrom": "chr20", "pos": 4699605, "ref": "G", "alt": "A", "run_id": KNOWN_RUN_ID, "backend": "watson"},
+    )
+    assert resp.status_code == 422
+
+
+def test_variant_review_defaults_to_deterministic_backend():
+    resp = client.post(
+        "/agent/variant-review",
+        json={"chrom": "chr20", "pos": 4699605, "ref": "G", "alt": "A", "run_id": KNOWN_RUN_ID},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["backend_used"] == "deterministic-fallback"
+
+
+def test_variant_review_falls_back_to_deterministic_when_llm_backend_unconfigured():
+    # No AZURE_AI_FOUNDRY_* env vars are set in CI, so AzureFoundryBackend.is_available()
+    # is False and the agent should fall back cleanly rather than erroring out.
+    resp = client.post(
+        "/agent/variant-review",
+        json={
+            "chrom": "chr20",
+            "pos": 4699605,
+            "ref": "G",
+            "alt": "A",
+            "run_id": KNOWN_RUN_ID,
+            "backend": "azure_foundry",
+        },
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["classification"]
+    assert body["guardrail_violations"] == []
+
+
+def test_variant_review_from_fhir_observation():
+    resource = {
+        "resourceType": "Observation",
+        "component": [
+            {"code": {"coding": [{"code": "48000-4"}]}, "valueString": "chr20"},
+            {"code": {"coding": [{"code": "81254-5"}]}, "valueInteger": 4699605},
+            {"code": {"coding": [{"code": "69547-8"}]}, "valueString": "G"},
+            {"code": {"coding": [{"code": "69551-0"}]}, "valueString": "A"},
+            {"code": {"coding": [{"code": "48018-6"}]}, "valueString": "PRNP"},
+        ],
+    }
+    resp = client.post("/agent/variant-review/fhir", json={"resource": resource, "run_id": KNOWN_RUN_ID})
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["variant_key"] == "chr20:4699605:G>A"
+    assert body["gene"] == "PRNP"
+
+
+def test_variant_review_from_fhir_observation_rejects_incomplete_resource():
+    resp = client.post(
+        "/agent/variant-review/fhir",
+        json={"resource": {"resourceType": "Observation", "component": []}, "run_id": KNOWN_RUN_ID},
+    )
+    assert resp.status_code == 422
+
+
 def test_variant_review_unknown_run_id_is_still_interpreted():
     # The interpreter itself doesn't require run_id to already exist — only
     # signing off does (via /runs/{run_id}/review-decisions, which 404s for
