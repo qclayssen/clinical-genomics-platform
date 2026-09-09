@@ -212,13 +212,15 @@ Set `graph_dimensions`/`graph_metrics` on the card in `dashboard_manifest.yaml`
 to pre-select them (see "SNV F1 trend across pipeline versions" for an
 example) so the card renders immediately with no manual step.
 
-## Dashboard screenshots
+## Dashboard screenshots and demo GIF
 
 See the root [README.md](../../README.md#dashboard-preview) for the current
-screenshots — captured with `docker compose up -d` + the setup/provisioning
-steps above, then a headless Playwright script logging into Metabase and
-saving each dashboard as a PNG (see git history of
-`docs/assets/metabase-clinical-genomics-*.png` for the exact commit).
+screenshots and animated walkthrough — all captured with `docker compose up -d`
++ the setup/provisioning steps above, then a headless Playwright script
+logging into Metabase, scrolling through both dashboards, and saving frames
+as a PNG (per dashboard) and an animated GIF (Pillow-assembled from a
+scroll sequence) — see git history of `docs/assets/metabase-*` for the
+exact commits.
 
 ## Exporting for version control
 
