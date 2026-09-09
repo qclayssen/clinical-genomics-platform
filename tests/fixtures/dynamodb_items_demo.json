@@ -1,0 +1,80 @@
+[
+  {
+    "run_id": "run_2026_0910_demo1",
+    "record_type": "RUN",
+    "sample_id": "HG002_chr20",
+    "reference_build": "GRCh38",
+    "pipeline_version": "1.4.0",
+    "git_commit": "demo0001",
+    "caller": "HaplotypeCaller",
+    "started_at": "2026-09-10T08:00:00Z",
+    "exported_at": "2026-09-10T08:41:00Z",
+    "validation_pass": true
+  },
+  {
+    "run_id": "run_2026_0910_demo1",
+    "record_type": "QC_METRICS",
+    "percent_duplication": 0.081,
+    "snp_precision": 0.9973,
+    "snp_recall": 0.9958,
+    "snp_f1": 0.9965,
+    "n_variants": 41230
+  },
+  {
+    "run_id": "run_2026_0910_demo1",
+    "record_type": "PROVENANCE",
+    "input_checksums": {
+      "reads_r1": "sha256:demo0000000000000000000000000000000000000000000000000000001",
+      "reads_r2": "sha256:demo0000000000000000000000000000000000000000000000000000002",
+      "reference": "sha256:demo0000000000000000000000000000000000000000000000000000003"
+    },
+    "truth_set_version": "GIAB-v4.2.1"
+  },
+  {
+    "run_id": "run_2026_0910_demo1",
+    "record_type": "AUDIT",
+    "action": "PIPELINE_COMPLETED",
+    "detail": "Run completed successfully via Airflow demo DAG",
+    "actor": "airflow-demo",
+    "created_at": "2026-09-10T08:41:05Z"
+  },
+  {
+    "run_id": "run_2026_0910_demo2",
+    "record_type": "RUN",
+    "sample_id": "HG002_chr20",
+    "reference_build": "GRCh38",
+    "pipeline_version": "1.4.0",
+    "git_commit": "demo0001",
+    "caller": "DeepVariant",
+    "started_at": "2026-09-10T09:00:00Z",
+    "exported_at": "2026-09-10T09:38:00Z",
+    "validation_pass": true
+  },
+  {
+    "run_id": "run_2026_0910_demo2",
+    "record_type": "QC_METRICS",
+    "percent_duplication": 0.076,
+    "snp_precision": 0.9981,
+    "snp_recall": 0.9962,
+    "snp_f1": 0.9971,
+    "n_variants": 41198
+  },
+  {
+    "run_id": "run_2026_0910_demo2",
+    "record_type": "PROVENANCE",
+    "input_checksums": {
+      "reads_r1": "sha256:demo0000000000000000000000000000000000000000000000000000001",
+      "reads_r2": "sha256:demo0000000000000000000000000000000000000000000000000000002",
+      "reference": "sha256:demo0000000000000000000000000000000000000000000000000000003"
+    },
+    "truth_set_version": "GIAB-v4.2.1"
+  },
+  {
+    "run_id": "run_2026_0910_demo2",
+    "record_type": "AUDIT",
+    "action": "PIPELINE_COMPLETED",
+    "detail": "Run completed successfully via Airflow demo DAG",
+    "actor": "airflow-demo",
+    "created_at": "2026-09-10T09:38:05Z"
+  }
+]

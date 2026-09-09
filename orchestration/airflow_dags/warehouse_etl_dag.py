@@ -1,16 +1,19 @@
-"""Illustrative Airflow DAG for the warehouse ETL.
+"""Airflow DAG for the warehouse ETL.
 
 Extracts run/QC/provenance records from DynamoDB into Postgres
 (db/sync_dynamodb_to_postgres.py), then refreshes the star-schema
 fact_run materialized view (db/schema.sql) that Metabase reads from.
 
-Not deployed or run in CI — this repo's real compute is a locally-run
-Nextflow pipeline with no scheduler attached (ADR-0017). This DAG documents
-how the same two steps (sync, then warehouse refresh) would be scheduled
-for near-real-time monitoring in a deployment that runs Airflow, per
-ADR-0023. Needs environment: an Airflow instance with `apache-airflow` and
-`apache-airflow-providers-postgres` installed, and a `cgp_postgres`
-connection configured.
+Runnable, not just illustrative: `docker compose -f docker-compose.yml -f
+docker-compose.airflow.yml up -d` boots a real Airflow instance running this
+exact DAG against docker-compose.yml's Postgres, with
+sync_dynamodb_to_postgres.py's CGP_METADATA_SOURCE=fixture demo mode standing
+in for DynamoDB (no AWS account needed) — see orchestration/README.md and
+ADR-0026. This is still not this repo's real compute path — that's a
+locally-run Nextflow pipeline with no scheduler attached (ADR-0017) — but the
+scheduling/orchestration shape is exercised end-to-end, not just described.
+Production deployment would swap CGP_METADATA_SOURCE back to a real DynamoDB
+table (ADR-0023).
 """
 
 from __future__ import annotations
