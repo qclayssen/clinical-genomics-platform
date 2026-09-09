@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: dim_pipeline_version
+    description: One row per distinct pipeline_version seen in runs.
+    columns:
+      - name: pipeline_version_key
+        data_tests: [unique, not_null]
+      - name: pipeline_version
+        data_tests: [unique, not_null]
+
+  - name: dim_caller
+    description: One row per distinct variant caller seen in runs.
+    columns:
+      - name: caller_key
+        data_tests: [unique, not_null]
+      - name: caller
+        data_tests: [unique, not_null]
+
+  - name: dim_date
+    description: One row per distinct calendar day a run started on.
+    columns:
+      - name: date_key
+        data_tests: [unique, not_null]
+
+  - name: fct_run
+    description: One row per pipeline run — the analytics-schema counterpart to db/schema.sql's public.fact_run.
+    columns:
+      - name: run_key
+        data_tests: [unique, not_null]
+      - name: run_id
+        data_tests: [unique, not_null]
+      - name: pipeline_version_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_pipeline_version')
+                field: pipeline_version_key
+      - name: caller_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_caller')
+                field: caller_key
+      - name: date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: snp_f1
+        data_tests: [not_null]
