@@ -40,6 +40,6 @@ Each milestone produces something you can screen-share, not just code that compi
 > staged GIAB data on your machine; deploying infra needs an AWS account.
 
 The quickest thing to look at is the demo app — `pip install -r demo/requirements.txt`
-then `streamlit run demo/app.py`. It reads committed seed data and fixtures, and its
+then `PYTHONPATH=. streamlit run demo/app.py`. It reads committed seed data and fixtures, and its
 Variant Interpretation page runs the deterministic interpreter, so it needs no database,
 no cloud account, and no LLM. See [demo/README.md](../demo/README.md).

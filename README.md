@@ -46,6 +46,16 @@ From raw WGS reads to validated variants, structured provenance, ops dashboards,
 
 <br/>
 
+<div align="center">
+  <img src="docs/media/demo.gif" alt="Clinical Genomics Insight Platform — Streamlit demo walkthrough: Home, Data Explorer, Variant Interpretation, Pipeline Assistant" width="800"/>
+</div>
+
+<div align="center">
+  <sub>The Streamlit demo (<code>demo/</code>) — no database, cloud account, or LLM required. See <a href="demo/README.md">demo/README.md</a>.</sub>
+</div>
+
+<br/>
+
 ---
 
 <br/>

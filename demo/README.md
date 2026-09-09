@@ -19,7 +19,7 @@ genomics context.
 ```bash
 # From the repo root
 pip install -r demo/requirements.txt
-streamlit run demo/app.py
+PYTHONPATH=. streamlit run demo/app.py
 ```
 
 The app opens at `http://localhost:8501`. Use the sidebar to switch between pages.

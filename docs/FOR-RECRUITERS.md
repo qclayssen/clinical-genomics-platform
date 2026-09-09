@@ -78,6 +78,29 @@ Being straight about this (it's a portfolio, not a live service):
 
 Status is tracked honestly in [docs/MILESTONES.md](MILESTONES.md).
 
+## Resume bullets
+
+Ready-to-paste lines, each backed by something in this repo — swap in whichever fit
+the role:
+
+- Built a solo, end-to-end clinical genomics platform (WGS reads → variant calling →
+  GIAB truth-set validation → provenance-tracked Postgres → BI dashboard →
+  QLoRA-fine-tuned LLM reporting) spanning Nextflow, AWS CDK, and PyTorch.
+- Validated a germline SNV pipeline against the GIAB HG002 truth set with `hap.py`,
+  meeting a precision/recall/F1 ≥ 0.99 acceptance threshold, with every result
+  carrying a full provenance stamp (tool/reference versions, input checksums).
+- Designed an insert-only Postgres schema with DB-level immutability triggers and a
+  star-schema warehouse layer, enforcing an audit trail suitable for ISO 15189 /
+  NATA-style accreditation patterns.
+- Fine-tuned a small open LLM with QLoRA (PyTorch/PEFT/TRL) to draft plain-language
+  variant reports, enforcing mandatory human-review guardrails and field citations
+  in code rather than relying on model behavior.
+- Wrote 24 Architecture Decision Records documenting trade-offs across bioinformatics,
+  cloud infrastructure, data engineering, and responsible-AI design choices.
+- Provisioned AWS infrastructure as code (CDK/TypeScript: S3, Lambda, Step Functions,
+  least-privilege IAM) with automated guardrail tests enforcing accreditation-relevant
+  invariants (versioning, TLS-only, deny-delete).
+
 ## Suggested reading order
 
 1. [README](../README.md) — architecture + quickstart
