@@ -20,6 +20,28 @@ plain-language summaries under enforced human-review guardrails.
 Built solo, deliberately scoped ([ADR-0001](adr/0001-scope-giab-hg002-chr20.md)) so it's
 finished and runnable, not a half-built sprawl.
 
+## Reading this as a data-engineering / BI project
+
+The domain is genomics, but nothing here requires a genomics background to build or extend —
+the same way a hospital's billing warehouse or a lab's LIMS integration doesn't. If you're
+screening for a **data engineer / analytics engineer / BI developer** role, here's the same
+project translated into that vocabulary:
+
+| This project has... | ...which is really | Where |
+|---|---|---|
+| A Nextflow pipeline writing `runs`/`qc_metrics`/`qc_warnings` | An ETL/ELT pipeline landing operational events from a source system into a warehouse | `pipeline/`, `db/schema.sql` |
+| Insert-only Postgres + immutability triggers | Data-quality/integrity guarantees on the warehouse (no silent overwrites, full history) | `db/schema.sql`, [ADR-0005](adr/0005-insert-only-postgres.md) |
+| `dim_pipeline_version`/`dim_caller`/`dim_date` + `fact_run` | A hand-designed star schema, refreshed on a schedule | `db/schema.sql`, [ADR-0023](adr/0023-star-schema-warehouse-airflow.md) |
+| The same star schema, rebuilt with dbt | Staged sources → `ref()`-linked models → 38 schema tests → generated docs — the analytics-engineering toolchain | `dbt/`, [ADR-0025](adr/0025-dbt-analytics-engineering-layer.md) |
+| An Airflow DAG that actually runs (not just described) | Scheduled orchestration of the extract/load + warehouse-refresh steps, demoable with `docker compose` | `orchestration/`, [ADR-0026](adr/0026-runnable-airflow-demo.md) |
+| Two Metabase dashboards, defined as version-controlled SQL + provisioned via a REST API script | "Dashboards as code" — no click-built, unreproducible dashboards | `dashboards/metabase/`, screenshots in the [root README](../README.md#dashboard-preview) |
+| Postgres role-based row sandboxing (`db/sandboxing_demo.sql`) | Row-level security / multi-tenant data access control, without a paid BI tier | `db/sandboxing_demo.sql`, [ADR-0024](adr/0024-metabase-as-code-and-oss-sandboxing.md) |
+| A FastAPI service over the same Postgres data | A REST API layer for downstream consumers, with generated OpenAPI docs | `api/` |
+
+Every item in that table is independently runnable locally with `docker compose up` and no
+AWS account — see the [root README's Quickstart](../README.md#quickstart) and
+[`CLAUDE.md`](../CLAUDE.md)'s "How to run the runnable parts."
+
 ## Skills demonstrated, with evidence
 
 | Skill area | What's shown | Where |
@@ -27,8 +49,8 @@ finished and runnable, not a half-built sprawl.
 | **Bioinformatics pipelines** | Nextflow DSL2, nf-core style, 12 modules, QC→align→call→validate | `pipeline/` |
 | **Analytical validation** | `hap.py` vs GIAB truth; precision/recall/F1; explicit acceptance criterion | `pipeline/modules/validate/`, `docs/VALIDATION.md` |
 | **Cloud / IaC** | AWS CDK (TypeScript), 4 stacks, Batch/Fargate, least-privilege IAM, CloudWatch | `infra/` |
-| **Data engineering** | Insert-only Postgres schema, provenance + audit trail, migrations | `db/` |
-| **BI / reporting** | Metabase dashboard defined as version-controlled SQL | `dashboards/` |
+| **Data engineering** | Insert-only Postgres schema, provenance + audit trail, migrations, star-schema warehouse (hand-rolled + dbt), Airflow-orchestrated refresh | `db/`, `dbt/`, `orchestration/` |
+| **BI / reporting** | Two Metabase dashboards defined as version-controlled SQL, provisioned via REST API, row-level access control | `dashboards/` |
 | **Machine learning** | **PyTorch** QLoRA fine-tuning of a small open LLM; model card; guardrails | `ai-report/`, `ai-report/MODEL_CARD.md` |
 | **MLOps / responsible AI** | Human-in-the-loop, enforced guardrails in code, graceful degradation | [ADR-0008](adr/0008-guardrails-human-in-the-loop.md) |
 | **DevOps** | Tiered CI/CD: Ruff lint, pip-audit + Trivy security, DB migration CI, pytest-cov + badge, Docker build/scan/GHCR, Dependabot, semver release, scheduled maintenance | `docker/`, `.github/workflows/`, [ADR-0016](adr/0016-cicd-strategy.md) |
@@ -71,7 +93,9 @@ safety constraints**:
 Being straight about this (it's a portfolio, not a live service):
 
 - **Verified running:** the metrics/provenance builder, the offline report renderer, the
-  CPU LoRA fine-tuning smoke test, and the unit-test suite.
+  CPU LoRA fine-tuning smoke test, the unit-test suite, `dbt run`/`dbt test` against a
+  seeded Postgres (CI), and the Airflow DAG end-to-end via `docker-compose.airflow.yml`
+  (locally; the fixture-sync step alone is also CI-checked).
 - **Needs Nextflow + Docker:** the full genomics pipeline on real GIAB data.
 - **Needs an AWS account:** `cdk deploy` of the infrastructure (CI runs `cdk synth`).
 - **Needs a GPU:** full QLoRA fine-tune of the 3B model (CPU smoke test proves the loop).
