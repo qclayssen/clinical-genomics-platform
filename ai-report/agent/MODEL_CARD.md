@@ -24,10 +24,16 @@
 
 | Backend | Model | Use Case | Cost |
 |---|---|---|---|
-| Deterministic | N/A (rule-based) | CI, testing, offline | Free |
+| Deterministic | N/A (rule-based) | CI, testing, offline; the default for `POST /agent/variant-review` | Free |
 | Ollama (local) | llama3.2:3b / phi3:mini | Development, demo | Free (local GPU) |
 | OpenAI | gpt-4o-mini | Higher quality | ~$0.01/variant |
 | Anthropic | claude-3.5-haiku | Higher quality | ~$0.01/variant |
+| Azure AI Foundry | Any OpenAI-compatible deployment | Enterprise/hospital Azure tenancy | Deployment-dependent |
+| AWS Bedrock | Any Converse-API-compatible model (default: Claude 3.5 Haiku) | Enterprise/hospital AWS account | Model-dependent |
+
+All six backends implement the same `LLMBackend` interface (`agent/llm.py`); any backend
+other than `deterministic` falls back to it automatically if unavailable or if the agent
+loop can't complete cleanly — see ADR-0028.
 
 ## Limitations
 

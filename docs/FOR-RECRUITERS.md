@@ -1,7 +1,8 @@
 <!-- markdownlint-configure-file { "MD013": { "line_length": 120 }, "MD033": false }
-     doc-index: skills=[bioinformatics, AWS CDK, data engineering, applied ML, agentic AI];
+     doc-index: skills=[bioinformatics, AWS CDK, data engineering, applied ML, agentic AI,
+     multi-cloud LLM integration (Azure AI Foundry, AWS Bedrock), FHIR/HL7 intake, REST API + React];
      scope: complete solo-built platform; validation: ISO 15189 patterns, hap.py benchmarking;
-     delivery: autonomous, end-to-end, 17 architecture decision records documenting trade-offs. -->
+     delivery: autonomous, end-to-end, 28 architecture decision records documenting trade-offs. -->
 
 # For Recruiters & Hiring Managers
 
@@ -54,8 +55,9 @@ AWS account — see the [root README's Quickstart](../README.md#quickstart) and
 | **Machine learning** | **PyTorch** QLoRA fine-tuning of a small open LLM; model card; guardrails | `ai-report/`, `ai-report/MODEL_CARD.md` |
 | **MLOps / responsible AI** | Human-in-the-loop, enforced guardrails in code, graceful degradation | [ADR-0008](adr/0008-guardrails-human-in-the-loop.md) |
 | **DevOps** | Tiered CI/CD: Ruff lint, pip-audit + Trivy security, DB migration CI, pytest-cov + badge, Docker build/scan/GHCR, Dependabot, semver release, scheduled maintenance | `docker/`, `.github/workflows/`, [ADR-0016](adr/0016-cicd-strategy.md) |
-| **Engineering judgement** | 9 Architecture Decision Records weighing trade-offs | `docs/adr/` |
-| **Agentic AI** | ReAct-style tool-using agent: multi-provider LLM, function-calling, ACMG classification, deterministic fallback, property-based testing | `ai-report/agent/`, [ADR-0014](adr/0014-agentic-variant-interpretation.md) |
+| **Engineering judgement** | 28 Architecture Decision Records weighing trade-offs (including at least one recording a discarded first attempt) | `docs/adr/` |
+| **Agentic AI** | ReAct-style tool-using agent: 5 LLM providers incl. Azure AI Foundry + AWS Bedrock, function-calling, ACMG classification, deterministic fallback, property-based testing | `ai-report/agent/`, [ADR-0014](adr/0014-agentic-variant-interpretation.md) |
+| **AI integration engineering** | Same agent exposed 3 ways (CLI, REST + React, Streamlit) without duplicating logic; HL7 FHIR genomics intake; hybrid architecture (deterministic rule engine decides, LLM narrates) | `api/routers/agent.py`, `web/`, `ai-report/agent/fhir_intake.py`, [ADR-0027](adr/0027-rest-react-frontend-for-variant-interpreter.md), [ADR-0028](adr/0028-azure-bedrock-backends-and-fhir-intake.md) |
 | **Quality/accreditation literacy** | ISO 15189 / NATA patterns: validation, provenance, SOP, change control | `docs/VALIDATION.md`, `docs/SOP-run-pipeline.md` |
 
 ## The ML component, specifically
@@ -78,15 +80,24 @@ safety constraints**:
 
 - **ReAct loop** — the agent reasons step-by-step, calling tools (ClinVar, gnomAD, ACMG
   classifier) and observing results before producing a final classification.
-- **Multi-provider LLM** — supports Ollama (local), OpenAI, Anthropic with automatic
-  fallback to a deterministic rule engine. See [ADR-0014](adr/0014-agentic-variant-interpretation.md).
+- **Multi-provider LLM** — Ollama (local), OpenAI, Anthropic, **Azure AI Foundry**, and
+  **AWS Bedrock** (via its model-agnostic Converse API), all with automatic fallback to a
+  deterministic rule engine. See [ADR-0014](adr/0014-agentic-variant-interpretation.md) and
+  [ADR-0028](adr/0028-azure-bedrock-backends-and-fhir-intake.md).
+- **Three entry points, one agent** — a CLI, a REST API + React frontend
+  ([ADR-0027](adr/0027-rest-react-frontend-for-variant-interpreter.md)), and a Streamlit demo
+  all call the same `ReActAgent`/`DeterministicInterpreter` core rather than duplicating it.
+- **HL7 FHIR intake** — `POST /agent/variant-review/fhir` accepts a (documented subset of a)
+  FHIR genomics `Observation` alongside the manual-fields form, demonstrating an EMR-shaped
+  integration point. See [ADR-0028](adr/0028-azure-bedrock-backends-and-fhir-intake.md).
 - **Fully CI-smokable** — the deterministic backend proves the entire agent loop without
-  real LLM inference. Property-based tests (Hypothesis, 200 examples/property) verify
+  real LLM inference; the cloud backends are unit-tested against mocked clients (no live
+  cloud account needed). Property-based tests (Hypothesis, 200 examples/property) verify
   ACMG correctness invariants.
 - **Safety by construction** — guardrails enforced in code: treatment language scrubbed,
   VUS flagged with uncertainty, mandatory review banner, evidence citations required.
-- See the [Agent Model Card](../ai-report/agent/MODEL_CARD.md) and
-  [Design Doc](../ai-report/agent/DESIGN.md).
+- See the [Agent Model Card](../ai-report/agent/MODEL_CARD.md),
+  [Design Doc](../ai-report/agent/DESIGN.md), and the [Variant Review UI](../web/README.md).
 
 ## What was actually run vs. what needs a full environment
 

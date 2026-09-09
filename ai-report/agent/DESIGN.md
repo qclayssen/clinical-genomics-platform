@@ -4,19 +4,27 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         interpret.py (CLI)                            │
+│  interpret.py (CLI)  │  api/routers/agent.py (REST)  │  Streamlit    │
+│       VCF input      │   discrete fields OR FHIR      │   demo page  │
 ├─────────────────────────────────────────────────────────────────────┤
-│  VCF Parser  →  ReAct Agent  →  Report Generator  →  Output Files   │
+│  Input  →  ReAct Agent  →  Report Generator  →  Output/Response     │
 │                      │                                               │
-│                      ├─ LLM Backend (Ollama/OpenAI/Anthropic/Det.)   │
+│                      ├─ LLM Backend (Ollama/OpenAI/Anthropic/        │
+│                      │   Azure AI Foundry/AWS Bedrock/Det.)          │
 │                      ├─ Tool Registry (5 tools)                      │
 │                      └─ Deterministic Fallback (on failure)          │
 ├─────────────────────────────────────────────────────────────────────┤
 │              Knowledge Base (SQLite: ClinVar + gnomAD)               │
 │              ACMG Criteria (JSON: 28 evidence codes)                 │
 │              Gene Annotations (BED: chr20 genes)                     │
+│              FHIR Intake (fhir_intake.py — Observation → Variant)    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+Three entry points share the same `ReActAgent`/`DeterministicInterpreter` core: the CLI
+(batch, VCF-file oriented), the REST API (`api/routers/agent.py` — single-variant, discrete
+fields or a FHIR `Observation`, see ADR-0027/ADR-0028), and the Streamlit demo page. None of
+them re-implement the agent — they're all thin callers into this package.
 
 ## Component Diagram
 
@@ -130,7 +138,8 @@ ai-report/agent/
 ├── interpret.py          # CLI entry point
 ├── react.py              # ReAct agent loop + Variant/TraceStep/InterpretationResult
 ├── deterministic.py      # No-LLM fallback path
-├── llm.py                # Multi-provider LLM abstraction
+├── llm.py                # Multi-provider LLM abstraction (Ollama/OpenAI/Anthropic/Azure/Bedrock)
+├── fhir_intake.py        # Minimal HL7 FHIR genomics Observation → Variant mapping
 ├── tools.py              # Tool definitions + ToolRegistry
 ├── vcf_parser.py         # VCF parsing + gene annotation
 ├── report.py             # Report generation + guardrails
