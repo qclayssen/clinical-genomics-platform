@@ -77,3 +77,8 @@ static assets to `web/dist/`.
 No authentication, no persistence beyond what the backend API provides, and
 no automated tests yet. This is a demo UI: see [`../CLAUDE.md`](../CLAUDE.md)
 for the project's overall scope-honesty note.
+
+## Screenshots
+
+See the root [README.md](../README.md#capability-walkthrough) for real screenshots
+of the submission form and the full agent trace / sign-off view.

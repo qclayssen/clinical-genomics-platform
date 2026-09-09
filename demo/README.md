@@ -227,3 +227,8 @@ pytest tests/test_demo_chat.py
 
 `conftest.py` at the repo root puts the project on `sys.path`, so `demo.*` and
 `lambdas.*` import in tests without any environment setup.
+
+## Screenshots
+
+See the root [README.md](../README.md#capability-walkthrough) for real screenshots
+of the home, Data Explorer, and Variant Interpretation pages.
