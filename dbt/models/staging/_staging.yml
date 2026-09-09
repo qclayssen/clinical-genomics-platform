@@ -1,0 +1,70 @@
+version: 2
+
+sources:
+  - name: cgp
+    description: >
+      The platform's insert-only OLTP tables (db/schema.sql). dbt only reads
+      from these — it never writes to them, respecting the insert-only /
+      immutability-trigger invariant documented in the root CLAUDE.md.
+    schema: public
+    tables:
+      - name: samples
+      - name: runs
+      - name: qc_metrics
+      - name: qc_warnings
+
+models:
+  - name: stg_samples
+    description: One row per sample.
+    columns:
+      - name: sample_id
+        data_tests: [unique, not_null]
+
+  - name: stg_runs
+    description: One row per pipeline run.
+    columns:
+      - name: run_pk
+        data_tests: [unique, not_null]
+      - name: run_id
+        data_tests: [unique, not_null]
+      - name: sample_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_samples')
+                field: sample_id
+      - name: pipeline_version
+        data_tests: [not_null]
+      - name: caller
+        data_tests: [not_null]
+
+  - name: stg_qc_metrics
+    description: One row per run's benchmarked QC metrics.
+    columns:
+      - name: run_pk
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_runs')
+                field: run_pk
+      - name: snp_f1
+        data_tests: [not_null]
+
+  - name: stg_qc_warnings
+    description: One row per QC-threshold check that fired for a run (only warn/fail checks get a row — see db/schema.sql CHECK constraint).
+    columns:
+      - name: run_pk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_runs')
+                field: run_pk
+      - name: overall_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['warn', 'fail']
