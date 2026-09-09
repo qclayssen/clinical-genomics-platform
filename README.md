@@ -246,6 +246,14 @@ The build is demoable at every stage — see [`docs/MILESTONES.md`](docs/MILESTO
 </p>
 
 <p align="center">
+  <img src="docs/assets/metabase-dashboard-demo.gif" alt="Animated walkthrough of both Metabase dashboards" width="720"/>
+</p>
+
+<p align="center">
+  <sub>Both dashboards, scrolled through live — not a mockup.</sub>
+</p>
+
+<p align="center">
   <img src="docs/assets/metabase-clinical-genomics-ops.png" alt="Clinical Genomics Ops dashboard — validation pass rate, turnaround time, runs per week" width="720"/>
 </p>
 

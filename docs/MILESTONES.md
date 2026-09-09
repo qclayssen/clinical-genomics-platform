@@ -23,7 +23,7 @@ Each milestone produces something you can screen-share, not just code that compi
 | Helper scripts + provenance | ✅ implemented, unit-tested |
 | AWS CDK (4 stacks + guardrail tests) | ✅ scaffolded |
 | Postgres schema (insert-only + triggers) | ✅ implemented, demo seed |
-| Metabase dashboard definitions | ✅ documented + SQL provided (OLTP view + star-schema warehouse cards); real screenshots in README, captured from a live-provisioned instance |
+| Metabase dashboard definitions | ✅ documented + SQL provided (OLTP view + star-schema warehouse cards); real screenshots + an animated demo GIF in README, captured from a live-provisioned instance |
 | Star-schema warehouse layer (`fact_run` + `dim_*`) | ✅ implemented in `db/schema.sql`; refresh via `REFRESH MATERIALIZED VIEW` |
 | Airflow orchestration for warehouse refresh | ✅ runnable — `docker-compose.airflow.yml` boots real Airflow running the DAG end-to-end (demo-fixture mode); fixture sync also covered in CI |
 | dbt analytics-engineering warehouse layer (`dbt/`) | ✅ implemented, `dbt run`/`dbt test` (38 schema tests) verified in CI against a seeded Postgres |
