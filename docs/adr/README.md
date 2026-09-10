@@ -46,12 +46,17 @@ Each ADR follows the same tiny structure:
 | [0020](0020-usage-value-metrics.md) | Usage/value metrics computed from the reviewer decision log | Accepted |
 | [0021](0021-triage-agent.md) | Triage agent | Accepted |
 | [0022](0022-enterprise-data-platform-integration.md) | Enterprise data platform integration (design note) | Proposed |
-| [0023](0023-star-schema-warehouse-airflow.md) | Star-schema warehouse layer + Airflow-orchestrated refresh | Accepted (warehouse) / design note (Airflow) |
+| [0023](0023-star-schema-warehouse-airflow.md) | Star-schema warehouse layer + Airflow-orchestrated refresh | Accepted (warehouse) / see [0026](0026-runnable-airflow-demo.md) (Airflow) |
 | [0024](0024-metabase-as-code-and-oss-sandboxing.md) | Metabase as code (manifest + provisioning API), OSS row sandboxing, custom-driver design note | Accepted |
+| [0025](0025-dbt-analytics-engineering-layer.md) | dbt as an additive analytics-engineering transformation layer | Accepted |
+| [0026](0026-runnable-airflow-demo.md) | Make the Airflow warehouse-ETL DAG runnable, not just illustrative | Accepted |
+| [0027](0027-rest-react-frontend-for-variant-interpreter.md) | REST API + React frontend as thin adapters over the existing variant interpreter (ADR-0014) | Accepted |
+| [0028](0028-azure-bedrock-backends-and-fhir-intake.md) | Azure AI Foundry / AWS Bedrock LLM backends, and a minimal HL7 FHIR genomics intake | Accepted |
+| [0029](0029-emr-icu-vved-demo-module.md) | `emr-pipeline/`: an EMR/ICU/VVED data-engineering demo module | Accepted |
 
 ---
 
-**Count: 24 ADRs** (0001–0024). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 29 ADRs** (0001–0029). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 

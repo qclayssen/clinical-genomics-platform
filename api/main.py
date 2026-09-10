@@ -18,7 +18,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from api.repository import RunNotFoundError
-from api.routers import runs
+from api.routers import agent, runs
 
 DESCRIPTION = """
 Read/write access to pipeline run results, QC metrics, provenance stamps,
@@ -40,11 +40,13 @@ app = FastAPI(
     contact={"name": "Quentin Clayssen", "email": "quentin.clayssen@gmail.com"},
     openapi_tags=[
         {"name": "runs", "description": "Pipeline run results, QC metrics, provenance, and reviewer sign-off"},
+        {"name": "agent", "description": "Variant Interpretation Assistant — agent-based, tool-using, guardrailed variant classification"},
         {"name": "meta", "description": "Service health"},
     ],
 )
 
 app.include_router(runs.router)
+app.include_router(agent.router)
 
 
 @app.exception_handler(RunNotFoundError)

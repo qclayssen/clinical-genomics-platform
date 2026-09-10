@@ -203,6 +203,25 @@ psql "$CGP_DB_URL" -f db/sandboxing_demo.sql
 psql "$CGP_DB_URL" -U cgp_analyst_cohort_a -c "SELECT sample_id FROM v_fact_run_secured;"
 ```
 
+## Optional per-card chart axes
+
+A line/bar card grouped by more than one column (e.g. `pipeline_version` +
+`caller`) can render as an unhelpful "Which fields do you want to use for
+the X and Y axes?" prompt — Metabase can't always infer axes on its own.
+Set `graph_dimensions`/`graph_metrics` on the card in `dashboard_manifest.yaml`
+to pre-select them (see "SNV F1 trend across pipeline versions" for an
+example) so the card renders immediately with no manual step.
+
+## Dashboard screenshots and demo GIF
+
+See the root [README.md](../../README.md#dashboard-preview) for the current
+screenshots and animated walkthrough — all captured with `docker compose up -d`
++ the setup/provisioning steps above, then a headless Playwright script
+logging into Metabase, scrolling through both dashboards, and saving frames
+as a PNG (per dashboard) and an animated GIF (Pillow-assembled from a
+scroll sequence) — see git history of `docs/assets/metabase-*` for the
+exact commits.
+
 ## Exporting for version control
 
 `dashboard_manifest.yaml` (above) is the version-controlled artifact for

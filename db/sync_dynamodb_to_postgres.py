@@ -43,6 +43,15 @@ DATABASE_URL = os.environ.get(
     "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/cgp"
 )
 
+# Demo mode: read items from a committed JSON fixture instead of scanning a
+# real DynamoDB table. Lets the Airflow DAG (orchestration/airflow_dags/)
+# run end-to-end against docker-compose.yml's Postgres with no AWS account —
+# see orchestration/README.md.
+METADATA_SOURCE = os.environ.get("CGP_METADATA_SOURCE", "dynamodb")
+METADATA_FIXTURE_PATH = os.environ.get(
+    "CGP_METADATA_FIXTURE", "tests/fixtures/dynamodb_items_demo.json"
+)
+
 # Valid DynamoDB record types we process
 _SYNCABLE_RECORD_TYPES = {"RUN", "QC_METRICS", "PROVENANCE", "AUDIT"}
 
@@ -76,6 +85,42 @@ def scan_dynamodb(table_name: str | None = None) -> list[dict[str, Any]]:
         scan_kwargs["ExclusiveStartKey"] = last_key
 
     return items
+
+
+def load_fixture_items(fixture_path: str | None = None) -> list[dict[str, Any]]:
+    """Load DynamoDB-shaped items from a committed JSON fixture (demo mode).
+
+    Args:
+        fixture_path: Override path (defaults to METADATA_FIXTURE_PATH env var).
+
+    Returns:
+        List of item dicts, same shape scan_dynamodb() would return.
+    """
+    path = fixture_path or METADATA_FIXTURE_PATH
+    with open(path) as f:
+        return json.load(f)
+
+
+def load_source_items(
+    source: str | None = None,
+    table_name: str | None = None,
+    fixture_path: str | None = None,
+) -> list[dict[str, Any]]:
+    """Load items from either DynamoDB or the demo fixture, per CGP_METADATA_SOURCE.
+
+    Args:
+        source: 'dynamodb' or 'fixture' (defaults to METADATA_SOURCE env var).
+        table_name: Passed through to scan_dynamodb() when source is 'dynamodb'.
+        fixture_path: Passed through to load_fixture_items() when source is 'fixture'.
+
+    Returns:
+        List of raw item dicts.
+    """
+    source = source or METADATA_SOURCE
+    if source == "fixture":
+        logger.info("Demo mode: loading items from fixture %s", fixture_path or METADATA_FIXTURE_PATH)
+        return load_fixture_items(fixture_path)
+    return scan_dynamodb(table_name)
 
 
 def group_by_run_id(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -340,11 +385,10 @@ def sync_all(
     """
     db_url = database_url or DATABASE_URL
 
-    # Fetch from DynamoDB if items not provided
+    # Fetch from the configured source (DynamoDB, or a demo fixture) if not provided
     if items is None:
-        logger.info("Scanning DynamoDB table: %s", table_name or METADATA_TABLE)
-        items = scan_dynamodb(table_name)
-        logger.info("Fetched %d items from DynamoDB", len(items))
+        items = load_source_items(table_name=table_name)
+        logger.info("Fetched %d items", len(items))
 
     # Group by run_id
     grouped = group_by_run_id(items)

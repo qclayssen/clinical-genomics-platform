@@ -122,8 +122,11 @@ workflow {
     // ── Collate every per-process versions.yml into one document ──────────────
     //    Done with the collectFile operator (not a process) so the stub DAG
     //    stays at nine tasks; the merged file is published to pipeline_info/.
-    //    The pipeline/tool/Nextflow versions themselves are additionally
-    //    stamped into each metrics.json via the provenance block.
+    //    NOTE: software_versions.yml is the ONLY place tool versions are
+    //    recorded. The provenance block above carries the pipeline version,
+    //    git commit, run id, reference build and truth-set version — it does
+    //    NOT carry tool versions or container digests, so metrics.json does
+    //    not either. See docs/VALIDATION.md §6 and docs/FIXES-TODO.md.
     ch_collated_versions = ch_versions
         .collectFile(
             name: 'software_versions.yml',

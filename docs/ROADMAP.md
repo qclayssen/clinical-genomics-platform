@@ -47,7 +47,7 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 - **Effort:** S · **Depends on:** nothing (pure docs).
 
 ### P0-2 · ADR-0012: supersede ADR-0005 (insert-only Postgres → DynamoDB primary) ✅ Done
-- **What:** Write `docs/adr/0012-dynamodb-primary-metadata-store.md`. Status `Accepted`; DynamoDB
+- **What:** Write `docs/adr/0012-dynamodb-primary-store.md`. Status `Accepted`; DynamoDB
   single-table becomes the primary metadata store, Postgres becomes a Metabase read-bridge fed by
   the DynamoDB→Postgres sync. Set [ADR-0005](adr/0005-insert-only-postgres.md) to
   `Superseded by ADR-0012`; update the index.

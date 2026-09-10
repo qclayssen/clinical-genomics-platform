@@ -1,0 +1,71 @@
+name: dbt-ci
+
+on:
+  push:
+    paths: ['dbt/**', 'db/schema.sql', 'db/seed_demo.sql', '.github/workflows/dbt-ci.yml']
+  pull_request:
+    paths: ['dbt/**', 'db/schema.sql', 'db/seed_demo.sql', '.github/workflows/dbt-ci.yml']
+
+concurrency:
+  group: dbt-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dbt-run-test:
+    name: dbt run + dbt test against a seeded Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cgp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: cgp_test
+      CGP_PGHOST: localhost
+      CGP_PGPORT: '5432'
+      CGP_PGUSER: postgres
+      CGP_PGPASSWORD: postgres
+      CGP_PGDATABASE: cgp_test
+      DBT_PROFILES_DIR: ${{ github.workspace }}/dbt
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Load schema + seed data
+        run: |
+          psql -f db/schema.sql
+          psql -f db/seed_demo.sql
+
+      - name: Install dbt
+        run: pip install dbt-postgres
+
+      - name: "dbt run: build staging + marts into the analytics schema"
+        working-directory: dbt
+        run: dbt run --target ci
+
+      - name: "dbt test: not_null, unique, relationships, accepted_values"
+        working-directory: dbt
+        run: dbt test --target ci

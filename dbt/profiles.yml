@@ -1,0 +1,28 @@
+# dbt connection profile for this repo's local demo Postgres (docker-compose.yml).
+#
+# Checked in because it holds no secrets: every value is an env var with the
+# same cgp/cgp demo defaults docker-compose.yml already uses. Point
+# DBT_PROFILES_DIR at this directory (or copy it to ~/.dbt/profiles.yml) to
+# run `dbt run` / `dbt test` locally or in CI.
+
+cgp_warehouse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('CGP_PGHOST', 'localhost') }}"
+      port: "{{ env_var('CGP_PGPORT', '5432') | as_number }}"
+      user: "{{ env_var('CGP_PGUSER', 'cgp') }}"
+      password: "{{ env_var('CGP_PGPASSWORD', 'cgp') }}"
+      dbname: "{{ env_var('CGP_PGDATABASE', 'cgp') }}"
+      schema: analytics
+      threads: 4
+    ci:
+      type: postgres
+      host: "{{ env_var('CGP_PGHOST', 'localhost') }}"
+      port: "{{ env_var('CGP_PGPORT', '5432') | as_number }}"
+      user: "{{ env_var('CGP_PGUSER', 'postgres') }}"
+      password: "{{ env_var('CGP_PGPASSWORD', 'postgres') }}"
+      dbname: "{{ env_var('CGP_PGDATABASE', 'cgp_test') }}"
+      schema: analytics
+      threads: 4

@@ -21,19 +21,22 @@ Each milestone produces something you can screen-share, not just code that compi
 |---|---|
 | Pipeline (Nextflow DSL2, 12 modules) | ✅ scaffolded, stub-runnable |
 | Helper scripts + provenance | ✅ implemented, unit-tested |
-| AWS CDK (4 stacks + guardrail tests) | ✅ scaffolded |
+| AWS CDK (6 stacks + guardrail tests) | ✅ scaffolded |
 | Postgres schema (insert-only + triggers) | ✅ implemented, demo seed |
-| Metabase dashboard definitions | ✅ documented + SQL provided (OLTP view + star-schema warehouse cards) |
+| Metabase dashboard definitions | ✅ documented + SQL provided (OLTP view + star-schema warehouse cards); real screenshots + an animated demo GIF in README, captured from a live-provisioned instance |
 | Star-schema warehouse layer (`fact_run` + `dim_*`) | ✅ implemented in `db/schema.sql`; refresh via `REFRESH MATERIALIZED VIEW` |
-| Airflow orchestration for warehouse refresh | ✅ DAG documented (`orchestration/`), not deployed — needs an Airflow instance |
+| Airflow orchestration for warehouse refresh | ✅ runnable — `docker-compose.airflow.yml` boots real Airflow running the DAG end-to-end (demo-fixture mode); fixture sync also covered in CI |
+| dbt analytics-engineering warehouse layer (`dbt/`) | ✅ implemented, `dbt run`/`dbt test` (38 schema tests) verified in CI against a seeded Postgres |
 | Metabase provisioning as code (manifest + REST API script) | ✅ implemented, unit-tested (mocked API); needs a live Metabase to run end-to-end |
 | Row sandboxing without Metabase Enterprise (`db/sandboxing_demo.sql`) | ✅ implemented, verified against a local Postgres |
 | AI reporting (offline + fine-tune paths) | ✅ implemented, offline path tested |
 | ML fine-tuning (PyTorch QLoRA + CPU smoke test) | ✅ smoke test verified running on CPU |
-| Architecture Decision Records (24 ADRs) | ✅ written |
+| Architecture Decision Records (28 ADRs) | ✅ written |
 | Small committed test data + fixtures | ✅ pipeline stub + ML both self-contained |
 | CI (pipeline + infra + ML smoke) | ✅ workflows in place |
 | Streamlit demo app (`demo/`) | ✅ runnable locally — explorer, variant interpretation, assistant |
+| Variant-review REST API + React frontend (`api/routers/agent.py`, `web/`) | ✅ implemented, tested (fixture-backed); manually verified end-to-end in a browser |
+| Multi-cloud LLM backends (Azure AI Foundry, AWS Bedrock) + HL7 FHIR intake | ✅ implemented, unit-tested against mocked clients; no live cloud account needed to run the suite |
 
 > "Scaffolded" = structure and logic are in place and the dependency-free parts run
 > and are tested. Running the full pipeline end-to-end needs Nextflow + Docker + the

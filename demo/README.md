@@ -204,7 +204,7 @@ All pinned in `requirements.txt`. Python 3.11+ recommended.
 demo/
 ├── .streamlit/
 │   └── config.toml         # Theme: dark navy + teal clinical palette
-├── app.py                  # Main entry point (streamlit run demo/app.py)
+├── app.py                  # Main entry point (PYTHONPATH=. streamlit run demo/app.py)
 ├── data_loader.py          # Data loading: seed + fixtures → DataFrame
 ├── intents.py              # Offline intent patterns (no Streamlit import; tested directly)
 ├── pages/
@@ -227,3 +227,8 @@ pytest tests/test_demo_chat.py
 
 `conftest.py` at the repo root puts the project on `sys.path`, so `demo.*` and
 `lambdas.*` import in tests without any environment setup.
+
+## Screenshots
+
+See the root [README.md](../README.md#capability-walkthrough) for real screenshots
+of the home, Data Explorer, and Variant Interpretation pages.
