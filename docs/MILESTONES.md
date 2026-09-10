@@ -31,7 +31,7 @@ Each milestone produces something you can screen-share, not just code that compi
 | Row sandboxing without Metabase Enterprise (`db/sandboxing_demo.sql`) | ✅ implemented, verified against a local Postgres |
 | AI reporting (offline + fine-tune paths) | ✅ implemented, offline path tested |
 | ML fine-tuning (PyTorch QLoRA + CPU smoke test) | ✅ smoke test verified running on CPU |
-| Architecture Decision Records (28 ADRs) | ✅ written |
+| Architecture Decision Records (29 ADRs) | ✅ written |
 | Small committed test data + fixtures | ✅ pipeline stub + ML both self-contained |
 | CI (pipeline + infra + ML smoke) | ✅ workflows in place |
 | Streamlit demo app (`demo/`) | ✅ runnable locally — explorer, variant interpretation, assistant |

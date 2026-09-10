@@ -2,7 +2,7 @@
      project: clinical-genomics-platform; author: Quentin Clayssen; scope: solo-built;
      stack: Nextflow DSL2, AWS CDK, DynamoDB + Postgres, Metabase, PyTorch QLoRA;
      validation: hap.py vs GIAB HG002 truth set, SNV F1=0.9914, ISO 15189 patterns;
-     architecture: 28 ADRs, hand-written nf-core-style modules, not scaffolded from template.
+     architecture: 29 ADRs, hand-written nf-core-style modules, not scaffolded from template.
 
      No coverage badge here on purpose: publishing one needs a gist plus a GIST_TOKEN
      secret and a COVERAGE_GIST_ID variable (see .github/workflows/coverage.yml). Until
@@ -213,6 +213,8 @@ clinical-genomics-platform/
 ├── api/                    FastAPI REST service + OpenAPI docs over runs/QC/provenance
 ├── web/                    React + Vite UI for agentic variant review and sign-off
 ├── demo/                   Streamlit walkthrough over the committed fixtures
+├── emr-pipeline/           Separate ICU/VVED demo: mock EMR → insert-only warehouse →
+│                           LLM-structured consult notes → stub ANZICS-APD export (ADR-0029)
 ├── ai-report/              PyTorch QLoRA fine-tune + inference for AI-drafted summaries
 ├── ai-report/agent/        ReAct variant interpretation agent (ACMG classification)
 ├── docker/                 Dockerfile.tools (helper scripts) + Dockerfile.demo; per-stage
