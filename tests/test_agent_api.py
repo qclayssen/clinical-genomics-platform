@@ -145,3 +145,56 @@ def test_variant_review_unknown_run_id_is_still_interpreted():
         json={"variant_key": "chr20:4699605:G>A", "classification": "VUS", "decision": "approved", "reviewer": "j.smith"},
     )
     assert signoff_resp.status_code == 404
+
+
+# ═══ Advice-scrub on the trace (ADR-0008) ════════════════════════════════════
+#
+# The scrub used to be applied only to the final summary, so on a live LLM
+# backend the model's own reasoning — rendered verbatim in the UI's trace
+# panel — could carry treatment language straight to a clinician. These cover
+# the fix in api.routers.agent._scrubbed_trace_steps.
+
+
+def test_model_authored_trace_steps_are_scrubbed_and_reported():
+    from api.routers.agent import _scrubbed_trace_steps
+
+    class _Step:
+        def __init__(self, type_, content):
+            self._d = {"type": type_, "content": content, "timestamp": 0.0}
+
+        def to_dict(self):
+            return dict(self._d)
+
+    steps, violations = _scrubbed_trace_steps([
+        _Step("thought", "We recommend therapy with the standard medication."),
+        _Step("answer", "The patient should start treatment with X."),
+    ])
+
+    rendered = " ".join(s.content for s in steps)
+    for banned in ("We recommend", "therapy", "medication", "should start"):
+        assert banned not in rendered, f"{banned!r} survived the trace scrub"
+    assert "[REVIEW REQUIRED]" in rendered
+    # A scrub must be surfaced to the reviewer, not applied silently.
+    assert violations, "scrubbed trace text produced no guardrail violation"
+    assert all(v.startswith("Trace step (") for v in violations)
+
+
+def test_tool_steps_are_not_scrubbed():
+    """`observation` content is curated knowledge-base output, not model prose.
+
+    Scrubbing it would corrupt the audit trail, so it must pass through even
+    when it legitimately contains a word like "therapy".
+    """
+    from api.routers.agent import _scrubbed_trace_steps
+
+    class _Step:
+        def to_dict(self):
+            return {
+                "type": "observation",
+                "content": "GeneReviews entry mentions gene therapy trials.",
+                "timestamp": 0.0,
+            }
+
+    steps, violations = _scrubbed_trace_steps([_Step()])
+    assert steps[0].content == "GeneReviews entry mentions gene therapy trials."
+    assert violations == []

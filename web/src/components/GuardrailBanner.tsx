@@ -1,6 +1,11 @@
 interface GuardrailBannerProps {
   /** The exact banner text enforced server-side (see agent.report.INTERPRETATION_BANNER). */
   text: string;
+  /**
+   * Server-side guardrail violations (`guardrail_violations` in the API
+   * response). Empty/omitted means the assessment is fully compliant.
+   */
+  violations?: string[];
 }
 
 /**
@@ -14,7 +19,7 @@ interface GuardrailBannerProps {
  * from the API response, not a hardcoded copy, so the UI can never drift
  * from what the server actually enforces.
  */
-export function GuardrailBanner({ text }: GuardrailBannerProps) {
+export function GuardrailBanner({ text, violations = [] }: GuardrailBannerProps) {
   return (
     <div className="guardrail-banner" role="alert" aria-live="assertive">
       <span className="guardrail-banner__icon" aria-hidden="true">
@@ -27,6 +32,19 @@ export function GuardrailBanner({ text }: GuardrailBannerProps) {
           and must not be used for patient care until a qualified clinician has reviewed the
           agent trace below and signed off.
         </span>
+        {violations.length > 0 && (
+          <div className="guardrail-banner__violations">
+            <strong>
+              {violations.length} guardrail{violations.length === 1 ? '' : 's'} did not pass —
+              read before signing off:
+            </strong>
+            <ul>
+              {violations.map((v) => (
+                <li key={v}>{v}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

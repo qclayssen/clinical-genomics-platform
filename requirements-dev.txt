@@ -1,0 +1,28 @@
+# Dev/test dependencies for the `pytest` suite.
+#
+# The suite is dependency-free in the sense that it needs no GPU, no AWS
+# account, no Postgres and no bioinformatics tools — but it does import a few
+# pure-Python packages at module level, so a fresh clone needs these before
+# `pytest` will collect. Kept in sync with the install list in
+# .github/workflows/pipeline-ci.yml.
+#
+#   pip install -r requirements-dev.txt && pytest
+
+pytest
+pytest-cov
+pytest-timeout
+hypothesis
+
+# api/ (FastAPI service + its TestClient)
+fastapi
+pydantic
+httpx2
+requests
+
+# lambdas/ (handlers import botocore at module level)
+boto3
+botocore
+
+# pipeline/bin helpers and property tests
+numpy
+pyyaml

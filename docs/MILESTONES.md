@@ -21,7 +21,7 @@ Each milestone produces something you can screen-share, not just code that compi
 |---|---|
 | Pipeline (Nextflow DSL2, 12 modules) | ✅ scaffolded, stub-runnable |
 | Helper scripts + provenance | ✅ implemented, unit-tested |
-| AWS CDK (4 stacks + guardrail tests) | ✅ scaffolded |
+| AWS CDK (6 stacks + guardrail tests) | ✅ scaffolded |
 | Postgres schema (insert-only + triggers) | ✅ implemented, demo seed |
 | Metabase dashboard definitions | ✅ documented + SQL provided (OLTP view + star-schema warehouse cards); real screenshots + an animated demo GIF in README, captured from a live-provisioned instance |
 | Star-schema warehouse layer (`fact_run` + `dim_*`) | ✅ implemented in `db/schema.sql`; refresh via `REFRESH MATERIALIZED VIEW` |
@@ -43,6 +43,6 @@ Each milestone produces something you can screen-share, not just code that compi
 > staged GIAB data on your machine; deploying infra needs an AWS account.
 
 The quickest thing to look at is the demo app — `pip install -r demo/requirements.txt`
-then `streamlit run demo/app.py`. It reads committed seed data and fixtures, and its
+then `PYTHONPATH=. streamlit run demo/app.py`. It reads committed seed data and fixtures, and its
 Variant Interpretation page runs the deterministic interpreter, so it needs no database,
 no cloud account, and no LLM. See [demo/README.md](../demo/README.md).

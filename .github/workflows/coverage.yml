@@ -70,7 +70,27 @@ jobs:
           fi
           echo "percentage=$PCT" >> "$GITHUB_OUTPUT"
 
+      # Badge publishing is optional: it needs a one-time setup (a gist, plus a
+      # GIST_TOKEN secret and a COVERAGE_GIST_ID variable). Without them the
+      # publish step is skipped with a notice instead of failing the run, so a
+      # fork — or this repo before the gist exists — doesn't show a
+      # permanently red workflow. Coverage itself is still reported in the PR
+      # comment and the pipeline-ci log.
+      - name: Check badge credentials
+        id: badge_creds
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ vars.COVERAGE_GIST_ID }}
+        run: |
+          if [ -n "$GIST_TOKEN" ] && [ -n "$GIST_ID" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Coverage badge skipped::Set the GIST_TOKEN secret and the COVERAGE_GIST_ID variable to publish the badge."
+          fi
+
       - name: Update dynamic badge gist
+        if: steps.badge_creds.outputs.configured == 'true'
         uses: schneegans/dynamic-badges-action@v1.9.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}

@@ -19,7 +19,7 @@ genomics context.
 ```bash
 # From the repo root
 pip install -r demo/requirements.txt
-streamlit run demo/app.py
+PYTHONPATH=. streamlit run demo/app.py
 ```
 
 The app opens at `http://localhost:8501`. Use the sidebar to switch between pages.
@@ -204,7 +204,7 @@ All pinned in `requirements.txt`. Python 3.11+ recommended.
 demo/
 ├── .streamlit/
 │   └── config.toml         # Theme: dark navy + teal clinical palette
-├── app.py                  # Main entry point (streamlit run demo/app.py)
+├── app.py                  # Main entry point (PYTHONPATH=. streamlit run demo/app.py)
 ├── data_loader.py          # Data loading: seed + fixtures → DataFrame
 ├── intents.py              # Offline intent patterns (no Streamlit import; tested directly)
 ├── pages/

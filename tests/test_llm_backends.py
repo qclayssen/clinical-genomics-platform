@@ -16,7 +16,6 @@ if str(_AI_REPORT_DIR) not in sys.path:
 
 from agent.llm import AzureFoundryBackend, BedrockBackend, Message, ToolCall, create_backend  # noqa: E402
 
-
 # ═══ Azure AI Foundry ═══════════════════════════════════════════════════════
 
 

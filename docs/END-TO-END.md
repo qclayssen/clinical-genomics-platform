@@ -1,5 +1,15 @@
 # End-to-end run evidence
 
+> **Superseded in part — read this first.** This page records the stub run of
+> **2026-07-14** and was accurate on that date. The "accuracy numbers are not real yet"
+> caveat below **no longer holds**: a real, containerized run on GIAB HG002 chr20 was
+> completed on **2026-07-15** and `docs/VALIDATION.md` §4 now reports *measured* results
+> (SNV F1 **0.9914**, INDEL F1 **0.9971**), released as `1.0.0` in
+> [CHANGELOG.md](../CHANGELOG.md). The body is kept unedited as a dated record of what the
+> stub run proved. Two other counts here have since moved on: the suite is now
+> **350+ tests** (not 12), and the default `gatk` DAG runs **10 processes** — `QC_EVALUATE`
+> was added by [ADR-0013](adr/0013-qc-warnings-adaptive-thresholds-self-healing.md).
+
 A real execution of the platform's full data flow, run on 2026-07-14. This documents what
 was **actually executed** (not simulated) and — honestly — the one stage that still needs a
 containerized run on real data.

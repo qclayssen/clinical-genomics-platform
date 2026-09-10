@@ -79,7 +79,7 @@ Decisions live in `docs/adr/` as `NNNN-short-title.md`, numbered sequentially an
 renumbered or rewritten**.
 
 1. Create the **next unused number** — check `ls docs/adr/` rather than trusting this line;
-   the highest is currently `0017`. Follow the existing structure: Status, Context, Decision,
+   the highest is currently `0028`. Follow the existing structure: Status, Context, Decision,
    Consequences, Alternatives considered.
 2. Add a row to the index table in `docs/adr/README.md`.
 3. To change a past decision, add a **new** ADR that supersedes it and set the old one's status
