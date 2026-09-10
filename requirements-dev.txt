@@ -26,3 +26,8 @@ botocore
 # pipeline/bin helpers and property tests
 numpy
 pyyaml
+
+# emr-pipeline/ ETL (pandas is a module-level import in extract_and_load.py;
+# pyodbc is deliberately NOT here — it is imported lazily inside _connect()
+# and is only needed to talk to a real ODBC source)
+pandas

@@ -62,8 +62,16 @@ htmlcov/
 *.key
 credentials.json
 
-# Personal study / interview prep (not part of the project)
+# Personal study / interview prep (not part of the project).
+# These are private working notes — JOB-PREP-NORTHERN-HEALTH.md says so in its
+# own header ("Not for publication — a personal prep doc") — and this is a
+# public repo, so they must never be committed.
 docs/INTERVIEW-PREP.md
+docs/JOB-PREP-NORTHERN-HEALTH.md
+docs/INTERVIEW-QA-NORTHERN-HEALTH.md
+
+# Local Claude Code dev-server config: machine-specific (points at .venv paths)
+.claude/launch.json
 
 # emr-pipeline — generated SQLite DBs + export output (rebuilt by the scripts,
 # see emr-pipeline/README.md)
