@@ -366,7 +366,10 @@ export function VariantReview() {
 
       {assessment && (
         <div className="review-result">
-          <GuardrailBanner text={assessment.banner} />
+          <GuardrailBanner
+            text={assessment.banner}
+            violations={assessment.guardrail_violations}
+          />
           <AgentTrace trace={assessment.agent_trace} />
           <SignOffPanel assessment={assessment} />
         </div>

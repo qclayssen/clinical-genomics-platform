@@ -1,7 +1,9 @@
 # Runbook — running the pipeline for real (to get real validation numbers)
 
-Goal: turn the placeholder `VALIDATION.md` table into **measured** precision/recall/F1 by
-running the pipeline end-to-end on GIAB HG002 chr20. This runs on **your machine** (not CI);
+Goal: (re-)measure precision/recall/F1 by running the pipeline end-to-end on GIAB HG002
+chr20. `docs/VALIDATION.md` §4 already carries a measured run (2026-07-15, SNV F1 0.9914);
+follow this procedure to reproduce it, or to re-validate after any change to the reference,
+caller, or filtering — which the re-validation rule requires before tagging. This runs on **your machine** (not CI);
 it needs Nextflow + Docker + the staged data.
 
 Estimated effort: ~30 min setup + one pipeline run (minutes to ~1–2 h depending on the data

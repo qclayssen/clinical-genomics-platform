@@ -84,7 +84,7 @@ jobs:
           fi
 
           echo -n "DELETE on audit_log... "
-          psql -c "INSERT INTO audit_log (run_pk, action, detail) SELECT id, 'CI_TEST', 'immutability check' FROM runs LIMIT 1;" 2>/dev/null
+          psql -c "INSERT INTO audit_log (run_pk, action, detail) SELECT id, 'CI_TEST', 'immutability check' FROM runs LIMIT 1;" >/dev/null 2>&1
           if psql -c "DELETE FROM audit_log WHERE action = 'CI_TEST';" 2>&1 | grep -q "insert-only"; then
             echo "BLOCKED (correct)"
           else
@@ -95,12 +95,41 @@ jobs:
           if psql -c "UPDATE qc_warnings SET overall_status = 'fail' WHERE id = 1;" 2>&1 | grep -q "insert-only"; then
             echo "BLOCKED (correct)"
           else
-            psql -c "INSERT INTO qc_warnings (run_pk, sample_id, overall_status, metric_name, metric_value, threshold_warn, threshold_fail, threshold_source) SELECT id, 'HG002_chr20', 'warn', 'dup', 0.09, 0.08, 0.12, 'adaptive' FROM runs LIMIT 1;" 2>/dev/null
+            psql -c "INSERT INTO qc_warnings (run_pk, sample_id, overall_status, metric_name, metric_value, threshold_warn, threshold_fail, threshold_source) SELECT id, 'HG002_chr20', 'warn', 'dup', 0.09, 0.08, 0.12, 'adaptive' FROM runs LIMIT 1;" >/dev/null 2>&1
             if psql -c "UPDATE qc_warnings SET overall_status = 'fail' WHERE id = 1;" 2>&1 | grep -q "insert-only"; then
               echo "BLOCKED (correct)"
             else
               echo "NOT BLOCKED (warning)"; PASS=false
             fi
+          fi
+
+          # run_provenance and review_decisions were previously untested even
+          # though schema.sql protects them. Both are empty after seeding, and a
+          # row-level trigger never fires on an empty table, so insert first.
+          echo -n "UPDATE on run_provenance... "
+          psql -c "INSERT INTO run_provenance (run_pk, input_checksums, truth_version) SELECT id, '{\"ci\":\"check\"}'::jsonb, 'GIAB-v4.2.1' FROM runs LIMIT 1;" >/dev/null 2>&1
+          if psql -c "UPDATE run_provenance SET truth_version = 'hack';" 2>&1 | grep -q "insert-only"; then
+            echo "BLOCKED (correct)"
+          else
+            echo "NOT BLOCKED (warning)"; PASS=false
+          fi
+
+          echo -n "DELETE on review_decisions... "
+          psql -c "INSERT INTO review_decisions (run_pk, run_id, variant_key, classification, decision, reviewer) SELECT id, run_id, 'chr20:1:A>G', 'VUS', 'approved', 'ci' FROM runs LIMIT 1;" >/dev/null 2>&1
+          if psql -c "DELETE FROM review_decisions;" 2>&1 | grep -q "insert-only"; then
+            echo "BLOCKED (correct)"
+          else
+            echo "NOT BLOCKED (warning)"; PASS=false
+          fi
+
+          # TRUNCATE is statement-level: the FOR EACH ROW triggers above never
+          # fire on it. Before the BEFORE TRUNCATE triggers were added, this
+          # single statement wiped runs, qc_metrics, run_provenance and audit_log.
+          echo -n "TRUNCATE runs CASCADE... "
+          if psql -c "TRUNCATE runs CASCADE;" 2>&1 | grep -q "insert-only"; then
+            echo "BLOCKED (correct)"
+          else
+            echo "NOT BLOCKED (warning)"; PASS=false
           fi
 
           echo ""

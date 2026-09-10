@@ -18,7 +18,7 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | Path | What's here |
 |---|---|
 | `pipeline/` | Nextflow DSL2 pipeline: `main.nf`, `nextflow.config`, 12 one-process modules under `modules/`, helper scripts in `bin/`, `assets/`, `conf/` |
-| `infra/` | AWS CDK (TypeScript) app: 4 stacks in `lib/`, wired in `bin/app.ts`, guardrail tests in `test/` |
+| `infra/` | AWS CDK (TypeScript) app: 6 stacks in `lib/` (data lake, metadata, IAM, orchestration, observability, plus demo hosting only when real AWS credentials are present), wired in `bin/app.ts`, guardrail tests in `test/` |
 | `db/` | Postgres `schema.sql` (insert-only tables + immutability triggers, star-schema warehouse layer), migrations, seed |
 | `dashboards/metabase/` | Version-controlled Metabase dashboard (`dashboard_manifest.yaml`) + REST API provisioning script (`provision_metabase.py`) |
 | `api/` | FastAPI REST service over run/QC/provenance data, with OpenAPI docs (`/docs`, `/redoc`); fixture-backed by default, optional `CGP_DB_URL` for Postgres. Includes `/agent/variant-review`, a thin adapter over the existing agentic variant interpreter (see `ai-report/agent/`) |
@@ -26,10 +26,15 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | `orchestration/` | Airflow DAG scheduling the warehouse ETL/refresh — runnable via `docker-compose.airflow.yml` demo mode (ADR-0023, ADR-0026) |
 | `dbt/` | dbt project rebuilding the star-schema warehouse (staging + marts, schema tests) in its own `analytics` schema — additive alongside `db/schema.sql`'s production warehouse, see ADR-0025 |
 | `ai-report/` | PyTorch QLoRA fine-tune + inference (`infer.py`, `train_lora.py`, `train_smoke.py`, `make_dataset.py`), `MODEL_CARD.md` |
-| `docker/` | One pinned Dockerfile per stage plus `Dockerfile.tools` for the helper scripts |
+| `docker/` | `Dockerfile.tools` (helper scripts) and `Dockerfile.demo` (Streamlit app). The per-stage tool containers are Biocontainer images pinned in each module's `container` directive, not Dockerfiles here |
 | `docs/` | Beginner's guide, glossary, `VALIDATION.md`, `SOP-run-pipeline.md`, `MILESTONES.md`, `FOR-RECRUITERS.md` |
-| `docs/adr/` | 28 Architecture Decision Records (append-only); see `README.md` there for the index |
-| `tests/` | Python unit tests + small committed fixtures in `tests/fixtures/` |
+| `docs/adr/` | 29 Architecture Decision Records (append-only); see `README.md` there for the index |
+| `lambdas/` | Python handlers for the serverless path (ADR-0011): `ingestion_trigger`, `metadata_ingestor`, `qc_orchestrator`, `validation_checker`, `variant_calling`, `report_generator`, `export_handler`, the LLM `healer` (ADR-0018), and `shared/` helpers. Covered by `pytest` and the CI coverage gate |
+| `demo/` | Streamlit walkthrough app (home / data explorer / pipeline assistant) over the committed fixtures — a browsable demo, not part of the pipeline |
+| `scripts/` | Helper scripts: `fetch_testdata.sh` (stage real GIAB data), `preflight.sh` (contig-name consistency check before a real run), `make_tiny_testdata.py`, `build_chr20_knowledgebase.py`, plus local agent-routing utilities |
+| `tests/` | Python unit tests + small committed fixtures in `tests/fixtures/` — note the fixture metrics are **synthetic**, not the validation run (see `tests/fixtures/README.md`) |
+| `semantic-review/` | Archived semantic-review output from an earlier PR; historical record only |
+| `emr-pipeline/` | Separate, self-contained demo: EMR (ODBC-shaped) → insert-only warehouse → LLM-structured consult notes → stub ANZICS-APD export, demonstrating ICU/Virtual-ED (VVED) data-engineering patterns. Synthetic data only, no real EMR/registry connectivity — see [ADR-0029](docs/adr/0029-emr-icu-vved-demo-module.md) |
 | `.github/workflows/` | CI: nf-core-style config check, pipeline test profile, CDK synth, ML smoke test |
 
 ## How to run the runnable parts
@@ -48,7 +53,10 @@ psql "$CGP_DB_URL" -c "
 "
 psql "$CGP_DB_URL" -c "REFRESH MATERIALIZED VIEW fact_run;"
 
-# Python unit tests (provenance + guardrail logic; dependency-free)
+# Python unit tests (provenance + guardrail logic). No GPU, AWS, Postgres or
+# bioinformatics tools needed — but a few pure-Python packages are imported at
+# module level, so install them once on a fresh clone.
+pip install -r requirements-dev.txt
 pytest
 
 # Row-sandboxing demo: two Postgres roles, each sees only its own cohort
@@ -78,9 +86,14 @@ templates without an AWS account.
 - **Insert-only results/provenance.** `runs`, `qc_metrics`, `run_provenance`, `audit_log` are
   append-only; DB triggers (`forbid_mutation()`) reject UPDATE/DELETE. A correction is a *new*
   run row, never an edit. ([db/schema.sql](db/schema.sql), [ADR-0005](docs/adr/0005-insert-only-postgres.md))
-- **Every result carries a provenance stamp.** Git commit, pipeline/tool/reference/truth-set
-  versions, and SHA-256 checksums of all inputs — built into `metrics.json` by
+- **Every result carries a provenance stamp.** Git commit, pipeline version, reference build,
+  truth-set version, and SHA-256 checksums — built into `metrics.json` by
   `pipeline/bin/build_metrics.py` and threaded from `main.nf`. Never remove fields from it.
+  Two gaps are known and deliberately documented rather than papered over: checksums cover
+  only the derived MarkDuplicates/`hap.py` artifacts (not the reads, reference, or truth
+  set), and no container digest or tool version reaches the stamp. See
+  [docs/VALIDATION.md](docs/VALIDATION.md) §6 and [docs/FIXES-TODO.md](docs/FIXES-TODO.md) —
+  don't restate the stamp as complete until those are closed.
 - **AI output always passes `enforce_guardrails()`** ([ai-report/infer.py](ai-report/infer.py)):
   mandatory `AI-DRAFTED — REQUIRES CLINICIAN REVIEW` banner, provenance line, and advice-phrase
   scrubbing — then a human signs off. The model only ever sees `metrics.json`, never raw reads

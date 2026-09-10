@@ -70,9 +70,29 @@ run's `metrics.json`.
 
 ## 6. Provenance of this validation
 
-Every result row is traceable to: pipeline git commit, container image digests, the
-reference build (`GRCh38.p14`), the truth-set version (`GIAB-v4.2.1`), and SHA-256
-checksums of all inputs — captured automatically in `run_provenance`.
+Every result row is traceable to the pipeline git commit, the pipeline version, the
+reference build (`GRCh38.p14`) and the truth-set version (`GIAB-v4.2.1`) — captured
+automatically into `metrics.json` by `pipeline/bin/build_metrics.py` and stored in
+`run_provenance`.
+
+**Known gaps in this stamp (tracked in [FIXES-TODO.md](FIXES-TODO.md)), stated plainly
+because this section is the traceability claim itself:**
+
+- `input_checksums` currently covers only two derived artifacts (the MarkDuplicates
+  metrics and the `hap.py` summary). The reads, reference FASTA, truth VCF and
+  high-confidence BED are **not yet checksummed**, so a result is not yet
+  cryptographically bound to the truth set it was benchmarked against.
+- **Container image digests are not captured.** Images are pinned by tag, not by
+  `@sha256:` digest, and no container identity or tool version reaches the provenance
+  block — tool versions are collated separately into
+  `pipeline_info/software_versions.yml`, which is not part of the result record.
+  [ADR-0009](adr/0009-docker-pinned-by-digest.md) sets digest pinning as the production
+  target; it is not met today.
+
+The run artifacts backing §4 (`metrics.json`, `hap.py` `summary.csv`) are not committed —
+they live under the git-ignored `pipeline/results/`. Reproduce them with
+[RUNBOOK.md](RUNBOOK.md) rather than treating the table above as independently verifiable
+from a clone.
 
 ## 7. Change control
 

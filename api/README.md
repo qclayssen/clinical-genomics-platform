@@ -46,6 +46,8 @@ schema's insert-only trigger — there is no update/delete path.
 | GET | `/runs/{run_id}/provenance` | Full provenance stamp |
 | GET | `/runs/{run_id}/qc-warnings` | QC threshold breaches for the run |
 | POST | `/runs/{run_id}/review-decisions` | Record a reviewer approve/reject sign-off |
+| POST | `/agent/variant-review` | Interpret one variant with the agentic interpreter (ADR-0014, ADR-0027) |
+| POST | `/agent/variant-review/fhir` | Same review, with the variant read from an HL7 FHIR Observation (ADR-0028) |
 
 ## Tests
 

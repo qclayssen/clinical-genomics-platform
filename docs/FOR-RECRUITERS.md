@@ -49,7 +49,7 @@ AWS account — see the [root README's Quickstart](../README.md#quickstart) and
 |---|---|---|
 | **Bioinformatics pipelines** | Nextflow DSL2, nf-core style, 12 modules, QC→align→call→validate | `pipeline/` |
 | **Analytical validation** | `hap.py` vs GIAB truth; precision/recall/F1; explicit acceptance criterion | `pipeline/modules/validate/`, `docs/VALIDATION.md` |
-| **Cloud / IaC** | AWS CDK (TypeScript), 4 stacks, Batch/Fargate, least-privilege IAM, CloudWatch | `infra/` |
+| **Cloud / IaC** | AWS CDK (TypeScript), 6 stacks, Step Functions + Lambda orchestration, least-privilege IAM, CloudWatch | `infra/` |
 | **Data engineering** | Insert-only Postgres schema, provenance + audit trail, migrations, star-schema warehouse (hand-rolled + dbt), Airflow-orchestrated refresh | `db/`, `dbt/`, `orchestration/` |
 | **BI / reporting** | Two Metabase dashboards defined as version-controlled SQL, provisioned via REST API, row-level access control | `dashboards/` |
 | **Machine learning** | **PyTorch** QLoRA fine-tuning of a small open LLM; model card; guardrails | `ai-report/`, `ai-report/MODEL_CARD.md` |

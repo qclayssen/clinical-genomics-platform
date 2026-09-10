@@ -51,7 +51,7 @@ if str(_AI_REPORT_DIR) not in sys.path:
 from agent.deterministic import DeterministicInterpreter  # noqa: E402
 from agent.fhir_intake import FhirIntakeError, variant_from_fhir_observation  # noqa: E402
 from agent.llm import create_backend  # noqa: E402
-from agent.react import ReActAgent, Variant  # noqa: E402
+from agent.react import ReActAgent, Variant, enforce_safety_constraints  # noqa: E402
 from agent.report import INTERPRETATION_BANNER, build_report, enforce_report_guardrails  # noqa: E402
 from agent.review_store import variant_key  # noqa: E402
 
@@ -102,12 +102,42 @@ class FhirVariantReviewRequest(BaseModel):
     backend: str = "deterministic"
 
 
+# Step types whose `content` is free text the LLM wrote. The advice-scrub
+# (ADR-0008) has to reach these too: it used to be applied only to the final
+# summary, so on a live backend the model's own prose — including any
+# treatment language — was rendered verbatim in the UI's trace panel.
+# `action`/`observation` steps are deliberately excluded: their content is a
+# tool name, its arguments, or curated knowledge-base output, none of which the
+# model authors, and scrubbing them would corrupt the audit trail.
+_MODEL_AUTHORED_STEP_TYPES = frozenset({"thought", "answer", "error"})
+
+
+def _scrubbed_trace_steps(trace) -> tuple[list["AgentTraceStep"], list[str]]:
+    """Serialise the trace, scrubbing advice language out of model-written steps.
+
+    Returns the steps plus any violations found, so a scrub in the trace is
+    surfaced to the reviewer rather than silently applied.
+    """
+    steps: list[AgentTraceStep] = []
+    violations: list[str] = []
+    for step in trace:
+        payload = step.to_dict()
+        if payload.get("type") in _MODEL_AUTHORED_STEP_TYPES and payload.get("content"):
+            scrubbed, found = enforce_safety_constraints(payload["content"])
+            payload["content"] = scrubbed
+            violations.extend(f"Trace step ({payload['type']}): {v}" for v in found)
+        steps.append(AgentTraceStep(**payload))
+    return steps, violations
+
+
 class AgentTraceStep(BaseModel):
     """One Thought/Action/Observation step from the ReAct-style trace.
 
     Field names mirror `agent.react.TraceStep.to_dict()` exactly, so the
-    detailed per-tool-call trace is passed through unmodified for the
-    transparency this feature is built around — never collapsed or summarized.
+    detailed per-tool-call trace is passed through for the transparency this
+    feature is built around — never collapsed or summarized. The one
+    modification is the ADR-0008 advice-scrub on model-authored steps; see
+    `_scrubbed_trace_steps`.
     """
 
     type: str
@@ -175,6 +205,8 @@ def _to_assessment(variant: Variant, run_id: str, result) -> VariantAssessment:
     report = build_report([result], backend_used=result.backend_used, run_id=run_id)
     violations = enforce_report_guardrails(report)
     interpretation = report.variants[0]
+    trace_steps, trace_violations = _scrubbed_trace_steps(result.trace)
+    violations = violations + trace_violations
 
     return VariantAssessment(
         run_id=run_id,
@@ -192,7 +224,7 @@ def _to_assessment(variant: Variant, run_id: str, result) -> VariantAssessment:
         citations=interpretation.citations,
         banner=INTERPRETATION_BANNER,
         backend_used=result.backend_used,
-        agent_trace=[AgentTraceStep(**step.to_dict()) for step in result.trace],
+        agent_trace=trace_steps,
         provenance=report.provenance,
         guardrail_violations=violations,
     )

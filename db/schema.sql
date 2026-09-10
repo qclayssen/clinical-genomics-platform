@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS review_decisions (
 CREATE INDEX IF NOT EXISTS idx_review_variant ON review_decisions(variant_key);
 CREATE INDEX IF NOT EXISTS idx_review_run ON review_decisions(run_id);
 
--- ── Guardrail: block UPDATE/DELETE on the immutable tables at the DB level ─────
+-- ── Guardrail: block UPDATE/DELETE/TRUNCATE on the immutable tables at the DB level ──
 CREATE OR REPLACE FUNCTION forbid_mutation() RETURNS trigger AS $$
 BEGIN
     RAISE EXCEPTION 'Table % is insert-only (append a correction instead)', TG_TABLE_NAME;
@@ -112,6 +112,15 @@ BEGIN
              CREATE TRIGGER trg_immutable_%1$s
                BEFORE UPDATE OR DELETE ON %1$s
                FOR EACH ROW EXECUTE FUNCTION forbid_mutation();', t);
+
+        -- Row-level triggers never fire on TRUNCATE, so UPDATE/DELETE protection
+        -- alone still leaves a one-statement path to wiping an append-only table.
+        -- TRUNCATE is statement-level, hence the separate FOR EACH STATEMENT trigger.
+        EXECUTE format(
+            'DROP TRIGGER IF EXISTS trg_immutable_truncate_%1$s ON %1$s;
+             CREATE TRIGGER trg_immutable_truncate_%1$s
+               BEFORE TRUNCATE ON %1$s
+               FOR EACH STATEMENT EXECUTE FUNCTION forbid_mutation();', t);
     END LOOP;
 END $$;
 

@@ -2,7 +2,12 @@
      project: clinical-genomics-platform; author: Quentin Clayssen; scope: solo-built;
      stack: Nextflow DSL2, AWS CDK, DynamoDB + Postgres, Metabase, PyTorch QLoRA;
      validation: hap.py vs GIAB HG002 truth set, SNV F1=0.9914, ISO 15189 patterns;
-     architecture: 17 ADRs, hand-written nf-core-style modules, not scaffolded from template. -->
+     architecture: 28 ADRs, hand-written nf-core-style modules, not scaffolded from template.
+
+     No coverage badge here on purpose: publishing one needs a gist plus a GIST_TOKEN
+     secret and a COVERAGE_GIST_ID variable (see .github/workflows/coverage.yml). Until
+     those exist the badge URL 404s, and a broken badge reads worse than none. Coverage
+     is reported in the PR comment and the pipeline-ci log instead. -->
 
 <div align="center">
 
@@ -20,7 +25,6 @@ From raw WGS reads to validated variants, structured provenance, ops dashboards,
 
 [![CI — Pipeline](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/pipeline-ci.yml?label=Pipeline%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/pipeline-ci.yml)
 [![CI — Infra](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/infra-ci.yml?label=Infra%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/infra-ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/qclayssen/COVERAGE_GIST_ID/raw/coverage-badge.json&style=flat-square)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/coverage.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 [![Nextflow DSL2](https://img.shields.io/badge/Nextflow-DSL2-23b45e?style=flat-square&logo=nextflow&logoColor=white)](https://www.nextflow.io/)
 [![AWS CDK](https://img.shields.io/badge/AWS-CDK-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com/cdk/)
@@ -168,12 +172,20 @@ SNV F1 meets the >= 0.99 acceptance criterion. DeepVariant comparison is planned
 cd pipeline
 nextflow run main.nf -profile test,docker -stub
 
-# 2. Full local run on GIAB HG002 chr20 (downloads inputs on first run)
-nextflow run main.nf -profile test,docker
+# 2. Full local run on GIAB HG002 chr20.
+#    Nothing is downloaded automatically: `-profile test` points at the tiny
+#    committed placeholders, so stage the real data first (~10 GB).
+./scripts/fetch_testdata.sh && ./scripts/preflight.sh
+nextflow run main.nf -profile test,docker \
+  --reference <staged.fa> --truth_vcf <staged.vcf.gz> --truth_bed <staged.bed>
 
-# 3. Deploy AWS infra and run the same pipeline on Batch
+# 3. Deploy the AWS storage/metadata layer. Compute stays local by design —
+#    `-profile aws` provisions no cloud executor, it publishes results to the
+#    S3 data lake and turns on metadata ingest (ADR-0017, ADR-0018).
 cd ../infra && npm ci && npx cdk synth && npx cdk deploy --all
-cd ../pipeline && nextflow run main.nf -profile aws
+cd ../pipeline
+export CGP_S3_BUCKET=... CGP_DB_URL=...
+nextflow run main.nf -profile docker,aws
 ```
 
 See [`docs/SOP-run-pipeline.md`](docs/SOP-run-pipeline.md) for the full operating procedure and acceptance criteria.
@@ -190,12 +202,22 @@ See [`docs/SOP-run-pipeline.md`](docs/SOP-run-pipeline.md) for the full operatin
 clinical-genomics-platform/
 │
 ├── pipeline/               Nextflow DSL2 modules: QC → align → call → validate → export
-├── infra/                  AWS CDK app: S3 data lake, Batch compute, scoped IAM, CloudWatch
+├── infra/                  AWS CDK app: S3 data lake, DynamoDB metadata, Step Functions +
+│                           Lambda orchestration, scoped IAM, CloudWatch (6 stacks)
+├── lambdas/                Handlers for the serverless path: ingestion, metadata, QC
+│                           orchestration, validation, reporting, export, LLM healer
 ├── db/                     Postgres schema + migrations (samples, runs, QC, provenance, audit)
 ├── dashboards/metabase/    Version-controlled dashboard + question definitions
+├── dbt/                    dbt analytics layer rebuilding the star schema (ADR-0025)
+├── orchestration/          Airflow DAG for the warehouse ETL (ADR-0023, ADR-0026)
+├── api/                    FastAPI REST service + OpenAPI docs over runs/QC/provenance
+├── web/                    React + Vite UI for agentic variant review and sign-off
+├── demo/                   Streamlit walkthrough over the committed fixtures
 ├── ai-report/              PyTorch QLoRA fine-tune + inference for AI-drafted summaries
 ├── ai-report/agent/        ReAct variant interpretation agent (ACMG classification)
-├── docker/                 One pinned Dockerfile per pipeline stage
+├── docker/                 Dockerfile.tools (helper scripts) + Dockerfile.demo; per-stage
+│                           tool containers are pinned in each module's `container` directive
+├── scripts/                fetch_testdata.sh, preflight.sh, and other helpers
 ├── docs/                   Validation report, SOP, beginner's guide, glossary, ADRs
 ├── tests/                  Unit tests + small committed fixtures
 └── .github/workflows/      CI/CD: lint, security, DB validation, coverage, Docker, release, maintenance

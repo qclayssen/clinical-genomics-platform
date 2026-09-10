@@ -164,6 +164,26 @@ button:disabled {
   letter-spacing: 0.02em;
 }
 
+/* Server-side guardrail violations. Previously the API returned these and the
+   UI dropped them on the floor; they must be unmissable before sign-off. */
+.guardrail-banner__violations {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-warning-border);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.guardrail-banner__violations ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.guardrail-banner__violations li {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 /* --- Agent trace --- */
 
 .agent-trace {
