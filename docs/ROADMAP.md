@@ -10,8 +10,11 @@ Nothing here invents a new capability to look impressive.
 
 > **Single highest-ROI next action:** ~~run the pipeline on real GIAB HG002 chr20 and replace the
 > `_fill_` placeholders~~ ✅ Done — real numbers now in [`docs/VALIDATION.md`](VALIDATION.md) and
-> the README table. Next priority: the ADR supersession docs (P0-1, P0-2) and pipeline
-> finalization (P1-1).
+> the README table, with the raw evidence committed under
+> [`docs/validation-evidence/HG002_chr20/`](validation-evidence/HG002_chr20/). P0-1 through P0-3
+> and most of P1-4 (diagram, demo GIFs, public repo) are all done — see the updated status below.
+> Next priority: **P1-1**, the last open item in this phase (real `versions.yml` collation, a
+> clean `nf-core lint` pass, and `nf-test` coverage).
 
 ---
 
@@ -77,7 +80,8 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 ### P1-1 · Pipeline finalization — nf-core migration loose ends
 - **What:** Three sub-items, do together:
   1. **Real `versions.yml` collation.** `pipeline/main.nf` currently merges per-process fragments
-     with `collectFile` (a raw concat, to keep the stub DAG at nine tasks). Replace with a proper
+     with `collectFile` (a raw concat, done as an operator rather than a process so it adds no
+     extra task to the stub DAG). Replace with a proper
      collation step in the nf-core idiom (a `CUSTOM_DUMPSOFTWAREVERSIONS`-style process that
      de-duplicates and emits a clean `software_versions.yml` + a MultiQC-ingestible table).
   2. **Clean `nf-core lint` pass.** Reconcile [`.nf-core.yml`](../.nf-core.yml) ignores with reality
@@ -93,12 +97,16 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 - **Effort:** M · **Depends on:** ideally after P0-3 (a real run surfaces version strings and lint
   edge-cases that stub mode hides).
 
-### P1-2 · Document the Nextflow migration issues
+### P1-2 · Document the Nextflow migration issues — drafted, pending P1-1
 - **What:** Create `docs/NEXTFLOW-MIGRATION.md` capturing the strict-DSL / Nextflow 26.04
   compatibility fixes. The raw material already exists in [`docs/END-TO-END.md`](END-TO-END.md)
   ("Fixes made to get here": `check_max()` → `resourceLimits`, provenance block moved inside
   `workflow {}`, `publishDir` closure form, stub CI profile change) — promote it into a standalone
   migration note and extend it with the P1-1 changes (versions collation, lint, nf-test).
+- **Status:** `docs/NEXTFLOW-MIGRATION.md` exists and covers the strict-DSL and nf-core
+  convention issues; it honestly flags versions collation, `nf-core lint`, and `nf-test` as
+  still-open follow-ups in its own "Process / follow-ups" section — this task closes out once
+  P1-1 lands and the doc gets a short update rather than a rewrite.
 - **Why it matters:** Shows you can *maintain* a pipeline across a breaking engine upgrade, not just
   author one — a concrete, senior-signal artifact and good interview fodder.
 - **Effort:** S · **Depends on:** P1-1 (so the doc is complete, not partial).
@@ -112,13 +120,16 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 - **Effort:** S · **Depends on:** P0-3 (do **not** write number-bearing bullets before the run —
   placeholder numbers on a resume is the one unrecoverable credibility mistake).
 
-### P1-4 · Portfolio polish — architecture diagram + demo GIF, then go public
+### P1-4 · Portfolio polish — architecture diagram + demo GIF, then go public ✅ Done
 - **What:** (a) Replace the ASCII architecture block in [`README.md`](../README.md) with a rendered
   diagram (and update it for the serverless topology once Kiro's migration settles). (b) Record a
   ~3-minute demo GIF/clip of the clickthrough (stub DAG → DB query → Metabase → AI report), the
   M8 milestone artifact. (c) **Make the repo public** (`gh repo edit --visibility public`) — but
   gate this behind P0-3 and a `security-reviewer` pass (a Claude Code agent configuration used
   during development — see [`.claude/agents/`](../.claude/agents/README.md)).
+- **Status:** Complete — `README.md`'s Architecture section is a real Mermaid flowchart (not
+  ASCII), two demo GIFs exist (`docs/media/demo.gif`, `docs/assets/metabase-dashboard-demo.gif`),
+  and the repo is public (confirmed via `gh repo view`).
 - **Why it matters:** A private repo with no diagram/GIF is invisible in a job hunt; a public one
   with real numbers and a 3-minute demo is the whole point of a portfolio project.
 - **Effort:** M · **Depends on:** P0-3 (real numbers) + a security review before flipping to public.
@@ -188,6 +199,6 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 | P1-1 | Pipeline finalize: real versions.yml collation, clean `nf-core lint`, add `nf-test` | P1 | M | P0-3 | pipeline-engineer + test-engineer |
 | P1-2 | Write `docs/NEXTFLOW-MIGRATION.md` (strict-DSL fixes + P1-1) | P1 | S | P1-1 | documentation-writer |
 | P1-3 | Resume bullets backed by measured numbers | P1 | S | P0-3 | — |
-| P1-4 | README diagram + demo GIF; make repo public (after security review) | P1 | M | P0-3, security-reviewer | documentation-writer + security-reviewer |
+| P1-4 | ~~README diagram + demo GIF; make repo public (after security review)~~ ✅ Done | P1 | M | P0-3, security-reviewer | documentation-writer + security-reviewer |
 | P2-1 | MiXCR immune-repertoire (AIRR) branch reusing the spine; new ADR-0013 | P2 | L | P0-3, P1-1 | pipeline-engineer |
 | P3-1 | Spatial genomics roadmap ADR only (Proposed; do not build) | P3 | S | — | documentation-writer |

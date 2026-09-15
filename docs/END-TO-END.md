@@ -18,7 +18,7 @@ containerized run on real data.
 
 | Stage | Executed | Evidence |
 |---|---|---|
-| **Pipeline orchestration** | Nextflow 26.04 ran the full 9-process DAG (QC → align → mark-dup → call → hap.py → JSON/Parquet export → MultiQC) end-to-end, `-profile test -stub` | `[SUCCESS] completed=9 failed=0`; outputs under `results/`, provenance reports (timeline/report/trace/dag) under `results/provenance/` |
+| **Pipeline orchestration** | Nextflow 26.04 ran the full 10-process DAG (QC → QC-evaluate → align → mark-dup → call → hap.py → JSON/Parquet export → MultiQC) end-to-end, `-profile test -stub` (11 with `--db_ingest true`, adding `DB_INGEST`) | `[SUCCESS] completed=10 failed=0`; outputs under `results/`, provenance reports (timeline/report/trace/dag) under `results/provenance/` |
 | **Structured output + provenance** | `build_metrics.py` produced a `metrics.json` with git commit, versions, and SHA-256 input checksums | `provenance.input_checksums` populated |
 | **Database (real Postgres 16)** | Schema applied; `ingest_metrics.py` wrote `runs` + `qc_metrics` + `run_provenance` + `audit_log` | 1 ingested run + 6 seeded; `audit_log` INGEST row present |
 | **Insert-only guarantee** | `UPDATE runs` and `DELETE FROM audit_log` were **rejected by DB triggers** | `ERROR: Table runs is insert-only (append a correction instead)` |
