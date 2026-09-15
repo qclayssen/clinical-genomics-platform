@@ -5,6 +5,13 @@ before tagging** — re-validation on change is a first-class rule, not an after
 (see `docs/VALIDATION.md` §7).
 
 ## [Unreleased]
+### Fixed
+- `input_checksums` in the provenance stamp now also covers the reference FASTA, truth
+  VCF and truth-set BED, not just the MarkDuplicates metrics and `hap.py` summary — a
+  result is now cryptographically bound to what it was benchmarked against
+  (`pipeline/modules/export/json_metrics.nf`, `pipeline/main.nf`; see `docs/VALIDATION.md`
+  §6). No change to the caller, reference build, or filtering, so this does not require
+  re-running the GIAB validation.
 
 ## [1.0.0] — 2026-07-16
 ### Added

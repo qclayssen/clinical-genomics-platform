@@ -95,6 +95,46 @@ def test_curated_training_pairs_are_wellformed():
         assert "Provenance:" in rec["output"]
 
 
+def test_main_checksums_reference_and_truth_set_inputs(tmp_path, monkeypatch):
+    """--inputs must cover the reference/truth set, not just the two derived
+    artifacts — closing the gap tracked in docs/FIXES-TODO.md so a result is
+    cryptographically bound to what it was benchmarked against."""
+    dup = tmp_path / "dup.metrics"
+    dup.write_text("LIBRARY\tPERCENT_DUPLICATION\ns\t0.05\n")
+    happy = tmp_path / "happy.csv"
+    happy.write_text(
+        "Type,METRIC.Precision,METRIC.Recall,METRIC.F1_Score\nSNP,0.995,0.994,0.9945\n"
+    )
+    reference = tmp_path / "ref.fasta"
+    reference.write_text(">chr20\nACGT\n")
+    truth_vcf = tmp_path / "truth.vcf"
+    truth_vcf.write_text("##fileformat=VCFv4.2\n")
+    truth_bed = tmp_path / "truth.bed"
+    truth_bed.write_text("chr20\t0\t100\n")
+    output = tmp_path / "out.metrics.json"
+
+    argv = [
+        "build_metrics.py",
+        "--sample", "HG002_chr20",
+        "--dup-metrics", str(dup),
+        "--happy-summary", str(happy),
+        "--provenance", json.dumps({"git_commit": "abc1234", "truth_version": "GIAB-v4.2.1"}),
+        "--inputs", f"{dup},{happy},{reference},{truth_vcf},{truth_bed}",
+        "--output", str(output),
+    ]
+    monkeypatch.setattr("sys.argv", argv)
+    assert bm.main() == 0
+
+    record = json.loads(output.read_text())
+    checksums = record["provenance"]["input_checksums"]
+    assert set(checksums) == {
+        "dup.metrics", "happy.csv", "ref.fasta", "truth.vcf", "truth.bed",
+    }
+    assert checksums["ref.fasta"] == bm.sha256(str(reference))
+    assert checksums["truth.vcf"] == bm.sha256(str(truth_vcf))
+    assert checksums["truth.bed"] == bm.sha256(str(truth_bed))
+
+
 def test_guardrails_reinsert_banner_if_model_drops_it():
     metrics = {"provenance": {"git_commit": "deadbee", "truth_version": "GIAB-v4.2.1"}}
     hostile = "Sample looks great. We recommend treatment with drug X."

@@ -75,13 +75,18 @@ reference build (`GRCh38.p14`) and the truth-set version (`GIAB-v4.2.1`) — cap
 automatically into `metrics.json` by `pipeline/bin/build_metrics.py` and stored in
 `run_provenance`.
 
-**Known gaps in this stamp (tracked in [FIXES-TODO.md](FIXES-TODO.md)), stated plainly
-because this section is the traceability claim itself:**
+`input_checksums` covers the MarkDuplicates metrics, the `hap.py` summary, the reference
+FASTA (`params.reference`), the truth VCF (`params.truth_vcf`) and the high-confidence BED
+(`params.truth_bed`) — SHA-256 over each file, streamed rather than loaded whole into memory
+so the (multi-GB) reference doesn't blow up process memory. `JSON_METRICS`
+(`pipeline/modules/export/json_metrics.nf`) takes these three files as explicit process
+inputs, threaded from `main.nf`, so a result is now cryptographically bound to the exact
+reference and truth set it was benchmarked against, not just to its own derived artifacts.
+Raw reads are still **not** checksummed (tracked in [FIXES-TODO.md](FIXES-TODO.md)) —
+stated plainly because this section is the traceability claim itself.
 
-- `input_checksums` currently covers only two derived artifacts (the MarkDuplicates
-  metrics and the `hap.py` summary). The reads, reference FASTA, truth VCF and
-  high-confidence BED are **not yet checksummed**, so a result is not yet
-  cryptographically bound to the truth set it was benchmarked against.
+**Known gap in this stamp (tracked in [FIXES-TODO.md](FIXES-TODO.md)):**
+
 - **Container image digests are not captured.** Images are pinned by tag, not by
   `@sha256:` digest, and no container identity or tool version reaches the provenance
   block — tool versions are collated separately into

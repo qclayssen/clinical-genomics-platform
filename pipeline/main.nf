@@ -54,6 +54,13 @@ workflow {
     ch_reference = tuple(file(params.reference, checkIfExists: true),
                          file("${params.reference}.*"))
 
+    // Reused for both the hap.py benchmark and the provenance checksum below —
+    // a result must be cryptographically bound to the exact reference/truth
+    // files it was benchmarked against, not just re-derived from params.
+    ch_reference_fasta = file(params.reference, checkIfExists: true)
+    ch_truth_vcf       = file(params.truth_vcf, checkIfExists: true)
+    ch_truth_bed       = file(params.truth_bed, checkIfExists: true)
+
     // ── QC ──────────────────────────────────────────────────────────────────
     FASTP(ch_reads)
     FASTQC(FASTP.out.reads)
@@ -78,8 +85,8 @@ workflow {
     // ── Analytical validation vs. GIAB truth ──────────────────────────────────
     HAPPY_BENCHMARK(
         ch_vcf,
-        file(params.truth_vcf, checkIfExists: true),
-        file(params.truth_bed, checkIfExists: true),
+        ch_truth_vcf,
+        ch_truth_bed,
         ch_reference
     )
     ch_versions = ch_versions.mix(HAPPY_BENCHMARK.out.versions)
@@ -97,7 +104,10 @@ workflow {
     JSON_METRICS(
         MARKDUPLICATES.out.metrics
             .join(HAPPY_BENCHMARK.out.summary),
-        provenance
+        provenance,
+        ch_reference_fasta,
+        ch_truth_vcf,
+        ch_truth_bed
     )
     PARQUET_EXPORT(JSON_METRICS.out.json)
     ch_versions = ch_versions.mix(JSON_METRICS.out.versions, PARQUET_EXPORT.out.versions)
