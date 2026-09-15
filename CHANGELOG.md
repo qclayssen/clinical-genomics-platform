@@ -5,6 +5,17 @@ before tagging** — re-validation on change is a first-class rule, not an after
 (see `docs/VALIDATION.md` §7).
 
 ## [Unreleased]
+### Fixed
+- `qc_warnings` is now actually populated by a real pipeline run: `QC_EVALUATE.out.warnings`
+  was a dangling channel in `pipeline/main.nf` (nothing downstream consumed it), so the table
+  and its dashboard views were only ever populated by `db/seed_demo.sql`. `DB_INGEST` now
+  joins the QC verdict onto `metrics.json`/the VCF and inserts one insert-only `qc_warnings`
+  row per threshold breach (see `pipeline/bin/ingest_metrics.py`).
+- Fixed the reason `QC_EVALUATE` never ran in the first place: `fastp.nf` emitted its JSON
+  output as a bare `path`, not a `tuple(meta, path)`, so `QC_EVALUATE`'s `.join()` on
+  `FASTP.out.json` always produced an empty channel and the process silently never fired
+  (0 tasks, no error). No SNV calling, filtering, or reference logic changed, so this does
+  not require re-running the hap.py-vs-GIAB benchmark (ADR-0003).
 
 ## [1.0.0] — 2026-07-16
 ### Added

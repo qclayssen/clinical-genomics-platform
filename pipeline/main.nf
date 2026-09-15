@@ -103,7 +103,14 @@ workflow {
     ch_versions = ch_versions.mix(JSON_METRICS.out.versions, PARQUET_EXPORT.out.versions)
 
     if (params.db_ingest) {
-        DB_INGEST(JSON_METRICS.out.json, ch_vcf)
+        // Join QC_EVALUATE's per-metric verdicts onto the metrics.json for the
+        // same sample so DB_INGEST can populate qc_warnings, not just runs/
+        // qc_metrics/run_provenance (see docs/FIXES-TODO.md — this channel
+        // used to be dangling).
+        DB_INGEST(
+            JSON_METRICS.out.json.join(QC_EVALUATE.out.warnings),
+            ch_vcf
+        )
         ch_versions = ch_versions.mix(DB_INGEST.out.versions)
     }
 
@@ -120,8 +127,9 @@ workflow {
     ch_versions = ch_versions.mix(MULTIQC.out.versions)
 
     // ── Collate every per-process versions.yml into one document ──────────────
-    //    Done with the collectFile operator (not a process) so the stub DAG
-    //    stays at nine tasks; the merged file is published to pipeline_info/.
+    //    Done with the collectFile operator (not a process) so it doesn't add
+    //    another task to the stub DAG; the merged file is published to
+    //    pipeline_info/.
     //    NOTE: software_versions.yml is the ONLY place tool versions are
     //    recorded. The provenance block above carries the pipeline version,
     //    git commit, run id, reference build and truth-set version — it does
