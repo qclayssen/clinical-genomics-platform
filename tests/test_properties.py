@@ -489,9 +489,24 @@ if _AI_REPORT_DIR not in sys.path:
     sys.path.insert(0, _AI_REPORT_DIR)
 
 from infer import enforce_guardrails  # noqa: E402
+from guardrails import _ADVICE_RE  # noqa: E402 -- canonical pattern, see ai-report/guardrails.py
 
-# Strategy for arbitrary text, including clinical phrases
-clinical_phrases = ["we recommend", "diagnose", "diagnosed with", "treat with", "treating with"]
+# Strategy for arbitrary text, including clinical phrases. Covers all 8
+# canonical advice-phrase categories in ai-report/guardrails.py's
+# ADVICE_PATTERNS, not just the 3 the old (pre-consolidation) infer.py copy
+# scrubbed.
+clinical_phrases = [
+    "we recommend",
+    "should start",
+    "treat with",
+    "treating with",
+    "prescribe",
+    "diagnose",
+    "diagnosed with",
+    "therapy",
+    "medication",
+    "clinical management",
+]
 
 text_with_clinical_strategy = st.one_of(
     st.text(min_size=0, max_size=500),
@@ -511,8 +526,10 @@ metrics_strategy = st.fixed_dictionaries({
     }),
 })
 
-# Clinical recommendation regex (same as in enforce_guardrails)
-CLINICAL_PATTERN = re.compile(r"(?i)\b(we recommend|diagnos\w+|treat\w+ with)\b")
+# Clinical recommendation regex — imported directly from the shared
+# ai-report/guardrails module rather than hand-copied here, so this property
+# test can't silently drift out of sync with what enforce_guardrails() scrubs.
+CLINICAL_PATTERN = _ADVICE_RE
 
 
 @settings(max_examples=100)
