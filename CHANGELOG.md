@@ -16,6 +16,12 @@ before tagging** — re-validation on change is a first-class rule, not an after
   `FASTP.out.json` always produced an empty channel and the process silently never fired
   (0 tasks, no error). No SNV calling, filtering, or reference logic changed, so this does
   not require re-running the hap.py-vs-GIAB benchmark (ADR-0003).
+- `input_checksums` in the provenance stamp now also covers the reference FASTA, truth
+  VCF and truth-set BED, not just the MarkDuplicates metrics and `hap.py` summary — a
+  result is now cryptographically bound to what it was benchmarked against
+  (`pipeline/modules/export/json_metrics.nf`, `pipeline/main.nf`; see `docs/VALIDATION.md`
+  §6). No change to the caller, reference build, or filtering, so this does not require
+  re-running the GIAB validation.
 
 ## [1.0.0] — 2026-07-16
 ### Added

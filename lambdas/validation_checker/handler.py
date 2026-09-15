@@ -5,6 +5,11 @@ precision, recall, and F1 score. Determines validation_pass flag
 (F1 >= 0.99 -> true). On failure, writes an AUDIT record with action
 VALIDATION_FAILED including the observed F1 score.
 
+NOTE: this handler does not yet run real hap.py; it fabricates metrics
+via `_simulate_validation_metrics()`. The emitted payload always carries
+`simulated: True` so a synthetic F1 can never be mistaken for a measured
+one downstream.
+
 Requirements: 1.3, 11.5
 """
 
@@ -34,17 +39,23 @@ def _simulate_validation_metrics() -> dict:
     """Simulate truth-set validation metrics.
 
     In production this would run hap.py to compare a VCF against the
-    GIAB v4.2.1 HG002 chr20 truth set. For the demo platform we generate
-    representative high-quality metrics in the 0.998x range.
+    GIAB v4.2.1 HG002 chr20 truth set. For the demo platform we instead
+    fabricate plausible precision/recall numbers, so every field derived
+    from them is explicitly flagged `simulated: True` and must never be
+    mistaken for a measured hap.py result downstream.
+
+    The sampled range is symmetric around the F1_PASS_THRESHOLD (0.99),
+    +/- 0.01, so both validation_pass outcomes (True and False) are
+    actually reachable on this path instead of the threshold being
+    unconditionally satisfied.
 
     Returns:
-        Dict with precision, recall, and f1 values.
+        Dict with precision, recall, f1, and a `simulated` marker.
     """
-    # Generate realistic clinical-grade metrics
-    precision = round(random.uniform(0.9975, 0.9995), 6)
-    recall = round(random.uniform(0.9965, 0.9990), 6)
+    precision = round(random.uniform(0.980, 1.000), 6)
+    recall = round(random.uniform(0.980, 1.000), 6)
     f1 = round(2 * (precision * recall) / (precision + recall), 6)
-    return {"precision": precision, "recall": recall, "f1": f1}
+    return {"precision": precision, "recall": recall, "f1": f1, "simulated": True}
 
 
 def handler(event: dict, context) -> dict:
@@ -61,7 +72,7 @@ def handler(event: dict, context) -> dict:
 
     Returns:
         Dict with run_id, sample_id, precision, recall, f1,
-        and validation_pass flag.
+        validation_pass flag, and a `simulated` marker.
     """
     run_id = event["run_id"]
     sample_id = event["sample_id"]
@@ -90,6 +101,7 @@ def handler(event: dict, context) -> dict:
     precision = metrics["precision"]
     recall = metrics["recall"]
     f1 = metrics["f1"]
+    simulated = metrics.get("simulated", True)
 
     # Determine validation pass/fail (Requirement 1.3)
     validation_pass = f1 >= F1_PASS_THRESHOLD
@@ -103,6 +115,7 @@ def handler(event: dict, context) -> dict:
                 "recall": recall,
                 "f1": f1,
                 "validation_pass": validation_pass,
+                "simulated": simulated,
             }
         )
     )
@@ -120,6 +133,7 @@ def handler(event: dict, context) -> dict:
             "f1": f1,
         },
         "validation_pass": validation_pass,
+        "simulated": simulated,
     }
     results_key = f"work/{run_id}/validation/results.json"
     write_json(bucket, results_key, results)
@@ -151,4 +165,5 @@ def handler(event: dict, context) -> dict:
         "recall": recall,
         "f1": f1,
         "validation_pass": validation_pass,
+        "simulated": simulated,
     }

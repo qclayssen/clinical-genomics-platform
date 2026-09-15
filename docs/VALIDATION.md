@@ -47,6 +47,10 @@ scoping bugs this run surfaced and fixed).
 SNV F1 = 0.9914 meets the ≥ 0.99 acceptance criterion (§3); `validation_pass: true` in the
 run's `metrics.json`.
 
+The raw `hap.py` summary and `metrics.json` behind this table are committed at
+[`docs/validation-evidence/HG002_chr20/`](validation-evidence/HG002_chr20/) — see that
+directory's README for how to check the numbers above against the source files yourself.
+
 ## 5. Known limitations
 
 - Validated on a **chr20:1,000,000-2,000,000 (1 Mb) window**, not the full chromosome —
@@ -75,13 +79,18 @@ reference build (`GRCh38.p14`) and the truth-set version (`GIAB-v4.2.1`) — cap
 automatically into `metrics.json` by `pipeline/bin/build_metrics.py` and stored in
 `run_provenance`.
 
-**Known gaps in this stamp (tracked in [FIXES-TODO.md](FIXES-TODO.md)), stated plainly
-because this section is the traceability claim itself:**
+`input_checksums` covers the MarkDuplicates metrics, the `hap.py` summary, the reference
+FASTA (`params.reference`), the truth VCF (`params.truth_vcf`) and the high-confidence BED
+(`params.truth_bed`) — SHA-256 over each file, streamed rather than loaded whole into memory
+so the (multi-GB) reference doesn't blow up process memory. `JSON_METRICS`
+(`pipeline/modules/export/json_metrics.nf`) takes these three files as explicit process
+inputs, threaded from `main.nf`, so a result is now cryptographically bound to the exact
+reference and truth set it was benchmarked against, not just to its own derived artifacts.
+Raw reads are still **not** checksummed (tracked in [FIXES-TODO.md](FIXES-TODO.md)) —
+stated plainly because this section is the traceability claim itself.
 
-- `input_checksums` currently covers only two derived artifacts (the MarkDuplicates
-  metrics and the `hap.py` summary). The reads, reference FASTA, truth VCF and
-  high-confidence BED are **not yet checksummed**, so a result is not yet
-  cryptographically bound to the truth set it was benchmarked against.
+**Known gap in this stamp (tracked in [FIXES-TODO.md](FIXES-TODO.md)):**
+
 - **Container image digests are not captured.** Images are pinned by tag, not by
   `@sha256:` digest, and no container identity or tool version reaches the provenance
   block — tool versions are collated separately into
@@ -89,10 +98,12 @@ because this section is the traceability claim itself:**
   [ADR-0009](adr/0009-docker-pinned-by-digest.md) sets digest pinning as the production
   target; it is not met today.
 
-The run artifacts backing §4 (`metrics.json`, `hap.py` `summary.csv`) are not committed —
-they live under the git-ignored `pipeline/results/`. Reproduce them with
-[RUNBOOK.md](RUNBOOK.md) rather than treating the table above as independently verifiable
-from a clone.
+The run artifacts backing §4 (`metrics.json`, `hap.py` `summary.csv`) are committed at
+[`docs/validation-evidence/HG002_chr20/`](validation-evidence/HG002_chr20/), so the table
+above is independently checkable from a clone without re-running anything. The full run
+directory they were copied from (BAM, VCF, logs) is not committed — it lives under the
+git-ignored `pipeline/results/` and is multi-GB. To reproduce the run end-to-end rather than
+just check its recorded output, see [RUNBOOK.md](RUNBOOK.md).
 
 ## 7. Change control
 

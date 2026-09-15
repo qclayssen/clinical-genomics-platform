@@ -1,0 +1,35 @@
+{
+  "provenance": {
+    "caller": "gatk",
+    "exported_at": "2026-07-15T11:23:09.618583+00:00",
+    "git_commit": "local-dev",
+    "input_checksums": {
+      "HG002_chr20.happy.summary.csv": "ffbf5fd851969a03be7e48d8419dff41a0eff25767cae34beeab8abf93482ec7",
+      "HG002_chr20.markdup.metrics": "3ad9aac4627532b7d85e441809dd87add66da7a66d97ddbfc5deeeac14820fa7"
+    },
+    "pipeline_version": "0.3.0",
+    "reference_build": "GRCh38.p14",
+    "run_id": "happy_mandelbrot",
+    "sample": "HG002_chr20",
+    "started_at": "2026-07-15T21:23:06.315409+10:00",
+    "truth_version": "GIAB-v4.2.1"
+  },
+  "qc": {
+    "percent_duplication": 0.018478
+  },
+  "sample": "HG002_chr20",
+  "schema_version": "1.0",
+  "validation": {
+    "indel": {
+      "f1": 0.997067,
+      "precision": 0.994152,
+      "recall": 1.0
+    },
+    "snp": {
+      "f1": 0.991418,
+      "precision": 0.993448,
+      "recall": 0.9893959999999999
+    }
+  },
+  "validation_pass": true
+}
