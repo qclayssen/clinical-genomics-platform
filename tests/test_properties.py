@@ -488,8 +488,8 @@ _AI_REPORT_DIR = os.path.join(
 if _AI_REPORT_DIR not in sys.path:
     sys.path.insert(0, _AI_REPORT_DIR)
 
-from infer import enforce_guardrails  # noqa: E402
 from guardrails import _ADVICE_RE  # noqa: E402 -- canonical pattern, see ai-report/guardrails.py
+from infer import enforce_guardrails  # noqa: E402
 
 # Strategy for arbitrary text, including clinical phrases. Covers all 8
 # canonical advice-phrase categories in ai-report/guardrails.py's
