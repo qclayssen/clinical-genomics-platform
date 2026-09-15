@@ -574,7 +574,7 @@ The hospital ward for critically ill patients needing constant monitoring. One o
 mock data sources in this module (`icu_admissions`).
 
 **ED (Emergency Department)**
-The hospital's emergency room. **VVED** (Virtual Victorian Emergency Department) is a
+The hospital's emergency room. **VVED** (Virtual Emergency Department) is a
 telehealth/virtual variant — patients consulted remotely rather than walking in. The other
 mock data source here is `ed_consultations`.
 
