@@ -16,10 +16,32 @@ param containerImage string
 @secure()
 param cgpDbUrl string = ''
 
+// Container Apps managed environments require an appLogsConfiguration destination —
+// an empty properties object is rejected by ARM at deploy time (bicep build/lint only
+// check template syntax, not resource-provider validation, so this needs to be explicit).
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: 'cgp-logs'
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+  }
+}
+
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: 'cgp-env'
   location: location
-  properties: {}
+  properties: {
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalytics.properties.customerId
+        sharedKey: logAnalytics.listKeys().primarySharedKey
+      }
+    }
+  }
 }
 
 module api 'api.bicep' = {

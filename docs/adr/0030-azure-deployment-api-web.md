@@ -27,6 +27,10 @@ account, never run automatically.
 - **`CGP_DB_URL` stays optional**, passed as a secure Bicep param defaulting to empty — the
   Container App runs fixture-backed by default, identical to `api/main.py`'s existing local
   behaviour. No new database is introduced.
+- **A Log Analytics workspace is provisioned alongside the Container Apps environment** and wired
+  via `appLogsConfiguration` — a managed environment with an empty `properties` object is rejected
+  by ARM at deploy time (`bicep build`/`bicep lint` only check template syntax, not
+  resource-provider validation, so this needed to be explicit rather than assumed).
 - **CI runs `bicep build` + `bicep lint` only** (`.github/workflows/azure-ci.yml`), mirroring
   `infra-ci.yml`'s `cdk synth`-not-`cdk deploy` stance: it catches template syntax/type errors on
   every PR touching `azure/**` without requiring `AZURE_CREDENTIALS` in CI secrets.
