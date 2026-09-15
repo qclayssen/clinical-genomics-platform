@@ -15,12 +15,11 @@ import argparse
 import json
 import logging
 import os
-import re
 import sys
 
-logger = logging.getLogger(__name__)
+from guardrails import BANNER, enforce_guardrails
 
-BANNER = "AI-DRAFTED — REQUIRES CLINICIAN REVIEW"
+logger = logging.getLogger(__name__)
 
 # Default path to the FAISS index directory (relative to this script)
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -224,20 +223,6 @@ def render_with_model(m: dict, adapter: str | None, base_model: str) -> str:
                                      add_generation_prompt=True).to(model.device)
     out = model.generate(inputs, max_new_tokens=400, do_sample=False)
     return tok.decode(out[0][inputs.shape[1]:], skip_special_tokens=True).strip()
-
-
-def enforce_guardrails(text: str, m: dict) -> str:
-    """The model output is untrusted: guarantee the banner + provenance survive."""
-    if BANNER not in text:
-        text = BANNER + "\n\n" + text
-    prov = m.get("provenance", {})
-    if "Provenance:" not in text:
-        text += (f"\n\nProvenance: git {prov.get('git_commit','?')}, "
-                 f"{prov.get('truth_version','?')}.")
-    # Strip any hallucinated clinical-recommendation phrasing as a belt-and-braces check
-    text = re.sub(r"(?i)\b(we recommend|diagnos\w+|treat\w+ with)\b",
-                  "[review required]", text)
-    return text
 
 
 def main() -> int:

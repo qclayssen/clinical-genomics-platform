@@ -10,18 +10,31 @@ Requirements: 9.4, 9.6, 9.7, 11.3
 import json
 import logging
 import os
-import re
+import sys
+from pathlib import Path
 
 from lambdas.shared.audit import build_audit_record, build_completion_record
 from lambdas.shared.dynamo import write_item
 from lambdas.shared.s3_utils import read_json, write_bytes
 from lambdas.shared.timestamps import now_iso8601
 
+# `ai-report/` isn't a package root (see api/routers/agent.py for the same
+# pattern), so its shared `guardrails` module is reached via sys.path, not a
+# normal package import. AI_REPORT_PATH lets a real Lambda deployment point
+# at wherever the ai-report code is bundled (e.g. a layer at /opt/ai-report,
+# matching the RAG path below); locally/in tests it resolves to the sibling
+# ai-report/ directory in this repo.
+_DEFAULT_AI_REPORT_DIR = str(Path(__file__).resolve().parents[2] / "ai-report")
+_AI_REPORT_DIR = os.environ.get("AI_REPORT_PATH", _DEFAULT_AI_REPORT_DIR)
+if not os.path.isdir(_AI_REPORT_DIR) and os.path.isdir(_DEFAULT_AI_REPORT_DIR):
+    _AI_REPORT_DIR = _DEFAULT_AI_REPORT_DIR
+if _AI_REPORT_DIR not in sys.path:
+    sys.path.insert(0, _AI_REPORT_DIR)
+
+from guardrails import BANNER, enforce_guardrails  # noqa: E402
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# Guardrails constants
-BANNER = "AI-DRAFTED \u2014 REQUIRES CLINICIAN REVIEW"
 
 # Model versioning defaults
 _MODEL_VERSION = os.environ.get("MODEL_VERSION", "phi3:mini")
@@ -29,15 +42,19 @@ _ADAPTER_VERSION = os.environ.get("ADAPTER_VERSION", None)
 
 
 # ---------------------------------------------------------------------------
-# Offline renderer (self-contained, no external dependencies beyond stdlib)
+# Offline renderer (stdlib only; BANNER/enforce_guardrails come from the
+# shared ai-report/guardrails module resolved above)
 # ---------------------------------------------------------------------------
 
 
 def render_offline(m: dict) -> str:
     """Deterministic, dependency-free renderer. Always guardrail-compliant.
 
-    Mirrors the logic in ai-report/infer.py but is self-contained for Lambda
-    deployment without requiring the ai-report package.
+    Mirrors the logic in ai-report/infer.py's render_offline(); kept as its
+    own copy (rather than imported) since it has no shared-state risk the way
+    the guardrail scrub list did — a rendering-template drift is cosmetic,
+    not a guardrail-consistency bug. Only the guardrail enforcement itself
+    (BANNER, enforce_guardrails) is imported from `guardrails.py`.
     """
     snp = m.get("validation", {}).get("snp", {})
     prov = m.get("provenance", {})
@@ -83,34 +100,6 @@ def render_offline(m: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Guardrails enforcement
-# ---------------------------------------------------------------------------
-
-
-def enforce_guardrails(text: str, m: dict) -> str:
-    """Guarantee the review banner and provenance survive in the output.
-
-    Strips hallucinated clinical-recommendation phrasing as a safety measure.
-    Mirrors ai-report/infer.py enforce_guardrails().
-    """
-    if BANNER not in text:
-        text = BANNER + "\n\n" + text
-    prov = m.get("provenance", {})
-    if "Provenance:" not in text:
-        text += (
-            f"\n\nProvenance: git {prov.get('git_commit', '?')}, "
-            f"{prov.get('truth_version', '?')}."
-        )
-    # Strip any hallucinated clinical-recommendation phrasing
-    text = re.sub(
-        r"(?i)\b(we recommend|diagnos\w+|treat\w+ with)\b",
-        "[review required]",
-        text,
-    )
-    return text
-
-
-# ---------------------------------------------------------------------------
 # RAG generation attempt
 # ---------------------------------------------------------------------------
 
@@ -123,13 +112,8 @@ def _try_rag_generation(m: dict) -> str | None:
     Lambda container without the ai-report package), returns None.
     """
     try:
-        import sys
-
-        # Try adding ai-report to path for Lambda environments that bundle it
-        ai_report_path = os.environ.get("AI_REPORT_PATH", "/opt/ai-report")
-        if ai_report_path not in sys.path:
-            sys.path.insert(0, ai_report_path)
-
+        # ai-report/ was already added to sys.path above (for `guardrails`);
+        # reuse the same resolved directory here for consistency.
         from infer import render_with_rag  # type: ignore[import-not-found]
 
         index_dir = os.environ.get("RAG_INDEX_DIR", "/opt/ai-report/rag/index")

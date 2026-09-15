@@ -13,11 +13,12 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+from guardrails import enforce_safety_constraints
 
 from .llm import LLMBackend, Message, ToolCall, create_backend
 from .tools import ToolRegistry, ToolResult
@@ -122,39 +123,13 @@ class InterpretationResult:
 
 
 # ═══ Safety Constraints ═══════════════════════════════════════════════════════
-
-# Phrases that indicate treatment/clinical management recommendations
-_TREATMENT_PATTERNS = [
-    r"\bwe recommend\b",
-    r"\bshould (?:take|start|stop|begin|consider)\b",
-    r"\btreat(?:ment|ed)?\s+with\b",
-    r"\bprescri(?:be|ption)\b",
-    r"\bthis (?:confirms|establishes) (?:a |the )?diagnos(?:is|e)\b",
-    r"\btherapy\b",
-    r"\bmedication\b",
-    r"\bclinical management\b",
-]
-
-_TREATMENT_RE = re.compile("|".join(_TREATMENT_PATTERNS), re.IGNORECASE)
-
-
-def enforce_safety_constraints(text: str) -> tuple[str, list[str]]:
-    """Enforce clinical safety constraints on agent output.
-
-    Returns
-    -------
-    tuple[str, list[str]]
-        (scrubbed_text, list_of_violations_found)
-    """
-    violations: list[str] = []
-
-    # Check for treatment recommendations
-    matches = _TREATMENT_RE.findall(text)
-    if matches:
-        violations.append(f"Treatment language detected: {matches}")
-        text = _TREATMENT_RE.sub("[REVIEW REQUIRED]", text)
-
-    return text, violations
+#
+# `enforce_safety_constraints()` used to be defined here with its own 8-pattern
+# advice-phrase list, diverging from `ai-report/infer.py`'s separate 3-pattern
+# `enforce_guardrails()`. Both now share one canonical pattern list and scrub
+# routine in `ai-report/guardrails.py` — see that module's docstring. Imported
+# above; re-used as-is (no wrapper needed, since this agent's call shape
+# matches the shared function exactly).
 
 
 # ═══ ReAct Agent ══════════════════════════════════════════════════════════════

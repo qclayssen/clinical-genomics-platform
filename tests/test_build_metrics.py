@@ -6,9 +6,17 @@ credibility rests on.
 """
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# infer.py imports the shared `guardrails` module as a bare top-level module
+# (ai-report/ isn't a package root — see api/routers/agent.py for the same
+# pattern), so ai-report/ must be on sys.path before infer.py is exec'd below.
+_AI_REPORT_DIR = ROOT / "ai-report"
+if str(_AI_REPORT_DIR) not in sys.path:
+    sys.path.insert(0, str(_AI_REPORT_DIR))
 
 
 def _load(module_path: Path, name: str):
@@ -20,6 +28,7 @@ def _load(module_path: Path, name: str):
 
 bm = _load(ROOT / "pipeline" / "bin" / "build_metrics.py", "build_metrics")
 infer = _load(ROOT / "ai-report" / "infer.py", "infer")
+guardrails = _load(_AI_REPORT_DIR / "guardrails.py", "guardrails")
 
 
 def test_parse_happy_extracts_snp_and_indel(tmp_path):
