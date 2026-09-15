@@ -539,3 +539,73 @@ criteria and deviation handling. See [SOP-run-pipeline.md](SOP-run-pipeline.md).
 **Human-in-the-loop**
 A design where AI assists but a qualified human makes the final decision. Our AI *drafts*;
 a clinician *signs*.
+
+---
+
+## 12. EMR / ICU / registry demo (`emr-pipeline/`)
+
+A separate, self-contained module in this repo (unrelated to the DNA pipeline above) that
+demonstrates a different, equally common data-engineering pattern: pulling data out of a
+hospital's patient records system, cleaning it, and submitting it to a national registry.
+See [emr-pipeline/README.md](../emr-pipeline/README.md).
+
+**EMR (Electronic Medical Record)**
+The hospital's software system that stores patient records — admissions, notes, vitals,
+diagnoses. *Analogy:* the hospital's central filing cabinet, digitised.
+
+**ODBC (Open Database Connectivity)**
+A standard, vendor-neutral way for one piece of software to query a database that belongs to
+another vendor's system (here, the hospital's EMR database). *Analogy:* a universal
+adapter plug — works the same whether the wall socket is Cerner, Epic, or iPM.
+
+**DSN (Data Source Name)**
+A saved set of connection details (driver, server address, database name, credentials) that
+an ODBC connection uses to find and log into a specific database. *Analogy:* a labelled
+address book entry — "call this number, with this password" — instead of typing it out
+each time.
+
+**ETL (Extract, Transform, Load)**
+The three-step recipe for moving data between systems: pull it out (**extract**), clean/
+reshape it (**transform**), write it into its new home (**load**). `etl/extract_and_load.py`
+does exactly this.
+
+**ICU (Intensive Care Unit)**
+The hospital ward for critically ill patients needing constant monitoring. One of the two
+mock data sources in this module (`icu_admissions`).
+
+**ED (Emergency Department)**
+The hospital's emergency room. **VVED** (Virtual Victorian Emergency Department) is a
+telehealth/virtual variant — patients consulted remotely rather than walking in. The other
+mock data source here is `ed_consultations`.
+
+**LOS (Length of Stay)**
+How long a patient stayed (e.g. in the ICU), usually measured in hours or days — a common
+metric calculated during the "transform" step of ETL.
+
+**MRN (Medical Record Number)**
+A hospital's unique ID number for a patient. All MRNs in this demo are synthetic and
+clearly fake (prefixed `MOCK-`) — never a real patient identifier.
+
+**PHI (Protected Health Information)**
+Any data that could identify a real patient (name, MRN, date of birth, etc.), which is
+legally protected in real healthcare systems. This demo module never touches real PHI —
+everything is fabricated.
+
+**Registry (clinical registry)**
+A national or state database that hospitals submit standardised patient-outcome data to,
+so researchers and regulators can track quality of care across many hospitals.
+
+**ANZICS APD (Australian and New Zealand Intensive Care Society — Adult Patient Database)**
+The real-world ICU registry this module's export format is *loosely modeled on*, to
+demonstrate the field-mapping-and-validation pattern registries require. This project
+produces a documented, stub subset — not a real APD submission.
+
+**Acuity / disposition / presenting complaint**
+Fields commonly captured in a clinical note: how sick the patient is (**acuity**), what
+happens to them next — e.g. admitted, discharged (**disposition**) — and why they came in
+(**presenting complaint**). The demo's LLM step extracts these from free-text notes.
+
+**Casemix**
+A hospital's mix of patient types and severity — used to fairly compare outcomes and costs
+across hospitals with different patient populations. One reason registries like ANZICS APD
+collect fields such as admission source and elective-vs-emergency status.
