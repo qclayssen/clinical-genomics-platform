@@ -1,0 +1,39 @@
+name: azure-ci
+
+on:
+  push:
+    paths: ['azure/**', 'docker/Dockerfile.api', '.github/workflows/azure-ci.yml']
+  pull_request:
+
+concurrency:
+  group: azure-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: this job only reads the repo and compiles templates locally —
+# no Azure credentials are configured, so it cannot and does not deploy anything.
+permissions:
+  contents: read
+
+jobs:
+  bicep-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run: { working-directory: azure }
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Bicep CLI
+        env:
+          BICEP_VERSION: v0.47.16
+        run: |
+          curl -Lo bicep "https://github.com/Azure/bicep/releases/download/${BICEP_VERSION}/bicep-linux-x64"
+          chmod +x ./bicep
+          sudo mv ./bicep /usr/local/bin/bicep
+          bicep --version
+
+      - name: Bicep build (main.bicep + modules)
+        run: bicep build main.bicep --outdir /tmp/bicep-out
+
+      - name: Bicep lint
+        run: bicep lint main.bicep

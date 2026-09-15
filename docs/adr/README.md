@@ -53,10 +53,11 @@ Each ADR follows the same tiny structure:
 | [0027](0027-rest-react-frontend-for-variant-interpreter.md) | REST API + React frontend as thin adapters over the existing variant interpreter (ADR-0014) | Accepted |
 | [0028](0028-azure-bedrock-backends-and-fhir-intake.md) | Azure AI Foundry / AWS Bedrock LLM backends, and a minimal HL7 FHIR genomics intake | Accepted |
 | [0029](0029-emr-icu-vved-demo-module.md) | `emr-pipeline/`: an EMR/ICU/VVED data-engineering demo module | Accepted |
+| [0030](0030-azure-deployment-api-web.md) | Azure deployment (Bicep) for the REST API + React frontend | Accepted |
 
 ---
 
-**Count: 29 ADRs** (0001–0029). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 30 ADRs** (0001–0030). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 

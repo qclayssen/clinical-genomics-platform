@@ -8,6 +8,8 @@ __pycache__
 .pytest_cache
 infra/node_modules
 infra/cdk.out
+web/node_modules
+web/dist
 results
 work
 .nextflow
