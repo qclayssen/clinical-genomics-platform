@@ -9,7 +9,10 @@ DSL2 pipeline will hit.
 
 - **Nextflow 26.04.6**, **Java 26** (Temurin/openjdk; the macOS `/usr/bin/java` stub is *not*
   sufficient — Nextflow needs a real JDK 17+).
-- Verified with `nextflow run main.nf -profile test -stub` → `[SUCCESS] completed=9`.
+- Verified with `nextflow run main.nf -profile test -stub` → `[SUCCESS] completed=10`
+  (11 with `--db_ingest true`). Was 9 until 2026-09-15, when a `fastp.nf` channel-shape bug
+  (`FASTP.out.json` emitted as a bare `path` instead of `tuple(meta, path)`) that silently
+  kept `QC_EVALUATE` from ever running was found and fixed — see `docs/FIXES-TODO.md` #10.
 
 ## Strict-DSL parser issues (Nextflow 25+/26)
 

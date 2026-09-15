@@ -1,9 +1,8 @@
 # Fixes worth doing — consistency & control audit
 
-**Status: the 2026-07-30 audit below is closed. Re-audited 2026-09-10; every item is
-resolved or superseded.** Kept as a record of what was found and what was done about it,
-in the same append-only spirit as the ADRs. Open engineering gaps found in the newer audit
-are listed at the bottom — those are the live ones.
+**Status: the 2026-07-30 and 2026-09-10 audits below are closed as of 2026-09-15.** Kept as
+a record of what was found and what was done about it, in the same append-only spirit as the
+ADRs. Two genuine engineering gaps remain open — see the bottom section.
 
 Severity: [P1] fix first · [P2] worth fixing · [P3] nice-to-have.
 
@@ -24,46 +23,29 @@ Severity: [P1] fix first · [P2] worth fixing · [P3] nice-to-have.
 
 ---
 
-## Open — from the 2026-09-10 audit
+## Closed — 2026-09-10/2026-09-15 audit
 
-These are genuine engineering gaps, not doc drift. Each is a claim the docs have now been
-corrected to stop overstating, so nothing here is currently mis-documented — but the
-underlying work is still worth doing.
+| # | Item | Resolution |
+|---|---|---|
+| 8 | [P1] Provenance checksums covered only two derived outputs | **Fixed (#78).** `pipeline/modules/export/json_metrics.nf` now also checksums `params.reference`, `params.truth_vcf`, and `params.truth_bed`, threaded through `pipeline/main.nf`; `docs/VALIDATION.md` §6 updated. Raw FASTQ reads are still not checksummed — see the still-open item below. |
+| 9 | [P1] `lambdas/validation_checker` synthesised metrics with no `simulated` marker | **Fixed (#77).** `_simulate_validation_metrics()` now returns an explicit `simulated: true` field threaded through the S3 payload and handler response, and the sampled range was changed from an always-passing `[0.9975, 0.9995]`/`[0.9965, 0.9990]` to a symmetric `[0.980, 1.000]` band around the 0.99 threshold, so `validation_pass` can actually be `false` on this path. |
+| 10 | [P2] `qc_warnings` never written by the pipeline | **Fixed (#80).** `DB_INGEST` now joins `QC_EVALUATE.out.warnings` and inserts one insert-only row per threshold breach (`pipeline/bin/ingest_metrics.py`). While verifying this, also found and fixed the reason `QC_EVALUATE` never ran at all: `fastp.nf` emitted its JSON output as a bare `path` instead of `tuple(meta, path)`, so `QC_EVALUATE`'s `.join()` on `FASTP.out.json` always produced an empty channel (0 tasks, no error). The stub DAG task count moved from 9 to 10 (11 with `--db_ingest`) as a result — see `docs/END-TO-END.md`. |
+| 11 | [P2] Two divergent copies of `enforce_guardrails()` | **Fixed (#81).** Consolidated into `ai-report/guardrails.py` — one canonical 8-pattern advice-phrase list (the union of the old 3- and 8-pattern lists, so neither call site lost coverage), with `enforce_guardrails()` (full report) and `enforce_safety_constraints()` (report fragment) as the two entry points. `ai-report/infer.py`, `ai-report/agent/react.py`, and `lambdas/report_generator/handler.py` all import it now. |
+| 12 | [P2] Validation evidence not committed | **Fixed (#79).** The real HG002 chr20 run's `metrics.json` and `hap.py` `summary.csv` (checksum-verified against each other) are now committed under `docs/validation-evidence/HG002_chr20/`, linked from `docs/VALIDATION.md` §4/§6. |
+| 13 | [P3] Immutability CI covered 4 of 6 protected tables; TRUNCATE not guarded | **Already fixed, doc was stale.** Both were closed back on 2026-09-10 in the same commit as item 0 above (`37c334c`, PR #74): `db/schema.sql` has a `FOR EACH STATEMENT BEFORE TRUNCATE` trigger on all six protected tables, and `db-ci.yml`'s immutability job exercises `run_provenance`/`review_decisions` and a `TRUNCATE runs CASCADE;` check. This list simply wasn't updated at the time — corrected 2026-09-15. |
 
-- **[P1] Provenance checksums cover only two derived outputs.**
-  `pipeline/modules/export/json_metrics.nf` passes `--inputs '${dup_metrics},${happy_summary}'`
-  — both pipeline *outputs*. The reads, `params.reference`, `params.truth_vcf` and
-  `params.truth_bed` are never checksummed, so a result cannot be tied back to the reference
-  and truth set it was benchmarked against.
+---
+
+## Open
 
 - **[P1] No images are digest-pinned, and container identity is not in the provenance stamp.**
   `git grep '@sha256:'` returns nothing; all 12 module containers are tag-pinned.
   [ADR-0009](adr/0009-docker-pinned-by-digest.md) treats digest pinning as the production
   target — it is not yet met. The provenance map in `pipeline/main.nf` records no container
-  and no tool versions (those reach `pipeline_info/software_versions.yml` only).
+  and no tool versions (those reach `pipeline_info/software_versions.yml` only). Needs a
+  registry digest lookup per image (no local Docker daemon available in the environment this
+  was last worked from) — see `docs/ROADMAP.md` P1-1 for the related nf-core lint/nf-test work.
 
-- **[P1] `lambdas/validation_checker` synthesises metrics with `random.uniform`.**
-  The docstring is honest, but the emitted payload carries no `simulated` marker, so a
-  synthetic F1 is indistinguishable from a measured one downstream. The sampled range is also
-  bounded above 0.99, making `validation_pass` unconditionally true on that path.
-
-- **[P2] `qc_warnings` is never written by the pipeline.**
-  `QC_EVALUATE.out.warnings` is a dangling channel in `pipeline/main.nf`; the table and its
-  dashboard views are populated only by `db/seed_demo.sql`.
-
-- **[P2] Two divergent copies of `enforce_guardrails()`.**
-  `ai-report/infer.py` and `lambdas/report_generator/handler.py` scrub 3 patterns;
-  `ai-report/agent/react.py` scrubs 8. Only the `infer.py` copy has tests.
-
-- **[P2] Validation evidence is not committed.**
-  The 0.9914/0.9971 figures are genuine, but the run's `metrics.json` and `hap.py`
-  `summary.csv` live in untracked `pipeline/results/`, so someone cloning the repo cannot
-  verify them. Committing the ~2 KB summary under a clearly-named path would close this.
-
-- **[P3] Immutability CI covers 4 of the 6 protected tables.**
-  `db-ci.yml` exercises `runs`, `qc_metrics`, `audit_log`, `qc_warnings` — not
-  `run_provenance` or `review_decisions`. The schema protects all six.
-
-- **[P3] Row-level triggers do not fire on `TRUNCATE`.**
-  `forbid_mutation()` is `BEFORE UPDATE OR DELETE ... FOR EACH ROW`; a statement-level
-  `BEFORE TRUNCATE` trigger would close the gap.
+- **[P1] Raw FASTQ reads are still not checksummed** (the other half of item 8 above).
+  Only the reference and truth set were added to `input_checksums` in #78; the input reads
+  themselves aren't yet, so a result still can't be fully tied back to its raw input data.
