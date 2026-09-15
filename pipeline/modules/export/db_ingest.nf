@@ -4,7 +4,7 @@ process DB_INGEST {
     container 'quay.io/biocontainers/psycopg2:2.9.9'
 
     input:
-    tuple val(meta), path(json)
+    tuple val(meta), path(json), path(qc_warnings)
     tuple val(meta2), path(vcf), path(tbi)
 
     output:
@@ -16,6 +16,7 @@ process DB_INGEST {
     ingest_metrics.py \\
         --db-url "${params.db_url}" \\
         --metrics '${json}' \\
+        --qc-warnings '${qc_warnings}' \\
         --vcf '${vcf}' \\
         --log '${meta.id}.ingest.log'
 

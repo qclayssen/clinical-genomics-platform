@@ -11,6 +11,42 @@ import subprocess
 import sys
 
 
+def extract_warning_rows(qc_doc: dict) -> list[dict]:
+    """Flatten a qc_evaluate.py output document into qc_warnings row dicts.
+
+    Only metrics that breached a threshold (status "warn" or "fail") become a
+    row — the `qc_warnings` table records breaches, not clean metrics. See
+    `pipeline/bin/qc_evaluate.py` for the input document shape.
+
+    `threshold_source` is hard-coded to "bootstrap": `qc_evaluate.py` only
+    ever evaluates against the static bootstrap thresholds in
+    `conf/qc_thresholds.yaml` today — adaptive (mean +/- sigma) thresholds are
+    computed by `qc_adaptive.py` but not yet wired into this script. Recording
+    "bootstrap" here is honest about that gap rather than implying adaptive
+    thresholds are already in effect.
+    """
+    rows = []
+    for name, m in qc_doc.get("metrics", {}).items():
+        status = m.get("status")
+        if status not in ("warn", "fail"):
+            continue
+        rows.append(
+            {
+                "metric_name": name,
+                "overall_status": status,
+                "metric_value": m.get("value"),
+                "threshold_warn": m.get("warn_threshold"),
+                "threshold_fail": m.get("fail_threshold"),
+                "threshold_source": "bootstrap",
+                "metrics_detail": {
+                    "direction": m.get("direction"),
+                    "evaluated_at": qc_doc.get("evaluated_at"),
+                },
+            }
+        )
+    return rows
+
+
 def count_variants(vcf: str) -> int:
     try:
         out = subprocess.run(
@@ -26,6 +62,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db-url", required=True)
     ap.add_argument("--metrics", required=True)
+    ap.add_argument("--qc-warnings", required=True)
     ap.add_argument("--vcf", required=True)
     ap.add_argument("--log", required=True)
     args = ap.parse_args()
@@ -34,6 +71,10 @@ def main() -> int:
         rec = json.load(fh)
     prov = rec["provenance"]
     n_variants = count_variants(args.vcf)
+
+    with open(args.qc_warnings) as fh:
+        qc_doc = json.load(fh)
+    warning_rows = extract_warning_rows(qc_doc)
 
     import psycopg2  # imported here so --help works without the driver
 
@@ -79,14 +120,30 @@ def main() -> int:
                 (run_pk, json.dumps(prov.get("input_checksums", {})),
                  prov.get("truth_version")),
             )
-            # 5. audit trail
+            # 5. qc_warnings (one row per threshold breach; insert-only)
+            for row in warning_rows:
+                cur.execute(
+                    """INSERT INTO qc_warnings
+                         (run_pk, sample_id, overall_status, metric_name,
+                          metric_value, threshold_warn, threshold_fail,
+                          threshold_source, metrics_detail)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (run_pk, rec["sample"], row["overall_status"],
+                     row["metric_name"], row["metric_value"],
+                     row["threshold_warn"], row["threshold_fail"],
+                     row["threshold_source"], json.dumps(row["metrics_detail"])),
+                )
+            # 6. audit trail
             cur.execute(
                 """INSERT INTO audit_log (run_pk, action, detail)
                    VALUES (%s, 'INGEST', %s)""",
                 (run_pk, f"ingested {rec['sample']} run {prov['run_id']}"),
             )
         conn.commit()
-        msg = f"ingested {rec['sample']} run {prov['run_id']} ({n_variants} variants)"
+        msg = (
+            f"ingested {rec['sample']} run {prov['run_id']} "
+            f"({n_variants} variants, {len(warning_rows)} qc_warnings)"
+        )
     except Exception as exc:  # noqa: BLE001
         conn.rollback()
         msg = f"FAILED: {exc}"

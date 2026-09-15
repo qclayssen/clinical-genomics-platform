@@ -8,7 +8,7 @@ process FASTP {
 
     output:
     tuple val(meta), path("${meta.id}.trim_{1,2}.fastq.gz"), emit: reads
-    path  "${meta.id}.fastp.json",                            emit: json
+    tuple val(meta), path("${meta.id}.fastp.json"),          emit: json
     path  "${meta.id}.fastp.html",                            emit: html
     path  "versions.yml",                                     emit: versions
 
