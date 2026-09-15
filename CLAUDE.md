@@ -19,6 +19,7 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 |---|---|
 | `pipeline/` | Nextflow DSL2 pipeline: `main.nf`, `nextflow.config`, 12 one-process modules under `modules/`, helper scripts in `bin/`, `assets/`, `conf/` |
 | `infra/` | AWS CDK (TypeScript) app: 6 stacks in `lib/` (data lake, metadata, IAM, orchestration, observability, plus demo hosting only when real AWS credentials are present), wired in `bin/app.ts`, guardrail tests in `test/` |
+| `azure/` | Bicep IaC deploying `api/` as an Azure Container App and `web/`'s build as an Azure Static Web App (ADR-0030) — additive to `infra/`, not a replacement; CI only validates the templates compile |
 | `db/` | Postgres `schema.sql` (insert-only tables + immutability triggers, star-schema warehouse layer), migrations, seed |
 | `dashboards/metabase/` | Version-controlled Metabase dashboard (`dashboard_manifest.yaml`) + REST API provisioning script (`provision_metabase.py`) |
 | `api/` | FastAPI REST service over run/QC/provenance data, with OpenAPI docs (`/docs`, `/redoc`); fixture-backed by default, optional `CGP_DB_URL` for Postgres. Includes `/agent/variant-review`, a thin adapter over the existing agentic variant interpreter (see `ai-report/agent/`) |
@@ -123,6 +124,8 @@ templates without an AWS account.
   fixture-backed by default).
 - **Needs Nextflow + Docker:** the full genomics pipeline on real GIAB data.
 - **Needs an AWS account:** `cdk deploy` (CI only runs `cdk synth`).
+- **Needs an Azure subscription:** `az deployment group create` for `azure/` (CI only runs
+  `bicep build`/`bicep lint`, see [ADR-0030](docs/adr/0030-azure-deployment-api-web.md)).
 - **Needs a GPU:** the full QLoRA fine-tune of the 3B model (the CPU smoke test proves the loop).
 
 Status is tracked honestly in [docs/MILESTONES.md](docs/MILESTONES.md). This is a portfolio

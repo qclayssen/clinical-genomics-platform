@@ -1,0 +1,31 @@
+# Dockerfile for the FastAPI service (api/) — deployed as an Azure Container App
+# (see ../azure/). Fixture-backed by default; set CGP_DB_URL to point at Postgres.
+
+FROM python:3.14-slim AS base
+
+# Upgrade pip, setuptools, wheel to patch CVE-2026-8643, CVE-2026-24049, CVE-2026-23949
+RUN pip install --no-cache-dir --upgrade \
+        pip>=26.0.0 \
+        setuptools>=75.0.0 \
+        wheel>=0.46.0
+
+WORKDIR /app
+
+# Install dependencies
+COPY api/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code.
+# api/routers/agent.py imports `agent.*` as a bare top-level module by adding
+# ai-report/ to sys.path at runtime (see the comment in that file) — no ai-report
+# package install needed, just the directory alongside api/.
+COPY api/ ./api/
+COPY ai-report/agent/ ./ai-report/agent/
+COPY ai-report/guardrails.py ./ai-report/guardrails.py
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')" || exit 1
+
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
