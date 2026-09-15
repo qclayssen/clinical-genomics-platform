@@ -4,8 +4,10 @@ The F1 >= 0.99 threshold is the platform's acceptance criterion (ADR-0003), and
 a failed validation must leave an audit trail — so these tests pin the boundary
 behaviour and the AUDIT write, not just the happy path.
 
-_simulate_validation_metrics() always returns ~0.998, so failure paths are
-exercised by patching it rather than hoping for a low roll.
+_simulate_validation_metrics() samples uniformly in a range symmetric
+around F1_PASS_THRESHOLD, so both pass and fail are reachable in
+principle, but tests still patch it to pin exact boundary behaviour
+rather than relying on a lucky (or unlucky) roll.
 """
 
 import json
@@ -48,7 +50,7 @@ def _with_f1(f1: float):
     """Force the simulated metrics to a specific F1."""
     return patch(
         "lambdas.validation_checker.handler._simulate_validation_metrics",
-        return_value={"precision": f1, "recall": f1, "f1": f1},
+        return_value={"precision": f1, "recall": f1, "f1": f1, "simulated": True},
     )
 
 
@@ -59,10 +61,21 @@ class TestSimulatedMetrics:
         expected = 2 * (m["precision"] * m["recall"]) / (m["precision"] + m["recall"])
         assert m["f1"] == pytest.approx(expected, abs=1e-6)
 
-    def test_metrics_are_in_clinical_range(self):
+    def test_metrics_are_marked_simulated(self):
         m = _simulate_validation_metrics()
-        assert 0.99 < m["precision"] <= 1.0
-        assert 0.99 < m["recall"] <= 1.0
+        assert m["simulated"] is True
+
+    def test_metrics_are_in_symmetric_range_around_threshold(self):
+        """Range is F1_PASS_THRESHOLD +/- 0.01, not bounded to always pass."""
+        m = _simulate_validation_metrics()
+        assert 0.980 <= m["precision"] <= 1.0
+        assert 0.980 <= m["recall"] <= 1.0
+
+    def test_both_pass_and_fail_outcomes_are_reachable(self):
+        """The sampled range must straddle the threshold, not sit above it."""
+        f1_values = [_simulate_validation_metrics()["f1"] for _ in range(500)]
+        assert any(f1 >= F1_PASS_THRESHOLD for f1 in f1_values)
+        assert any(f1 < F1_PASS_THRESHOLD for f1 in f1_values)
 
 
 class TestThreshold:
@@ -113,6 +126,7 @@ class TestResultsWrite:
         assert payload["snp"]["f1"] == 0.9995
         assert payload["validation_pass"] is True
         assert payload["caller"] == "HaplotypeCaller"
+        assert payload["simulated"] is True
 
     def test_results_are_json_serialisable(self, mocks):
         """The payload goes to S3 as JSON — no numpy/Decimal leakage."""
@@ -133,9 +147,11 @@ class TestReturnContract:
             "recall",
             "f1",
             "validation_pass",
+            "simulated",
         }
         assert result["run_id"] == "run_test_001"
         assert result["sample_id"] == "HG002"
+        assert result["simulated"] is True
 
     def test_optional_event_fields_default(self, mocks):
         """vcf_key/caller/n_variants are optional on the Step Functions payload."""
