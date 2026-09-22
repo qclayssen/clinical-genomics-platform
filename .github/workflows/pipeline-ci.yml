@@ -31,6 +31,11 @@ jobs:
           curl -s https://get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
 
+      - name: Install nf-test
+        run: |
+          curl -fsSL https://code.askimed.com/install/nf-test | bash
+          sudo mv nf-test /usr/local/bin/
+
       - name: Nextflow config + lint
         working-directory: pipeline
         run: |
@@ -52,6 +57,10 @@ jobs:
       - name: Stub run (full DAG, no containers needed)
         working-directory: pipeline
         run: nextflow run main.nf -profile test -stub --max_cpus 2
+
+      - name: nf-test suite (module + workflow, stub mode)
+        working-directory: pipeline
+        run: nf-test test
 
       - name: Unit tests + property-based tests (with coverage)
         run: |

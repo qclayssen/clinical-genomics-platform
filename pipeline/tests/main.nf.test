@@ -1,0 +1,17 @@
+nextflow_pipeline {
+
+    name "Test Workflow main.nf"
+    script "main.nf"
+    profile "test"
+
+    test("Stub run of the full DAG (test profile, no containers) succeeds") {
+
+        options "-stub"
+
+        then {
+            assert workflow.success
+        }
+
+    }
+
+}

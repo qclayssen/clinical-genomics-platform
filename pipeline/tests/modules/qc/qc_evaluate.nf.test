@@ -1,0 +1,39 @@
+nextflow_process {
+
+    name "Test Process QC_EVALUATE"
+    script "modules/qc/qc_evaluate.nf"
+    process "QC_EVALUATE"
+
+    test("Stub run emits qc_warnings.json and versions.yml") {
+
+        options "-stub"
+
+        setup {
+            // stub mode never reads these, only needs them to exist as staged inputs
+            "touch fastp.json dup_metrics.txt happy.summary.csv"
+        }
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id: 'test_sample' ],
+                    file('fastp.json'),
+                    file('dup_metrics.txt'),
+                    file('happy.summary.csv')
+                ]
+                input[1] = file("\${projectDir}/conf/qc_thresholds.yaml")
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.warnings.get(0)[0].id == 'test_sample'
+            assert process.out.warnings.get(0)[1].toString().endsWith('test_sample.qc_warnings.json')
+            assert path(process.out.versions.get(0)).text.contains('python')
+        }
+
+    }
+
+}

@@ -41,13 +41,21 @@ workflow {
     ]
 
     // ── Input: sample sheet -> [ meta, [fastq_1, fastq_2] ] ─────────────────
+    // Bare relative paths (only the test-profile samplesheet uses these) are
+    // resolved against projectDir, not the process launch directory — so the
+    // pipeline behaves the same whether invoked from pipeline/, elsewhere, or
+    // from an isolated test runner (nf-test). Absolute paths and scheme URIs
+    // (s3://, gs://, ...) are passed through unchanged.
     Channel
         .fromPath(params.input, checkIfExists: true)
         .splitCsv(header: true)
         .map { row ->
             def meta = [ id: row.sample, caller: params.caller ]
-            tuple(meta, [ file(row.fastq_1, checkIfExists: true),
-                          file(row.fastq_2, checkIfExists: true) ])
+            def fq1 = (row.fastq_1.startsWith('/') || row.fastq_1.contains('://')) ?
+                row.fastq_1 : "${projectDir}/${row.fastq_1}"
+            def fq2 = (row.fastq_2.startsWith('/') || row.fastq_2.contains('://')) ?
+                row.fastq_2 : "${projectDir}/${row.fastq_2}"
+            tuple(meta, [ file(fq1, checkIfExists: true), file(fq2, checkIfExists: true) ])
         }
         .set { ch_reads }
 

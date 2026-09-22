@@ -1,0 +1,41 @@
+nextflow_process {
+
+    name "Test Process HAPLOTYPECALLER"
+    script "modules/call/haplotypecaller.nf"
+    process "HAPLOTYPECALLER"
+
+    test("Stub run emits a gzipped VCF, its index, and versions.yml") {
+
+        options "-stub"
+
+        setup {
+            "touch test_sample.bam test_sample.bam.bai tiny_ref.fa.fai"
+        }
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id: 'test_sample' ],
+                    file('test_sample.bam'),
+                    file('test_sample.bam.bai')
+                ]
+                input[1] = [
+                    file("\${projectDir}/assets/testdata/tiny_ref.fa"),
+                    file('tiny_ref.fa.fai')
+                ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.vcf.get(0)[0].id == 'test_sample'
+            assert process.out.vcf.get(0)[1].toString().endsWith('test_sample.gatk.vcf.gz')
+            assert process.out.vcf.get(0)[2].toString().endsWith('test_sample.gatk.vcf.gz.tbi')
+            assert path(process.out.versions.get(0)).text.contains('gatk4')
+        }
+
+    }
+
+}
