@@ -40,8 +40,11 @@ jobs:
       - name: No cloud executor in Nextflow configs (ADR-0017/ADR-0018)
         working-directory: pipeline
         run: |
-          if grep -rEn "executor\s*=\s*['\"]?aws ?batch" conf/ nextflow.config; then
-            echo "::error::Cloud executor found in a Nextflow config — violates ADR-0017/ADR-0018 (local-only real compute, no standing cloud execution substrate)."
+          # Case-insensitive, unanchored: catches both the scalar form
+          # (executor = 'awsbatch') and the block form (executor { name = 'awsbatch' }),
+          # which a same-line "executor ... awsbatch" pattern would miss.
+          if grep -rniE "aws[ _]?batch" conf/ nextflow.config; then
+            echo "::error::Cloud executor reference found in a Nextflow config — violates ADR-0017/ADR-0018 (local-only real compute, no standing cloud execution substrate)."
             exit 1
           fi
           echo "No cloud executor configured — OK."

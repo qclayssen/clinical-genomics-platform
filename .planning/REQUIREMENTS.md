@@ -35,9 +35,9 @@ milestones can see what already exists.
 | REQ-validation-engine-xcmp | `hap.py` xcmp engine; docs consistent | `pipeline/modules/validate/happy_benchmark.nf`, `docs/VALIDATION.md` |
 | REQ-cicd-tiers | Three-tier workflow architecture present | `.github/workflows/` |
 
-**Known partial deliveries carried into v1 scope below:** REQ-cost-guardrails leaves an
-unresolved compute-substrate gap (→ EXEC); REQ-qc-warnings-self-healing leaves the healer runtime
-unplaced (→ EXEC-03); REQ-iam-least-privilege's deny test does not prove per-role attachment
+**Known partial deliveries carried into v1 scope below:** REQ-cost-guardrails' compute-substrate
+gap and REQ-qc-warnings-self-healing's healer-runtime placement are now resolved — see EXEC-01/02/03
+below, satisfied by ADR-0018; REQ-iam-least-privilege's deny test does not prove per-role attachment
 (→ INTEG-01); REQ-cicd-tiers is not currently blocking (→ CI).
 
 ---

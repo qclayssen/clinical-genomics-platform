@@ -3,10 +3,10 @@ gsd_state_version: '1.0'
 status: planning
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 0
   completed_plans: 0
-  percent: 0
+  percent: 20
 ---
 
 # Project State
@@ -17,17 +17,17 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Every number the platform reports can be traced back to a provenance-stamped,
 truth-set-validated run — and the repo never claims more than it has actually measured.
-**Current focus:** Phase 1 — Execution Substrate Decision
+**Current focus:** Phase 2 — Machine-Verified Integrity
 
 ## Current Position
 
-Phase: 1 of 5 (Execution Substrate Decision)
+Phase: 2 of 5 (Machine-Verified Integrity)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-07-21 — Ingested 36 documents (16 ADRs, 3 SPECs, 17 DOCs); created
-PROJECT.md, REQUIREMENTS.md, ROADMAP.md, STATE.md
+Last activity: 2026-09-22 — Closed out Phase 1 (Execution Substrate Decision): EXEC-01/02/03
+satisfied by ADR-0017/ADR-0018, ADR-0002 annotated, CI guard added.
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
