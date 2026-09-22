@@ -37,6 +37,15 @@ jobs:
           nextflow -version
           nextflow config -profile test,docker > /dev/null
 
+      - name: No cloud executor in Nextflow configs (ADR-0017/ADR-0018)
+        working-directory: pipeline
+        run: |
+          if grep -rEn "executor\s*=\s*['\"]?aws ?batch" conf/ nextflow.config; then
+            echo "::error::Cloud executor found in a Nextflow config — violates ADR-0017/ADR-0018 (local-only real compute, no standing cloud execution substrate)."
+            exit 1
+          fi
+          echo "No cloud executor configured — OK."
+
       - name: Stub run (full DAG, no containers needed)
         working-directory: pipeline
         run: nextflow run main.nf -profile test -stub --max_cpus 2

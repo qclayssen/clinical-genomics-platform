@@ -48,19 +48,31 @@ Current milestone: **close the gap between what the repo claims and what it has 
 
 ### Execution substrate (EXEC) — closes W1, W2
 
-- [ ] **EXEC-01**: A new Accepted ADR records the authoritative answer to "where does real
+- [x] **EXEC-01**: A new Accepted ADR records the authoritative answer to "where does real
       genomics compute run?", choosing explicitly between (a) cloud execution out of scope with
       local Nextflow documented as the sole real-compute path, (b) adopting AWS HealthOmics as a
       built path with the free-tier exception amended into the requirements, or (c) local
       Nextflow as sole real-compute path with cloud scoped to orchestration and metadata only.
-- [ ] **EXEC-02**: No document in the repo states or implies that real genomics compute runs on
+      **Satisfied by [ADR-0018](../docs/adr/0018-execution-substrate-and-healer-llm-runtime.md)**
+      (affirms [ADR-0017](../docs/adr/0017-local-nextflow-sole-real-compute.md)), choosing option
+      (a)/(c): local Nextflow is the sole real-compute path, cloud is orchestration/metadata only.
+- [x] **EXEC-02**: No document in the repo states or implies that real genomics compute runs on
       AWS today in a way that contradicts EXEC-01 — specifically `docs/SOP-run-pipeline.md`,
       `docs/usage.md`, `docs/MILESTONES.md` M4, and the Consequences/Alternatives asides in
       ADR-0002 and ADR-0009 are corrected or annotated.
-- [ ] **EXEC-03**: The healer Lambda's LLM runtime placement is stated in an ADR and matches the
+      **Satisfied:** `docs/SOP-run-pipeline.md` and `docs/usage.md` already state cloud is
+      metadata/storage-only; `docs/MILESTONES.md` M4 is consistent; ADR-0002's stale "runs
+      unchanged on AWS Batch" bullet is now annotated as superseded by ADR-0018; ADR-0009's Batch
+      mention was already only a rejected-alternative aside, not a live claim.
+- [x] **EXEC-03**: The healer Lambda's LLM runtime placement is stated in an ADR and matches the
       code and the CDK: either the rule-based fallback is declared the only cloud-deployed path,
       or an explicit endpoint contract and the healer's memory/timeout are recorded. A test
       asserts the deployed path never requires an in-Lambda Ollama server.
+      **Satisfied:** ADR-0018 §Healer LLM runtime declares `rule_based_classify()` the only
+      cloud-deployed path; `lambdas/healer/handler.py` has no default `OLLAMA_URL`;
+      `tests/test_healer.py::test_no_default_endpoint_means_no_network_call` and
+      `::test_clean_env_handler_is_rule_based`, plus the CDK "no Lambda with a localhost LLM
+      endpoint" test in `infra/test/stacks.test.ts`, enforce it.
 
 ### Tamper-evidence integrity (INTEG) — closes W4
 

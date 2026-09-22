@@ -52,10 +52,14 @@ Progress: [░░░░░░░░░░] 0%
 ADR-0004 (compute) and ADR-0005 (Postgres as primary) are superseded.
 
 Open decisions blocking work:
-- [Phase 1]: Where does real genomics compute run in the cloud? No substrate exists today.
-- [Phase 1]: Where does the healer Lambda's Ollama runtime execute?
 - [Phase 2]: Build the DynamoDB Streams audit sink, or record it as an accepted limitation?
 - [Phase 3]: Keep the locked full-chr20 scope, or narrow it with a new ADR?
+
+Resolved:
+- [Phase 1]: Where does real genomics compute run in the cloud? **Answered by ADR-0018** (affirms
+  ADR-0017): local Nextflow is the sole real-compute path; cloud is orchestration/metadata only.
+- [Phase 1]: Where does the healer Lambda's Ollama runtime execute? **Answered by ADR-0018**:
+  nowhere in the cloud — `rule_based_classify()` is the only deployed path.
 
 ### Pending Todos
 
@@ -63,12 +67,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- **[Phase 1] W1** — ADR-0011 states Lambda cannot run BWA-MEM2/DeepVariant/`hap.py`, and
-  REQ-cost-guardrails forbids Batch/Fargate/NAT/RDS. No cloud execution substrate exists for real
-  genomics compute. Do not plan any task that assumes one.
-- **[Phase 1] W2** — `lambdas/healer/handler.py` calls `http://localhost:11434`; no Ollama
-  endpoint exists in a 512 MB Lambda, and `EscalateToHealer` is currently a Step Functions `Pass`
-  state, not a Lambda invocation.
+- **[Phase 1] W1 — RESOLVED** — ADR-0018 records local Nextflow as the sole real-compute path
+  (no cloud execution substrate, by design); do not plan any task that assumes one exists.
+- **[Phase 1] W2 — RESOLVED** — `lambdas/healer/handler.py` no longer defaults `OLLAMA_URL`;
+  `EscalateToHealer` remains a Step Functions `Pass` state (healer not deployed), and ADR-0018
+  declares `rule_based_classify()` the only cloud-deployed path, enforced by
+  `tests/test_healer.py` and the CDK no-localhost-endpoint test.
 - **[Phase 2] W4** — `infra/test/stacks.test.ts:163` asserts DynamoDB deny actions exist somewhere
   in the IAM template, not that they are attached to every writer role. No Streams audit sink
   exists in `infra/lib/metadata-stack.ts`.
