@@ -51,9 +51,10 @@ workflow {
         .splitCsv(header: true)
         .map { row ->
             def meta = [ id: row.sample, caller: params.caller ]
-            def fq1 = (row.fastq_1.startsWith('/') || row.fastq_1.contains('://')) ?
+            def schemeUri = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/.*/
+            def fq1 = (row.fastq_1.startsWith('/') || row.fastq_1 ==~ schemeUri) ?
                 row.fastq_1 : "${projectDir}/${row.fastq_1}"
-            def fq2 = (row.fastq_2.startsWith('/') || row.fastq_2.contains('://')) ?
+            def fq2 = (row.fastq_2.startsWith('/') || row.fastq_2 ==~ schemeUri) ?
                 row.fastq_2 : "${projectDir}/${row.fastq_2}"
             tuple(meta, [ file(fq1, checkIfExists: true), file(fq2, checkIfExists: true) ])
         }
