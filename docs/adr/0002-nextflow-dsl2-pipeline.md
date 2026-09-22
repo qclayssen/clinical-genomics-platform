@@ -20,6 +20,11 @@ provenance (timeline, trace, DAG).
 **Good**
 - The same pipeline code runs unchanged locally and on AWS Batch — only the profile changes
   ([ADR-0004](0004-aws-cdk-batch-fargate.md)).
+  > **Superseded (ADR-0018, 2026-07-25):** ADR-0004 is itself superseded by ADR-0011, and this
+  > bullet no longer holds — there is no cloud execution substrate. The `aws` profile is
+  > metadata-and-storage only; local Nextflow is the sole real-compute path. See
+  > [ADR-0017](0017-local-nextflow-sole-real-compute.md) and
+  > [ADR-0018](0018-execution-substrate-and-healer-llm-runtime.md).
 - Nextflow's resume/caching and execution reports contribute directly to the provenance and
   reproducibility story.
 - Familiar structure to the target employers; low "translation cost" when reviewing.

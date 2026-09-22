@@ -24,7 +24,7 @@ evidence beside its limits.
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Execution Substrate Decision** - Record one authoritative answer to where real genomics compute runs, and make every document agree with it
+- [x] **Phase 1: Execution Substrate Decision** - Record one authoritative answer to where real genomics compute runs, and make every document agree with it
 - [ ] **Phase 2: Machine-Verified Integrity** - Make the blocking CI posture and the tamper-evidence guarantee true for the primary store, not just the replica
 - [ ] **Phase 3: Full-Scope Validation Evidence** - Measure SNV F1 over the full locked chr20 scope at representative depth and record it honestly
 - [ ] **Phase 4: Documentation Accuracy** - Bring CLAUDE.md, the ADR index and cross-references back in line with 16 ADRs and the current architecture
@@ -164,7 +164,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Execution Substrate Decision | 0/TBD | Not started | - |
+| 1. Execution Substrate Decision | 1/1 | Complete | 2026-09-22 |
 | 2. Machine-Verified Integrity | 0/TBD | Not started | - |
 | 3. Full-Scope Validation Evidence | 0/TBD | Not started | - |
 | 4. Documentation Accuracy | 0/TBD | Not started | - |

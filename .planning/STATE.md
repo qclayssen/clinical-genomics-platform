@@ -3,10 +3,10 @@ gsd_state_version: '1.0'
 status: planning
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 0
   completed_plans: 0
-  percent: 0
+  percent: 20
 ---
 
 # Project State
@@ -17,17 +17,17 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Every number the platform reports can be traced back to a provenance-stamped,
 truth-set-validated run — and the repo never claims more than it has actually measured.
-**Current focus:** Phase 1 — Execution Substrate Decision
+**Current focus:** Phase 2 — Machine-Verified Integrity
 
 ## Current Position
 
-Phase: 1 of 5 (Execution Substrate Decision)
+Phase: 2 of 5 (Machine-Verified Integrity)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-07-21 — Ingested 36 documents (16 ADRs, 3 SPECs, 17 DOCs); created
-PROJECT.md, REQUIREMENTS.md, ROADMAP.md, STATE.md
+Last activity: 2026-09-22 — Closed out Phase 1 (Execution Substrate Decision): EXEC-01/02/03
+satisfied by ADR-0017/ADR-0018, ADR-0002 annotated, CI guard added.
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -52,10 +52,14 @@ Progress: [░░░░░░░░░░] 0%
 ADR-0004 (compute) and ADR-0005 (Postgres as primary) are superseded.
 
 Open decisions blocking work:
-- [Phase 1]: Where does real genomics compute run in the cloud? No substrate exists today.
-- [Phase 1]: Where does the healer Lambda's Ollama runtime execute?
 - [Phase 2]: Build the DynamoDB Streams audit sink, or record it as an accepted limitation?
 - [Phase 3]: Keep the locked full-chr20 scope, or narrow it with a new ADR?
+
+Resolved:
+- [Phase 1]: Where does real genomics compute run in the cloud? **Answered by ADR-0018** (affirms
+  ADR-0017): local Nextflow is the sole real-compute path; cloud is orchestration/metadata only.
+- [Phase 1]: Where does the healer Lambda's Ollama runtime execute? **Answered by ADR-0018**:
+  nowhere in the cloud — `rule_based_classify()` is the only deployed path.
 
 ### Pending Todos
 
@@ -63,12 +67,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- **[Phase 1] W1** — ADR-0011 states Lambda cannot run BWA-MEM2/DeepVariant/`hap.py`, and
-  REQ-cost-guardrails forbids Batch/Fargate/NAT/RDS. No cloud execution substrate exists for real
-  genomics compute. Do not plan any task that assumes one.
-- **[Phase 1] W2** — `lambdas/healer/handler.py` calls `http://localhost:11434`; no Ollama
-  endpoint exists in a 512 MB Lambda, and `EscalateToHealer` is currently a Step Functions `Pass`
-  state, not a Lambda invocation.
+- **[Phase 1] W1 — RESOLVED** — ADR-0018 records local Nextflow as the sole real-compute path
+  (no cloud execution substrate, by design); do not plan any task that assumes one exists.
+- **[Phase 1] W2 — RESOLVED** — `lambdas/healer/handler.py` no longer defaults `OLLAMA_URL`;
+  `EscalateToHealer` remains a Step Functions `Pass` state (healer not deployed), and ADR-0018
+  declares `rule_based_classify()` the only cloud-deployed path, enforced by
+  `tests/test_healer.py` and the CDK no-localhost-endpoint test.
 - **[Phase 2] W4** — `infra/test/stacks.test.ts:163` asserts DynamoDB deny actions exist somewhere
   in the IAM template, not that they are attached to every writer role. No Streams audit sink
   exists in `infra/lib/metadata-stack.ts`.
