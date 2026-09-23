@@ -1,0 +1,36 @@
+nextflow_process {
+
+    name "Test Process FASTP"
+    script "modules/qc/fastp.nf"
+    process "FASTP"
+
+    test("Stub run emits trimmed reads, fastp JSON/HTML, and versions.yml") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id: 'test_sample' ],
+                    [
+                        file("\${projectDir}/assets/testdata/HG002_chr20_R1.fastq.gz"),
+                        file("\${projectDir}/assets/testdata/HG002_chr20_R2.fastq.gz")
+                    ]
+                ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.reads.get(0)[0].id == 'test_sample'
+            assert process.out.reads.get(0)[1].size() == 2
+            assert process.out.json.get(0)[1].toString().endsWith('test_sample.fastp.json')
+            assert process.out.html.get(0).toString().endsWith('test_sample.fastp.html')
+            assert path(process.out.versions.get(0)).text.contains('fastp')
+        }
+
+    }
+
+}

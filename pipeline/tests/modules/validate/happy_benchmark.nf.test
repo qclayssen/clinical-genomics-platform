@@ -1,0 +1,43 @@
+nextflow_process {
+
+    name "Test Process HAPPY_BENCHMARK"
+    script "modules/validate/happy_benchmark.nf"
+    process "HAPPY_BENCHMARK"
+
+    test("Stub run emits a hap.py summary CSV and versions.yml") {
+
+        options "-stub"
+
+        setup {
+            "touch test_sample.gatk.vcf.gz test_sample.gatk.vcf.gz.tbi tiny_ref.fa.fai"
+        }
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id: 'test_sample' ],
+                    file('test_sample.gatk.vcf.gz'),
+                    file('test_sample.gatk.vcf.gz.tbi')
+                ]
+                input[1] = file("\${projectDir}/assets/testdata/tiny_truth.vcf.gz")
+                input[2] = file("\${projectDir}/assets/testdata/tiny_truth.bed")
+                input[3] = [
+                    file("\${projectDir}/assets/testdata/tiny_ref.fa"),
+                    file('tiny_ref.fa.fai')
+                ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.summary.get(0)[0].id == 'test_sample'
+            assert process.out.summary.get(0)[1].toString().endsWith('test_sample.happy.summary.csv')
+            assert path(process.out.summary.get(0)[1]).text.contains('METRIC.F1_Score')
+            assert path(process.out.versions.get(0)).text.contains('hap.py')
+        }
+
+    }
+
+}

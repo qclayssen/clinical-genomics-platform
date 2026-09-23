@@ -7,6 +7,10 @@ demo/.local/
 work/
 work_*/
 results/
+
+# nf-test
+.nf-test/
+.nf-test.log
 pipeline/assets/reference/*
 pipeline/assets/truth/*
 pipeline/assets/testdata/*
