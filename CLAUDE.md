@@ -29,7 +29,7 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | `ai-report/` | PyTorch QLoRA fine-tune + inference (`infer.py`, `train_lora.py`, `train_smoke.py`, `make_dataset.py`), `MODEL_CARD.md` |
 | `docker/` | `Dockerfile.tools` (helper scripts) and `Dockerfile.demo` (Streamlit app). The per-stage tool containers are Biocontainer images pinned in each module's `container` directive, not Dockerfiles here |
 | `docs/` | Beginner's guide, glossary, `VALIDATION.md`, `SOP-run-pipeline.md`, `MILESTONES.md`, `FOR-RECRUITERS.md` |
-| `docs/adr/` | 29 Architecture Decision Records (append-only); see `README.md` there for the index |
+| `docs/adr/` | 31 Architecture Decision Records (append-only); see `README.md` there for the index |
 | `lambdas/` | Python handlers for the serverless path (ADR-0011): `ingestion_trigger`, `metadata_ingestor`, `qc_orchestrator`, `validation_checker`, `variant_calling`, `report_generator`, `export_handler`, the LLM `healer` (ADR-0018), and `shared/` helpers. Covered by `pytest` and the CI coverage gate |
 | `demo/` | Streamlit walkthrough app (home / data explorer / pipeline assistant) over the committed fixtures — a browsable demo, not part of the pipeline |
 | `scripts/` | Helper scripts: `fetch_testdata.sh` (stage real GIAB data), `preflight.sh` (contig-name consistency check before a real run), `make_tiny_testdata.py`, `build_chr20_knowledgebase.py`, plus local agent-routing utilities |
@@ -84,9 +84,17 @@ templates without an AWS account.
 
 ## Non-negotiable design rules
 
-- **Insert-only results/provenance.** `runs`, `qc_metrics`, `run_provenance`, `audit_log` are
-  append-only; DB triggers (`forbid_mutation()`) reject UPDATE/DELETE. A correction is a *new*
-  run row, never an edit. ([db/schema.sql](db/schema.sql), [ADR-0005](docs/adr/0005-insert-only-postgres.md))
+- **Insert-only results/provenance — amend, never erase.** A correction is a *new* record,
+  never an edit. The strength of that guarantee differs by store, and docs must say which:
+  - **DynamoDB `cgp-metadata` (primary store):** append-only via an IAM deny on
+    `DeleteItem`/`UpdateItem`/`DeleteTable`, asserted per writer role in
+    `infra/test/stacks.test.ts`. IAM is a perimeter control — a table admin or the account root
+    can bypass it, and no real-time detective control exists (the Streams audit sink was never
+    built). ([ADR-0012](docs/adr/0012-dynamodb-primary-store.md), [ADR-0031](docs/adr/0031-dynamodb-streams-audit-sink-accepted-limitation.md))
+  - **Postgres replica:** `runs`, `qc_metrics`, `run_provenance`, `audit_log` are append-only;
+    `forbid_mutation()` triggers reject UPDATE/DELETE/TRUNCATE inside the database, verified by
+    `db-ci.yml`. ([db/schema.sql](db/schema.sql), [ADR-0005](docs/adr/0005-insert-only-postgres.md))
+  Never describe the primary store as having unbypassable immutability.
 - **Every result carries a provenance stamp.** Git commit, pipeline version, reference build,
   truth-set version, and SHA-256 checksums — built into `metrics.json` by
   `pipeline/bin/build_metrics.py` and threaded from `main.nf`. Never remove fields from it.

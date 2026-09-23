@@ -76,7 +76,9 @@ This platform implements the full path from sequencing data to clinical insight:
 > **Nextflow style, not the nf-core template.** The pipeline follows nf-core conventions
 > (DSL2, one process per module, `conf/modules.config`, per-process `versions.yml`, module
 > `meta.yml`) but is hand-written — it does not include the template's `subworkflows/nf-core/utils_*`
-> backbone, nf-schema validation, or nf-test suite, and would not pass `nf-core lint` cleanly.
+> backbone or nf-schema validation, and would not pass `nf-core lint` cleanly. It does have an
+> `nf-test` suite (`pipeline/tests/`, stub mode) covering the QC, calling and validation modules
+> plus a full-workflow run, executed in CI.
 
 > **Scope honesty.** This is a portfolio project. It demonstrates the validation methodology
 > and traceability patterns ISO 15189 / NATA accreditation requires (benchmarking against a

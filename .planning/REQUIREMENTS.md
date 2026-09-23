@@ -37,8 +37,8 @@ milestones can see what already exists.
 
 **Known partial deliveries carried into v1 scope below:** REQ-cost-guardrails' compute-substrate
 gap and REQ-qc-warnings-self-healing's healer-runtime placement are now resolved — see EXEC-01/02/03
-below, satisfied by ADR-0018; REQ-iam-least-privilege's deny test does not prove per-role attachment
-(→ INTEG-01); REQ-cicd-tiers is not currently blocking (→ CI).
+below, satisfied by ADR-0018; REQ-iam-least-privilege's per-role deny attachment and
+REQ-cicd-tiers' blocking posture are resolved too — see INTEG-01 and CI-01/02/03 below.
 
 ---
 
@@ -76,27 +76,44 @@ Current milestone: **close the gap between what the repo claims and what it has 
 
 ### Tamper-evidence integrity (INTEG) — closes W4
 
-- [ ] **INTEG-01**: A CDK guardrail test asserts the `dynamodb:DeleteItem`, `dynamodb:UpdateItem`
+- [x] **INTEG-01**: A CDK guardrail test asserts the `dynamodb:DeleteItem`, `dynamodb:UpdateItem`
       and `dynamodb:DeleteTable` deny statements are attached to **every** Lambda role that can
       write to `cgp-metadata` — not merely present somewhere in the synthesized template.
-- [ ] **INTEG-02**: ADR-0012's compensating control #2 (DynamoDB Streams → append-only audit
+      **Satisfied:** `infra/test/stacks.test.ts` "every role that can write to DynamoDB carries
+      the DynamoDB mutation deny". Mutation-checked: dropping the deny from one role fails it
+      while the older any-role test still passes.
+- [x] **INTEG-02**: ADR-0012's compensating control #2 (DynamoDB Streams → append-only audit
       sink) is either built and asserted by a guardrail test, or recorded in an ADR as an
       accepted, named limitation with the residual risk stated.
-- [ ] **INTEG-03**: Every tamper-evidence claim in the repo distinguishes the primary store's
+      **Satisfied (limitation route):** [ADR-0031](../docs/adr/0031-dynamodb-streams-audit-sink-accepted-limitation.md).
+- [x] **INTEG-03**: Every tamper-evidence claim in the repo distinguishes the primary store's
       IAM-based, bypassable control from the replica's trigger-based, data-level control, so no
       document implies the primary store has unbypassable immutability.
+      **Satisfied:** `CLAUDE.md`'s design rule now states each store's control separately;
+      `docs/END-TO-END.md` and `docs/FOR-RECRUITERS.md` already attribute the trigger guarantee
+      to Postgres only.
 
 ### Machine-verified CI (CI)
 
-- [ ] **CI-01**: `db-ci.yml` fails the job — non-zero exit, red status check — when schema apply,
+- [x] **CI-01**: `db-ci.yml` fails the job — non-zero exit, red status check — when schema apply,
       migration idempotency, seed load, or any immutability trigger test does not behave as
       expected. No result is swallowed by `|| true` or `|| echo`.
-- [ ] **CI-02**: Every pull request produces 6 or more status checks, and the Tier 1 and Tier 2
+      **Satisfied:** the immutability step already ended in `exit 1` on any unblocked mutation.
+      The gap was elsewhere: `psql -f` exits 0 on failing statements unless `ON_ERROR_STOP` is
+      set, so schema apply, migration and seed could pass on broken SQL. All three now run with
+      `-v ON_ERROR_STOP=1`. No `|| true` / `|| echo` exists in `db-ci.yml`.
+- [x] **CI-02**: Every pull request produces 6 or more status checks, and the Tier 1 and Tier 2
       workflows named in ADR-0016 report pass/fail honestly rather than reporting green on
       internal failure.
-- [ ] **CI-03**: The repo state matches ADR-0016 on blocking posture: either the non-blocking
+      **Satisfied:** PRs #84 and #85 each reported 14–15 checks. `lint.yml`, `pipeline-ci.yml`,
+      `infra-ci.yml`, `db-ci.yml` and `security.yml` contain no `|| true`, `|| echo` or
+      `continue-on-error` (the remaining `|| true` uses in `coverage.yml`/`maintenance.yml`
+      guard optional installs and a no-match `grep`, not test results).
+- [x] **CI-03**: The repo state matches ADR-0016 on blocking posture: either the non-blocking
       working-tree change is reverted, or it is committed alongside a new ADR that supersedes
       ADR-0016's blocking requirement and states why.
+      **Satisfied:** the non-blocking working-tree change described in `STATE.md` is not present
+      in the repo; committed workflows already match ADR-0016's blocking posture.
 
 ### Validation evidence (VAL) — closes W3
 
@@ -168,15 +185,15 @@ Acknowledged, deferred, not in the current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EXEC-01 | Phase 1 | Pending |
-| EXEC-02 | Phase 1 | Pending |
-| EXEC-03 | Phase 1 | Pending |
-| INTEG-01 | Phase 2 | Pending |
-| INTEG-02 | Phase 2 | Pending |
-| INTEG-03 | Phase 2 | Pending |
-| CI-01 | Phase 2 | Pending |
-| CI-02 | Phase 2 | Pending |
-| CI-03 | Phase 2 | Pending |
+| EXEC-01 | Phase 1 | Complete |
+| EXEC-02 | Phase 1 | Complete |
+| EXEC-03 | Phase 1 | Complete |
+| INTEG-01 | Phase 2 | Complete |
+| INTEG-02 | Phase 2 | Complete |
+| INTEG-03 | Phase 2 | Complete |
+| CI-01 | Phase 2 | Complete |
+| CI-02 | Phase 2 | Complete |
+| CI-03 | Phase 2 | Complete |
 | VAL-01 | Phase 3 | Pending |
 | VAL-02 | Phase 3 | Pending |
 | VAL-03 | Phase 3 | Pending |
