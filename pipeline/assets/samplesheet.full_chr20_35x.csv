@@ -1,0 +1,2 @@
+sample,fastq_1,fastq_2
+HG002_chr20_35x,assets/testdata/real/full_chr20/HG002_chr20_35x_R1.fastq.gz,assets/testdata/real/full_chr20/HG002_chr20_35x_R2.fastq.gz

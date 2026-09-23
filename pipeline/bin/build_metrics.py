@@ -66,6 +66,22 @@ def parse_happy(path: str) -> dict:
     return out
 
 
+def parse_tool_versions(path: str) -> dict:
+    """Extract {tool: version} from an nf-core versions.yml fragment.
+
+    The shape is fixed by the modules that emit it (``"PROCESS":`` then indented
+    ``tool: version`` lines), so a line parser avoids a YAML dependency here.
+    """
+    versions = {}
+    with open(path) as fh:
+        for line in fh:
+            if not line.startswith((" ", "\t")) or ":" not in line:
+                continue
+            tool, _, version = line.strip().partition(":")
+            versions[tool.strip().strip('"')] = version.strip().strip('"')
+    return versions
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sample", required=True)
@@ -73,6 +89,7 @@ def main() -> int:
     ap.add_argument("--happy-summary", required=True)
     ap.add_argument("--provenance", required=True, help="JSON string")
     ap.add_argument("--inputs", required=True, help="comma-separated input files to checksum")
+    ap.add_argument("--caller-versions", help="the variant caller's versions.yml")
     ap.add_argument("--output", required=True)
     args = ap.parse_args()
 
@@ -81,6 +98,9 @@ def main() -> int:
     provenance["input_checksums"] = {
         Path(p).name: sha256(p) for p in args.inputs.split(",") if p and Path(p).exists()
     }
+    if args.caller_versions:
+        # Reported by the caller process itself, not asserted from config
+        provenance["caller_version"] = parse_tool_versions(args.caller_versions)
 
     happy = parse_happy(args.happy_summary)
     snp_f1 = (happy.get("snp") or {}).get("f1")
