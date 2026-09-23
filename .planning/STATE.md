@@ -3,10 +3,10 @@ gsd_state_version: '1.0'
 status: planning
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 0
   completed_plans: 0
-  percent: 40
+  percent: 60
 ---
 
 # Project State
@@ -24,12 +24,12 @@ truth-set-validated run — and the repo never claims more than it has actually 
 Phase: 3 of 5 (Full-Scope Validation Evidence)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-09-24 — Closed out Phase 2 (Machine-Verified Integrity): per-role IAM deny
+Last activity: 2026-09-24 — Closed Phase 4 (DOC-01/02/03) ahead of Phase 3. Earlier: Closed out Phase 2 (Machine-Verified Integrity): per-role IAM deny
 test (INTEG-01), ADR-0031 records the Streams audit sink as an accepted limitation (INTEG-02),
 CLAUDE.md distinguishes IAM vs trigger controls (INTEG-03), db-ci.yml psql steps now fail on
 SQL errors (CI-01).
 
-Progress: [████░░░░░░] 40%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -84,9 +84,9 @@ None yet.
   fixed with `ON_ERROR_STOP=1`.
 - **[Phase 3] W3** — measured validation covers `chr20:1,000,000-2,000,000` at 255.8× depth.
   ADR-0001 locks full chr20. Requires Nextflow + Docker + the staged 11 GB BAM locally.
-- **[Phase 4] Doc drift — partly resolved** — `CLAUDE.md` now states the correct ADR count (31)
-  and no longer presents insert-only Postgres as the primary store's guarantee. Remaining Phase 4
-  scope: the ADR cross-reference audit (DOC-02/DOC-03).
+- **[Phase 4] Doc drift — RESOLVED** — DOC-01/02/03 closed ahead of Phase 3 (its ordering
+  dependency was on the measured numbers; none of the DOC items needed them). If Phase 3 changes
+  the validated scope, re-check `CLAUDE.md` and `docs/VALIDATION.md` then.
 
 ## Deferred Items
 

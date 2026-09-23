@@ -130,13 +130,20 @@ Current milestone: **close the gap between what the repo claims and what it has 
 
 ### Documentation accuracy (DOC)
 
-- [ ] **DOC-01**: `CLAUDE.md` reflects reality — the correct ADR count, ADR-0012's supersession
+- [x] **DOC-01**: `CLAUDE.md` reflects reality — the correct ADR count, ADR-0012's supersession
       of insert-only Postgres as the primary store, and a non-negotiables list that no longer
       contradicts a locked ADR.
-- [ ] **DOC-02**: `docs/adr/README.md` indexes every ADR file on disk, with correct status
+      **Satisfied (in #86):** ADR count 31; the insert-only rule now separates the DynamoDB
+      primary store's IAM control from the Postgres replica's trigger control.
+- [x] **DOC-02**: `docs/adr/README.md` indexes every ADR file on disk, with correct status
       including all supersessions.
-- [ ] **DOC-03**: `docs/ROADMAP.md`'s dangling reference to `docs/adr/0014-spatial-genomics-direction.md`
+      **Satisfied:** scripted check — all 31 files (0001–0031) have an index row; 0004/0005 show
+      "Superseded", 0012 shows "amended by 0031".
+- [x] **DOC-03**: `docs/ROADMAP.md`'s dangling reference to `docs/adr/0014-spatial-genomics-direction.md`
       is corrected — number 0014 is taken by the agentic variant interpretation ADR.
+      **Satisfied:** P3-1 now says "next free number"; the same stale-number problem in P2-1
+      ("ADR-0013", now the QC-warnings ADR) fixed too. A scripted scan of every tracked `.md`
+      finds no other link to a non-existent ADR file outside `.planning/` history.
 
 ### Reviewer clickthrough (DEMO)
 
@@ -197,9 +204,9 @@ Acknowledged, deferred, not in the current roadmap.
 | VAL-01 | Phase 3 | Pending |
 | VAL-02 | Phase 3 | Pending |
 | VAL-03 | Phase 3 | Pending |
-| DOC-01 | Phase 4 | Pending |
-| DOC-02 | Phase 4 | Pending |
-| DOC-03 | Phase 4 | Pending |
+| DOC-01 | Phase 4 | Complete |
+| DOC-02 | Phase 4 | Complete |
+| DOC-03 | Phase 4 | Complete |
 | DEMO-01 | Phase 5 | Pending |
 | DEMO-02 | Phase 5 | Pending |
 | DEMO-03 | Phase 5 | Pending |
