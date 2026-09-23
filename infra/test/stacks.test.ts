@@ -197,6 +197,44 @@ describe('CGP infrastructure invariants', () => {
       expect(denyActions).toContain('s3:DeleteObject');
     });
 
+    // INTEG-01: the test above only proves the deny actions exist *somewhere* in
+    // the template. This one proves they are attached to *each* role that can
+    // write to the metadata table, so dropping the deny from a single role fails.
+    test('every role that can write to DynamoDB carries the DynamoDB mutation deny', () => {
+      const resources = iamTemplate.toJSON().Resources ?? {};
+      const statementsByRole = new Map<string, any[]>();
+      for (const [logicalId, r] of Object.entries(resources) as [string, any][]) {
+        if (r.Type === 'AWS::IAM::Role') statementsByRole.set(logicalId, []);
+      }
+      for (const r of Object.values(resources) as any[]) {
+        if (r.Type !== 'AWS::IAM::Policy') continue;
+        const statements = r.Properties?.PolicyDocument?.Statement ?? [];
+        for (const roleRef of r.Properties?.Roles ?? []) {
+          statementsByRole.get(roleRef.Ref)?.push(...statements);
+        }
+      }
+
+      const asList = (v: any) => (Array.isArray(v) ? v : [v]);
+      const requiredDenies = ['dynamodb:DeleteItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteTable'];
+      const writers = [...statementsByRole.entries()].filter(([, stmts]) =>
+        stmts.some((s) => s.Effect !== 'Deny' &&
+          asList(s.Action).some((a: string) => a.startsWith('dynamodb:'))),
+      );
+
+      // metadataIngestor and reportGenerator both write to cgp-metadata; guards
+      // against the filter silently matching nothing.
+      expect(writers.length).toBeGreaterThanOrEqual(2);
+      for (const [roleId, stmts] of writers) {
+        const denied = new Set(
+          stmts.filter((s) => s.Effect === 'Deny').flatMap((s) => asList(s.Action)),
+        );
+        for (const action of requiredDenies) {
+          expect({ role: roleId, action, denied: denied.has(action) })
+            .toEqual({ role: roleId, action, denied: true });
+        }
+      }
+    });
+
     test('no IAM policy grants * resource ARN in non-deny statements (except DenyPrivilegeEscalation)', () => {
       const resources = iamTemplate.toJSON().Resources ?? {};
       const policies = Object.values(resources).filter(

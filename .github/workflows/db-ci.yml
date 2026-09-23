@@ -44,18 +44,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # psql -f exits 0 even when statements in the file fail unless
+      # ON_ERROR_STOP is set — without it these steps report green on broken SQL.
       - name: Apply schema.sql
-        run: psql -f db/schema.sql
+        run: psql -v ON_ERROR_STOP=1 -f db/schema.sql
 
       - name: Apply migration 0001_init.sql (idempotency check)
         run: |
           psql -c "DROP DATABASE IF EXISTS cgp_migration_test;"
           psql -c "CREATE DATABASE cgp_migration_test;"
-          PGDATABASE=cgp_migration_test psql -f db/schema.sql
+          PGDATABASE=cgp_migration_test psql -v ON_ERROR_STOP=1 -f db/schema.sql
           echo "Migration idempotency check done"
 
       - name: Load seed data
-        run: psql -f db/seed_demo.sql
+        run: psql -v ON_ERROR_STOP=1 -f db/seed_demo.sql
 
       - name: Test immutability triggers
         run: |
