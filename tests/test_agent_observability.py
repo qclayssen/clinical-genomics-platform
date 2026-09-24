@@ -415,3 +415,13 @@ def test_repository_columns_exist_in_table():
     block = _create_table_block((_ROOT / "db" / "schema.sql").read_text())
     for col in AGENT_CALL_METRICS_COLUMNS:
         assert re.search(rf"^\s+{col}\s", block, re.M), col
+
+
+def test_failed_local_call_keeps_zero_cost():
+    """A failed Ollama/deterministic call must not null the run's cost."""
+    local = obs.record_for_failed_call(iteration=0, backend="ollama",
+                                       model_id="ollama/llama3.2", latency_ms=12.0)
+    assert local.estimated_cost_usd == 0.0
+    remote = obs.record_for_failed_call(iteration=0, backend="openai",
+                                        model_id="gpt-4o-mini", latency_ms=12.0)
+    assert remote.estimated_cost_usd is None

@@ -157,7 +157,11 @@ def record_for_failed_call(
     *, iteration: int, backend: str, model_id: str, latency_ms: float,
     trace_step_index: Optional[int] = None,
 ) -> LLMCallRecord:
-    """A call that raised: latency is real, tokens/cost are unknown."""
+    """A call that raised: latency is real, tokens are unknown.
+
+    Cost goes through ``estimate_cost_usd`` so local backends stay 0.0 and
+    only priced remote models become unknown.
+    """
     return LLMCallRecord(
         iteration=iteration,
         backend=backend,
@@ -165,7 +169,7 @@ def record_for_failed_call(
         prompt_tokens=None,
         completion_tokens=None,
         latency_ms=latency_ms,
-        estimated_cost_usd=None,
+        estimated_cost_usd=estimate_cost_usd(model_id, None, None),
         stop_reason="error",
         trace_step_index=trace_step_index,
         error=True,

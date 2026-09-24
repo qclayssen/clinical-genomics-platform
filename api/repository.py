@@ -16,6 +16,7 @@ token/latency/estimated-cost aggregates, insert-only, counts/ids only.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from itertools import count
 from pathlib import Path
@@ -150,7 +151,10 @@ class PostgresRepository:
         import psycopg
         from psycopg.rows import dict_row
 
-        return psycopg.connect(self._dsn, row_factory=dict_row)
+        # Bounded connect so an unreachable DB fails fast instead of hanging the
+        # request for the OS TCP timeout (the agent metrics write is best-effort).
+        timeout = int(os.environ.get("CGP_DB_CONNECT_TIMEOUT", "5"))
+        return psycopg.connect(self._dsn, row_factory=dict_row, connect_timeout=timeout)
 
     @staticmethod
     def _row_to_run(row: dict) -> Run:

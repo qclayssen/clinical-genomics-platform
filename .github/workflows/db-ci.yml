@@ -63,6 +63,19 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f db/migrations/0002_agent_call_metrics.sql
           psql -v ON_ERROR_STOP=1 -f db/migrations/0002_agent_call_metrics.sql
 
+      - name: Apply migration 0002 to a pre-AI-8 schema (upgrade path)
+        run: |
+          psql -c "DROP DATABASE IF EXISTS cgp_upgrade_test;"
+          psql -c "CREATE DATABASE cgp_upgrade_test;"
+          export PGDATABASE=cgp_upgrade_test
+          psql -v ON_ERROR_STOP=1 -f db/schema.sql
+          # Simulate a database created before agent_call_metrics existed.
+          psql -v ON_ERROR_STOP=1 -c "DROP TABLE agent_call_metrics CASCADE;"
+          psql -v ON_ERROR_STOP=1 -f db/migrations/0002_agent_call_metrics.sql
+          psql -v ON_ERROR_STOP=1 -f db/migrations/0002_agent_call_metrics.sql
+          psql -tA -c "SELECT count(*) FROM pg_trigger WHERE tgrelid = 'agent_call_metrics'::regclass AND NOT tgisinternal;" | grep -qv '^0$'
+          echo "Upgrade path OK: table and triggers created by 0002"
+
       - name: Load seed data
         run: psql -v ON_ERROR_STOP=1 -f db/seed_demo.sql
 
