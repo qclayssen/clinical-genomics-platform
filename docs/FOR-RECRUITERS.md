@@ -2,7 +2,7 @@
      doc-index: skills=[bioinformatics, AWS CDK, data engineering, applied ML, agentic AI,
      multi-cloud LLM integration (Azure AI Foundry, AWS Bedrock), FHIR/HL7 intake, REST API + React];
      scope: complete solo-built platform; validation: ISO 15189 patterns, hap.py benchmarking;
-     delivery: autonomous, end-to-end, 28 architecture decision records documenting trade-offs. -->
+     delivery: autonomous, end-to-end, 31 architecture decision records documenting trade-offs. -->
 
 # For Recruiters & Hiring Managers
 
