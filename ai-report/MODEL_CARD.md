@@ -35,9 +35,46 @@ practice for responsible ML.
 2. **Training.** QLoRA supervised fine-tuning (`train_lora.py`) — 4-bit base model, LoRA
    adapters on the attention projections, single GPU, a few hours. A CPU **smoke test**
    (`train_smoke.py`) runs the identical loop on a tiny model in ~1 minute for CI.
-3. **Serving.** `infer.py` loads the base model + adapter and generates; if the model path
+3. **Tracking & registry (opt-in).** Run either trainer with `--mlflow` (needs
+   `pip install mlflow`) to record the run in a local MLflow store — see
+   [Experiment tracking & provenance](#experiment-tracking--provenance) below.
+4. **Serving.** `infer.py` loads the base model + adapter and generates; if the model path
    is unavailable it degrades to a zero-shot prompt, then to a deterministic offline
    renderer — so a report is always produced.
+
+## Experiment tracking & provenance
+
+Training is tracked with **MLflow** when the `--mlflow` flag is passed
+([ADR-0035](../docs/adr/0035-mlflow-local-tracking-model-registry.md); shared logic in
+`tracking.py`). It is opt-in: without the flag, or without `mlflow` installed, the trainers run
+exactly as before (the latter with a warning).
+
+```bash
+pip install mlflow
+python ai-report/train_smoke.py --mlflow                       # CPU, ~1 min
+python ai-report/train_lora.py --data data/synth_report_pairs.jsonl --mlflow   # GPU
+mlflow ui --backend-store-uri sqlite:///ai-report/mlruns/mlflow.db   # http://127.0.0.1:5000
+```
+
+The store is local only (SQLite + artifacts under `ai-report/mlruns/`, gitignored; set
+`MLFLOW_TRACKING_URI` to use another). Each tracked run records:
+
+| Kind | What |
+|---|---|
+| Params | learning rate, epochs/steps, batch/accumulation, sequence length, quantization, LoRA r/alpha/dropout/target modules |
+| Metrics | loss curve (`loss` per logged step), `grad_norm`, `learning_rate`, final `train_loss` |
+| Tags | `git_commit` (`-dirty` if uncommitted or untracked changes), `dataset_sha256`, `base_model`, `version.torch/transformers/peft/datasets/trl/mlflow`, `adapter_sha256` (adapter files only, `checkpoint-*` excluded) |
+| Artifact | the saved LoRA adapter directory (`adapter/`) |
+
+The adapter is then **registered** as a new version of `cgp-report-drafter-adapter` in the local
+model registry. **That registered version (`cgp-report-drafter-adapter/<n>`) is the provenance
+reference for the adapter**: it links to the run, and through its tags to the exact code,
+data, base model and library stack. An adapter trained without `--mlflow` has no such record.
+
+Known gaps: the registered version is not yet written into `infer.py`'s output, so a draft does
+not itself name the adapter version that produced it; and the MLflow store is mutable (runs and
+versions can be deleted) — it is a traceability aid, not covered by the insert-only guarantees
+of the results stores.
 
 ## Guardrails (enforced in code, see ADR-0008)
 

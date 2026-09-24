@@ -9,12 +9,17 @@ model, 4-bit QLoRA, a GPU) see train_lora.py and docs/adr/0007.
 
   pip install torch transformers datasets peft   # CPU wheels are fine
   python train_smoke.py                           # uses data/report_pairs.sample.jsonl
+  python train_smoke.py --mlflow                  # + local MLflow tracking/registry (pip install mlflow)
 
 The PyTorch stack here is the same family used by the real trainer:
 transformers (model + Trainer) + peft (LoRA). Only the model size and quantization differ.
 """
 import argparse
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import tracking  # noqa: E402  (stdlib-only; mlflow is imported lazily and optional)
 
 
 def main() -> int:
@@ -28,6 +33,7 @@ def main() -> int:
     ap.add_argument("--epochs", type=float, default=1.0)
     ap.add_argument("--max-steps", type=int, default=20,
                     help="cap steps so the smoke test stays fast")
+    tracking.add_cli_args(ap)
     args = ap.parse_args()
 
     import torch
@@ -60,15 +66,15 @@ def main() -> int:
     ds = ds.map(tokenize, remove_columns=ds.column_names)
 
     model = AutoModelForCausalLM.from_pretrained(args.base_model)
-    lora = LoraConfig(
-        r=8, lora_alpha=16, lora_dropout=0.0, bias="none", task_type="CAUSAL_LM",
-        target_modules=["c_attn"],  # GPT-2 attention projection
-    )
+    lora_params = dict(r=8, lora_alpha=16, lora_dropout=0.0, bias="none",
+                       target_modules=["c_attn"])  # GPT-2 attention projection
+    lora = LoraConfig(task_type="CAUSAL_LM", **lora_params)
     model = get_peft_model(model, lora)
     trainable, total = model.get_nb_trainable_parameters()
     print(f"[smoke] trainable params: {trainable:,} / {total:,} "
           f"({100*trainable/total:.3f}% — the LoRA adapter)")
 
+    learning_rate = 5e-4
     trainer = Trainer(
         model=model,
         args=TrainingArguments(
@@ -77,7 +83,7 @@ def main() -> int:
             max_steps=args.max_steps,
             per_device_train_batch_size=1,
             gradient_accumulation_steps=1,
-            learning_rate=5e-4,
+            learning_rate=learning_rate,
             logging_steps=5,
             save_strategy="no",
             report_to=[],
@@ -87,21 +93,43 @@ def main() -> int:
         data_collator=DataCollatorForLanguageModeling(tok, mlm=False),
     )
 
-    print("[smoke] training…")
-    result = trainer.train()
-    print(f"[smoke] final training loss: {result.training_loss:.4f}")
+    tracker = tracking.start_tracking(
+        args.mlflow, base_model=args.base_model, data_path=args.data,
+        script="ai-report/train_smoke.py", experiment=args.mlflow_experiment,
+        run_name=args.mlflow_run_name, registered_model=args.mlflow_model_name,
+    )
+    with tracker:
+        tracker.log_params({
+            "base_model": args.base_model, "epochs": args.epochs,
+            "max_steps": args.max_steps, "learning_rate": learning_rate,
+            "per_device_train_batch_size": 1, "gradient_accumulation_steps": 1,
+            "max_length": 256, "seed": 0, "quantization": "none",
+            "trainable_params": trainable, "total_params": total,
+            "n_train_examples": len(ds),
+            **{f"lora_{k}": (",".join(v) if isinstance(v, list) else v)
+               for k, v in lora_params.items()},
+        })
 
-    os.makedirs(args.out, exist_ok=True)
-    model.save_pretrained(args.out)
-    tok.save_pretrained(args.out)
-    print(f"[smoke] saved LoRA adapter to {args.out}")
+        print("[smoke] training…")
+        result = trainer.train()
+        print(f"[smoke] final training loss: {result.training_loss:.4f}")
 
-    # Prove we can load + generate from the adapter.
-    prompt = "### METRICS\n{\"sample\": \"DEMO\"}\n\n### REPORT\n"
-    ids = tok(prompt, return_tensors="pt")
-    gen = model.generate(**ids, max_new_tokens=20, do_sample=False)
-    print("[smoke] sample generation (tiny model — gibberish is expected):")
-    print("   ", tok.decode(gen[0], skip_special_tokens=True).replace("\n", " ")[:160])
+        os.makedirs(args.out, exist_ok=True)
+        model.save_pretrained(args.out)
+        tok.save_pretrained(args.out)
+        print(f"[smoke] saved LoRA adapter to {args.out}")
+
+        # Prove we can load + generate from the adapter.
+        prompt = "### METRICS\n{\"sample\": \"DEMO\"}\n\n### REPORT\n"
+        ids = tok(prompt, return_tensors="pt")
+        gen = model.generate(**ids, max_new_tokens=20, do_sample=False)
+        print("[smoke] sample generation (tiny model — gibberish is expected):")
+        print("   ", tok.decode(gen[0], skip_special_tokens=True).replace("\n", " ")[:160])
+        tracker.log_history(trainer.state.log_history)
+        tracker.log_adapter(args.out)
+        if tracker.enabled:
+            print(f"[smoke] mlflow run id: {tracker.run_id}")
+
     print("[smoke] OK — fine-tuning loop ran end to end.")
     return 0
 
