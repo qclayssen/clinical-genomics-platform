@@ -101,3 +101,20 @@ collections:
           FROM fact_run
           GROUP BY date_key
           ORDER BY date_key;
+      - name: "Agent LLM latency, tokens & estimated cost per backend"
+        display: line
+        graph_dimensions: ["day", "backend"]
+        graph_metrics: ["avg_llm_latency_ms"]
+        # AI-8 / ADR-0036. Averages skip NULLs, so token/cost means cover only
+        # interpretations whose backend reported usage (calls_without_usage
+        # shows how many didn't). Cost is an estimate from a dated price table.
+        sql: |
+          SELECT date_trunc('day', recorded_at) AS day, backend,
+                 count(*) AS n_interpretations,
+                 round(avg(llm_latency_ms)::numeric, 1) AS avg_llm_latency_ms,
+                 round(avg(prompt_tokens + completion_tokens)::numeric, 1) AS avg_tokens_reported,
+                 round(avg(estimated_cost_usd), 6) AS avg_estimated_cost_usd,
+                 sum(n_calls_without_usage) AS calls_without_usage
+          FROM agent_call_metrics
+          GROUP BY 1, 2
+          ORDER BY 1, 2;

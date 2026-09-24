@@ -8,6 +8,9 @@ they're talking to:
 - PostgresRepository: reads the tables defined in db/schema.sql. Used when
   CGP_DB_URL is set. review_decisions is insert-only, matching the DB
   trigger that forbids UPDATE/DELETE.
+
+Both also record agent_call_metrics rows (AI-8): per-interpretation LLM
+token/latency/estimated-cost aggregates, insert-only, counts/ids only.
 """
 
 from __future__ import annotations
@@ -42,12 +45,25 @@ class Repository(Protocol):
 
     def create_review_decision(self, run_id: str, decision: ReviewDecisionCreate) -> ReviewDecision: ...
 
+    def record_agent_call_metrics(self, row: dict) -> None: ...
+
+
+# Columns of agent_call_metrics (db/migrations/0002_agent_call_metrics.sql)
+# the application writes; id / run_pk / recorded_at are filled by the DB.
+AGENT_CALL_METRICS_COLUMNS = (
+    "run_id", "backend", "model_id", "n_llm_calls", "n_failed_calls", "n_calls_without_usage",
+    "prompt_tokens", "completion_tokens", "usage_complete", "llm_latency_ms", "wall_time_ms",
+    "estimated_cost_usd", "price_table_version", "fallback_triggered",
+)
+
 
 class FixtureRepository:
     def __init__(self, data_path: Path = DEMO_DATA_PATH):
         raw = json.loads(data_path.read_text())
         self._runs: dict[str, dict] = {r["provenance"]["run_id"]: r for r in raw["runs"]}
         self._review_decisions: list[ReviewDecision] = []
+        # In-memory stand-in for agent_call_metrics; append-only like the table.
+        self._agent_call_metrics: list[dict] = []
         self._next_id = count(1)
 
     def _to_run(self, record: dict) -> Run:
@@ -115,6 +131,13 @@ class FixtureRepository:
         )
         self._review_decisions.append(record)
         return record
+
+    def record_agent_call_metrics(self, row: dict) -> None:
+        # No run-existence check: the interpretation endpoint doesn't require
+        # one either, and run_pk is nullable in the table for the same reason.
+        self._agent_call_metrics.append(
+            {**{k: row.get(k) for k in AGENT_CALL_METRICS_COLUMNS}, "recorded_at": datetime.now(timezone.utc)}
+        )
 
 
 class PostgresRepository:
@@ -260,3 +283,14 @@ class PostgresRepository:
         if row is None:
             raise RunNotFoundError(run_id)
         return ReviewDecision(id=row["id"], run_id=run_id, decided_at=row["decided_at"], **decision.model_dump())
+
+    def record_agent_call_metrics(self, row: dict) -> None:
+        cols = ", ".join(AGENT_CALL_METRICS_COLUMNS)
+        params = ", ".join(f"%({c})s" for c in AGENT_CALL_METRICS_COLUMNS)
+        query = f"""
+            INSERT INTO agent_call_metrics (run_pk, {cols})
+            SELECT (SELECT r.id FROM runs r WHERE r.run_id = %(run_id)s), {params}
+        """
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(query, {c: row.get(c) for c in AGENT_CALL_METRICS_COLUMNS})
+            conn.commit()

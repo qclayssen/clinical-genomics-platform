@@ -58,6 +58,11 @@ jobs:
           (cd db/migrations && PGDATABASE=cgp_migration_test psql -v ON_ERROR_STOP=1 -f 0001_init.sql)
           PGDATABASE=cgp_migration_test psql -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
 
+      - name: Apply migration 0002_agent_call_metrics.sql (on top of schema.sql, twice — idempotency)
+        run: |
+          psql -v ON_ERROR_STOP=1 -f db/migrations/0002_agent_call_metrics.sql
+          psql -v ON_ERROR_STOP=1 -f db/migrations/0002_agent_call_metrics.sql
+
       - name: Load seed data
         run: psql -v ON_ERROR_STOP=1 -f db/seed_demo.sql
 
@@ -126,6 +131,21 @@ jobs:
             echo "NOT BLOCKED (warning)"; PASS=false
           fi
 
+          echo -n "UPDATE on agent_call_metrics... "
+          psql -c "INSERT INTO agent_call_metrics (run_id, backend, model_id, n_llm_calls, usage_complete, llm_latency_ms, wall_time_ms, price_table_version, fallback_triggered) VALUES ('ci', 'deterministic', 'deterministic-v1', 0, true, 0, 1.0, 'ci', false);" >/dev/null 2>&1
+          if psql -c "UPDATE agent_call_metrics SET backend = 'hack';" 2>&1 | grep -q "insert-only"; then
+            echo "BLOCKED (correct)"
+          else
+            echo "NOT BLOCKED (warning)"; PASS=false
+          fi
+
+          echo -n "TRUNCATE agent_call_metrics... "
+          if psql -c "TRUNCATE agent_call_metrics;" 2>&1 | grep -q "insert-only"; then
+            echo "BLOCKED (correct)"
+          else
+            echo "NOT BLOCKED (warning)"; PASS=false
+          fi
+
           # TRUNCATE is statement-level: the FOR EACH ROW triggers above never
           # fire on it. Before the BEFORE TRUNCATE triggers were added, this
           # single statement wiped runs, qc_metrics, run_provenance and audit_log.
@@ -151,6 +171,8 @@ jobs:
           psql -c "SELECT count(*) AS qc_warnings_rows FROM v_qc_warnings;"
           psql -c "SELECT count(*) AS warning_freq_rows FROM v_qc_warning_frequency;"
           psql -c "SELECT count(*) AS metric_vs_thresh_rows FROM v_qc_metric_vs_threshold;"
+          # Metabase card 11 (AI-8) — must run against the real table.
+          psql -v ON_ERROR_STOP=1 -c "SELECT date_trunc('day', recorded_at) AS day, backend, count(*), round(avg(llm_latency_ms)::numeric, 1), round(avg(prompt_tokens + completion_tokens)::numeric, 1), round(avg(estimated_cost_usd), 6), sum(n_calls_without_usage) FROM agent_call_metrics GROUP BY 1, 2 ORDER BY 1, 2;"
           echo "=== Views check done ==="
 
       - name: Refresh and validate the warehouse layer (star schema)

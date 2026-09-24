@@ -183,4 +183,4 @@ def test_manifest_loads_and_matches_expected_shape():
     collection_names = {c["name"] for c in manifest["collections"]}
     assert collection_names == {"CGP Ops", "CGP Analytics"}
     total_cards = sum(len(c["cards"]) for c in manifest["collections"])
-    assert total_cards == 10
+    assert total_cards == 11
