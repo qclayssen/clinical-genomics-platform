@@ -82,9 +82,12 @@ def main() -> int:
 
     provenance = json.loads(args.provenance)
     provenance["exported_at"] = datetime.now(timezone.utc).isoformat()
-    provenance["input_checksums"] = {
-        Path(p).name: sha256(p) for p in args.inputs.split(",") if p and Path(p).exists()
-    }
+    inputs = [p for p in args.inputs.split(",") if p]
+    missing = [p for p in inputs if not Path(p).exists()]
+    if missing:
+        # Dropping them would leave a stamp that looks complete but is not.
+        raise SystemExit(f"build_metrics: declared input file(s) not found: {', '.join(missing)}")
+    provenance["input_checksums"] = {Path(p).name: sha256(p) for p in inputs}
 
     happy = parse_happy(args.happy_summary)
     snp_f1 = (happy.get("snp") or {}).get("f1")

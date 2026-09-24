@@ -188,7 +188,7 @@ def _ensure_sample(cur, sample_id: str, reference_build: str | None = None) -> N
         VALUES (%s, %s)
         ON CONFLICT (sample_id) DO NOTHING
         """,
-        (sample_id, reference_build or "GRCh38"),
+        (sample_id, reference_build),  # NULL when unknown — never a guessed build
     )
 
 
@@ -205,6 +205,22 @@ def _get_run_pk(cur, run_id: str) -> int | None:
     return row[0] if row else None
 
 
+# Columns that are NOT NULL in db/schema.sql's `runs` table.
+_REQUIRED_RUN_FIELDS = ("sample_id", "pipeline_version", "git_commit", "caller", "validation_pass")
+
+
+def _float_or_none(value: Any) -> float | None:
+    """Missing QC numbers are stored as NULL (unknown), never as a fake 0.0."""
+    return None if value is None else float(value)
+
+
+def _reference_build(records: dict[str, Any]) -> str | None:
+    """The Lambda path stamps reference_build on PROVENANCE, not RUN."""
+    return (records.get("RUN") or {}).get("reference_build") or (
+        records.get("PROVENANCE") or {}
+    ).get("reference_build")
+
+
 def _insert_run(cur, run_id: str, run_record: dict[str, Any]) -> int | None:
     """Insert a run record into the runs table. Returns the auto-generated PK.
 
@@ -213,13 +229,16 @@ def _insert_run(cur, run_id: str, run_record: dict[str, Any]) -> int | None:
     if _run_exists(cur, run_id):
         return _get_run_pk(cur, run_id)
 
-    sample_id = run_record.get("sample_id", "")
-    pipeline_version = run_record.get("pipeline_version", "0.0.0")
-    git_commit = run_record.get("git_commit", "unknown")
-    caller = run_record.get("caller", "HaplotypeCaller")
+    # Required fields are checked in sync_run() before this is reached; no
+    # defaults here — inventing provenance in an insert-only table is worse
+    # than not syncing the run at all.
+    sample_id = run_record["sample_id"]
+    pipeline_version = run_record["pipeline_version"]
+    git_commit = run_record["git_commit"]
+    caller = run_record["caller"]
     started_at = _parse_timestamp(run_record.get("started_at"))
     exported_at = _parse_timestamp(run_record.get("exported_at"))
-    validation_pass = bool(run_record.get("validation_pass", False))
+    validation_pass = bool(run_record["validation_pass"])
 
     cur.execute(
         """
@@ -253,11 +272,11 @@ def _insert_qc_metrics(cur, run_pk: int, qc_record: dict[str, Any]) -> None:
         """,
         (
             run_pk,
-            float(qc_record.get("percent_duplication", 0.0)),
-            float(qc_record.get("snp_precision", 0.0)),
-            float(qc_record.get("snp_recall", 0.0)),
-            float(qc_record.get("snp_f1", 0.0)),
-            int(qc_record.get("n_variants", 0)),
+            _float_or_none(qc_record.get("percent_duplication")),
+            _float_or_none(qc_record.get("snp_precision")),
+            _float_or_none(qc_record.get("snp_recall")),
+            _float_or_none(qc_record.get("snp_f1")),
+            None if qc_record.get("n_variants") is None else int(qc_record["n_variants"]),
         ),
     )
 
@@ -265,7 +284,7 @@ def _insert_qc_metrics(cur, run_pk: int, qc_record: dict[str, Any]) -> None:
 def _insert_provenance(cur, run_pk: int, prov_record: dict[str, Any]) -> None:
     """Insert a run_provenance record linked to the run PK."""
     input_checksums = prov_record.get("input_checksums", {})
-    truth_version = prov_record.get("truth_set_version", "")
+    truth_version = prov_record.get("truth_set_version")  # NULL if absent, never ""
 
     cur.execute(
         """
@@ -335,17 +354,18 @@ def sync_run(
     if not run_record:
         return {"status": "skipped", "reason": "no RUN record"}
 
-    sample_id = run_record.get("sample_id", "")
-    if not sample_id:
-        return {"status": "skipped", "reason": "missing sample_id"}
+    missing = [f for f in _REQUIRED_RUN_FIELDS if run_record.get(f) in (None, "")]
+    if missing:
+        logger.warning("Skipping run %s: incomplete RUN record, missing %s", run_id, missing)
+        return {"status": "skipped", "reason": f"incomplete RUN record: missing {', '.join(missing)}"}
+    sample_id = run_record["sample_id"]
 
     # Check if already synced (idempotent)
     if _run_exists(cur, run_id):
         return {"status": "skipped", "reason": "already exists"}
 
     # Ensure sample exists
-    reference_build = run_record.get("reference_build", "GRCh38")
-    _ensure_sample(cur, sample_id, reference_build)
+    _ensure_sample(cur, sample_id, _reference_build(records))
 
     # Insert run record
     run_pk = _insert_run(cur, run_id, run_record)
