@@ -28,7 +28,7 @@ Severity: [P1] fix first · [P2] worth fixing · [P3] nice-to-have.
 
 | # | Item | Resolution |
 |---|---|---|
-| 8 | [P1] Provenance checksums covered only two derived outputs | **Fixed (#78).** `pipeline/modules/export/json_metrics.nf` now also checksums `params.reference`, `params.truth_vcf`, and `params.truth_bed`, threaded through `pipeline/main.nf`; `docs/VALIDATION.md` §6 updated. Raw FASTQ reads are still not checksummed — see the still-open item below. |
+| 8 | [P1] Provenance checksums covered only two derived outputs | **Fixed (#78).** `pipeline/modules/export/json_metrics.nf` now also checksums `params.reference`, `params.truth_vcf`, and `params.truth_bed`, threaded through `pipeline/main.nf`; `docs/VALIDATION.md` §6 updated. Raw FASTQ reads were not checksummed — closed as item 14 below. |
 | 9 | [P1] `lambdas/validation_checker` synthesised metrics with no `simulated` marker | **Fixed (#77).** `_simulate_validation_metrics()` now returns an explicit `simulated: true` field threaded through the S3 payload and handler response, and the sampled range was changed from an always-passing `[0.9975, 0.9995]`/`[0.9965, 0.9990]` to a symmetric `[0.980, 1.000]` band around the 0.99 threshold, so `validation_pass` can actually be `false` on this path. |
 | 10 | [P2] `qc_warnings` never written by the pipeline | **Fixed (#80).** `DB_INGEST` now joins `QC_EVALUATE.out.warnings` and inserts one insert-only row per threshold breach (`pipeline/bin/ingest_metrics.py`). While verifying this, also found and fixed the reason `QC_EVALUATE` never ran at all: `fastp.nf` emitted its JSON output as a bare `path` instead of `tuple(meta, path)`, so `QC_EVALUATE`'s `.join()` on `FASTP.out.json` always produced an empty channel (0 tasks, no error). The stub DAG task count moved from 9 to 10 (11 with `--db_ingest`) as a result — see `docs/END-TO-END.md`. |
 | 11 | [P2] Two divergent copies of `enforce_guardrails()` | **Fixed (#81).** Consolidated into `ai-report/guardrails.py` — one canonical 8-pattern advice-phrase list (the union of the old 3- and 8-pattern lists, so neither call site lost coverage), with `enforce_guardrails()` (full report) and `enforce_safety_constraints()` (report fragment) as the two entry points. `ai-report/infer.py`, `ai-report/agent/react.py`, and `lambdas/report_generator/handler.py` all import it now. |
@@ -48,25 +48,32 @@ The first full-chr20 real run exercised code paths `-stub` never executes.
 | 16 | [P1] `qc_evaluate.py` not executable — every real run failed at `QC_EVALUATE` | **Fixed.** Mode set to 100755; `tests/test_pipeline_bin_executable.py` fails if any `pipeline/bin` script a module invokes loses its executable bit. |
 | 17 | [P1] `QC_EVALUATE` container lacked PyYAML | **Fixed.** Uses the already-pinned MultiQC image (Python 3.11 + PyYAML) instead of bare `python:3.11`. |
 | 18 | [P2] `samtools sort` in `BWAMEM2_ALIGN` OOM-killed (exit 137) at full-chr20 scale | **Fixed.** Sort memory capped at ~40% of the task's memory, split across threads; it spills to temp files instead. |
+| 19 | [P1] Committed validation evidence not tied to a commit (`local-dev`, recall below the QC fail line) | **Fixed.** Re-run from a clean checkout with the complete stamp: headline evidence in `docs/validation-evidence/HG002_chr20_35x/` is stamped `git_commit: 7ef24a7…`, with the reads, reference and truth set checksummed. Its SNV recall (0.9951) clears the `snp_recall` fail line; the run is not yet a tagged release. The old run is kept as history. |
 
 ---
 
 ## Open
 
-- **[P1] No images are digest-pinned, and container identity is not in the provenance stamp.**
-  `git grep '@sha256:'` returns nothing; all 12 module containers are tag-pinned.
-  [ADR-0009](adr/0009-docker-pinned-by-digest.md) treats digest pinning as the production
-  target — it is not yet met. Since 2026-09-24 the stamp carries the *caller's* self-reported
-  version (`provenance.caller_version`), but no container identity and no other tool's
-  version (those reach `pipeline_info/software_versions.yml` only). Needs a registry digest
-  lookup per image — see `docs/ROADMAP.md` P1-1 for the related nf-core lint/nf-test work.
+- **[P1] The SNV F1 ≥ 0.99 gate is recorded, not enforced.** `validation_pass` is computed in
+  `pipeline/bin/build_metrics.py` but no process fails on it and neither ingest path
+  (`ingest_metrics.py`, `lambdas/metadata_ingestor`) recomputes or acts on it, so a run with
+  F1 < 0.99 is still ingested and reported. VALIDATION.md §3 now states this; closing it
+  means failing or quarantining the run before DB_INGEST/report.
+
+- **[P1] Container identity is not in the provenance stamp.** All 12 module containers are
+  now pinned by `@sha256` digest ([ADR-0009](adr/0009-docker-pinned-by-digest.md)), guarded by
+  `tests/test_container_pinning.py`. `DB_INGEST` moved from a non-existent
+  `biocontainers/psycopg2:2.9.9` image to the repo's own `ghcr.io/qclayssen/cgp-tools:1.0.0`.
+  Since Phase 3 the stamp carries the *caller's* self-reported version
+  (`provenance.caller_version`); still open: no container digest and no other tool's version
+  reaches it (those are in `pipeline_info/software_versions.yml` only).
 
 - **[P2] The QC layer and the acceptance criterion disagree.** `docs/VALIDATION.md` §3 accepts
   a run on SNV F1 ≥ 0.99; `pipeline/conf/qc_thresholds.yaml` ([ADR-0013](adr/0013-qc-warnings-adaptive-thresholds-self-healing.md))
   also *fails* a run whose SNV precision or recall alone is below 0.99. The 1 Mb / 33.9× run
   passes the first (F1 0.9934) and fails the second (recall 0.9878); the historical 255.8× run
-  (recall 0.9894) would too. Needs a decision recorded as an ADR — align the thresholds, or
-  state that a QC `fail` withholds a run that `validation_pass` accepts. Neither threshold
+  (recall 0.9894) would too. Needs a decision recorded as an ADR — align the thresholds, or state
+  which gate governs when they disagree. Neither threshold
   has been changed.
 
 - **[P3] `hap.py` reports an empty version string.** `HAPPY_BENCHMARK`'s `versions.yml`

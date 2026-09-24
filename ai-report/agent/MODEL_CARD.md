@@ -58,7 +58,33 @@ loop can't complete cleanly — see ADR-0028.
 - **LLM hallucination**: The agent may cite non-existent evidence codes if the LLM
   hallucinates; mitigated by validating codes against the ACMG criteria JSON.
 
-## Evaluation Results (chr20 known variants)
+## Evaluation
+
+The agent is scored by an automated harness in [`ai-report/eval/`](../eval/README.md)
+([ADR-0032](../../docs/adr/0032-agent-evaluation-harness.md)). It plays the role for the
+agent that `hap.py` plays for the variant caller. `python ai-report/eval/run_eval.py`
+runs any backend over a gold set derived from the KB and writes a provenance-stamped JSON
+report (git commit, gold-set SHA-256, backend and model id). `tests/test_agent_eval.py`
+gates the deterministic backend in CI.
+
+- **Gold set:** 10 ClinVar variants with ≥ 2★ review status (multi-submitter, no
+  conflicts, or expert panel), plus 5 one-star rows (reported only) and 6 unlabelled
+  no-ClinVar probes. All come from the same committed KB the agent queries, so the labels
+  are **not independent** of the system under test.
+- **Metrics:** 5-class and collapsed 3-class accuracy, per-class accuracy, confusion
+  matrices, opposite-direction (P/LP ↔ LB/B) errors, hallucinated-citation rate (ClinVar
+  accessions or significances the trace's tools never returned), and tool-grounding rate
+  (evidence codes supported by tool output).
+- **Deterministic baseline:** 3-class 0.90 and 5-class 0.30 on gold (every Pathogenic →
+  Likely Pathogenic, as explained below), 0 opposite-direction errors, 0 hallucinated
+  citations, grounding 1.0 (38/38). The harness's first run found a default `PM2` the
+  scripted backend emitted with no supporting tool evidence; that was fixed (see ADR-0032).
+- **Limits:** n = 10 is far too small to estimate performance, and a pass is a
+  regression check, not a clinical validation. Real-LLM backends have not been
+  benchmarked in CI. LLM-as-judge is never used to decide classification or citation
+  correctness.
+
+## Evaluation Results (chr20 known variants — original hand check, superseded by the harness above)
 
 | Variant | Expected | Agent Result | Correct |
 |---|---|---|---|

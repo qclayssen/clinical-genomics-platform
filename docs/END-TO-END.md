@@ -4,7 +4,8 @@
 > **2026-07-14** and was accurate on that date. The "accuracy numbers are not real yet"
 > caveat below **no longer holds**: a real, containerized run on GIAB HG002 chr20 was
 > completed on **2026-07-15** and `docs/VALIDATION.md` §4 now reports *measured* results
-> (SNV F1 **0.9914**, INDEL F1 **0.9971**), released as `1.0.0` in
+> (SNV F1 **0.9914**, INDEL F1 **0.9971** — a 1 Mb window; superseded as the headline on
+> 2026-09-24 by a full-chr20 run at 33.7×, SNV F1 **0.9927**), released as `1.0.0` in
 > [CHANGELOG.md](../CHANGELOG.md). The body is kept unedited as a dated record of what the
 > stub run proved. Two other counts here have since moved on: the suite is now
 > **350+ tests** (not 12), and the default `gatk` DAG runs **10 processes** — `QC_EVALUATE`

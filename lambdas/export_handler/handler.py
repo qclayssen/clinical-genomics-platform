@@ -63,7 +63,7 @@ def _build_metrics(event: dict) -> dict:
             "caller_version": caller_version,
             "reference_build": _REFERENCE_BUILD,
             "reference_version": _REFERENCE_VERSION,
-            "truth_set_version": _TRUTH_SET_VERSION,
+            "truth_version": _TRUTH_SET_VERSION,
             "input_checksums": event.get("input_checksums", {}),
             "n_variants": event.get("n_variants", 0),
         },
@@ -75,6 +75,9 @@ def _build_metrics(event: dict) -> dict:
             },
         },
         "validation_pass": event.get("validation_pass", False),
+        # validation_checker marks synthetic F1 as simulated; default to True
+        # so a missing marker never presents a synthetic result as measured.
+        "simulated": event.get("simulated", True),
         "qc": event.get("qc_metrics", {}),
         "sample": event.get("sample_id", ""),
     }

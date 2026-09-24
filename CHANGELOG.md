@@ -6,7 +6,7 @@ before tagging** — re-validation on change is a first-class rule, not an after
 
 ## [Unreleased]
 ### Validation
-- **Full-chr20 GIAB re-validation (Phase 3, ADR-0032).** All of chr20 at a measured 33.7×
+- **Full-chr20 GIAB re-validation (Phase 3, ADR-0037).** All of chr20 at a measured 33.7×
   (downsampled from GIAB's 300× BAM, seed 42): SNV precision 0.9903, recall 0.9951,
   **F1 0.9927** (passes ≥ 0.99), INDEL F1 0.9862; stamped with git commit `7ef24a7`. Replaces
   the 1 Mb / 255.8× window as the headline result; evidence in

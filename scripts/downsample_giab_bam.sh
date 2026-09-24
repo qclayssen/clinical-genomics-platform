@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Downsample the GIAB HG002 300x chr20 BAM to a representative clinical depth and write
-# paired FASTQs for the pipeline (Phase 3 / ADR-0032, VAL-02).
+# paired FASTQs for the pipeline (Phase 3 / ADR-0037, VAL-02).
 #
 # Subsampling is by read-name hash (samtools view -s SEED.FRACTION), so both mates of a
 # pair are kept or dropped together, and the same seed reproduces the same read set.

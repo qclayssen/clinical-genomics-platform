@@ -2,7 +2,7 @@
      doc-index: skills=[bioinformatics, AWS CDK, data engineering, applied ML, agentic AI,
      multi-cloud LLM integration (Azure AI Foundry, AWS Bedrock), FHIR/HL7 intake, REST API + React];
      scope: complete solo-built platform; validation: ISO 15189 patterns, hap.py benchmarking;
-     delivery: autonomous, end-to-end, 28 architecture decision records documenting trade-offs. -->
+     delivery: autonomous, end-to-end, 31 architecture decision records documenting trade-offs. -->
 
 # For Recruiters & Hiring Managers
 
@@ -122,7 +122,7 @@ the role:
   GIAB truth-set validation → provenance-tracked Postgres → BI dashboard →
   QLoRA-fine-tuned LLM reporting) spanning Nextflow, AWS CDK, and PyTorch.
 - Validated a germline SNV pipeline against the GIAB HG002 truth set with `hap.py`,
-  meeting an SNV F1 ≥ 0.99 acceptance threshold (measured 0.9914), with every result
+  meeting an SNV F1 ≥ 0.99 acceptance threshold (measured 0.9927 over all of chr20 at 33.7×), with every result
   carrying a provenance stamp — git commit, pipeline version, reference build and
   truth-set version — written to insert-only storage.
 - Designed an insert-only Postgres schema with DB-level immutability triggers and a

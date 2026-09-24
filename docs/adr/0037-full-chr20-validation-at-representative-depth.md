@@ -1,4 +1,4 @@
-# ADR-0032 — Validate full chr20 at a downsampled ~35× depth, not at the 300× source depth
+# ADR-0037 — Validate full chr20 at a downsampled ~35× depth, not at the 300× source depth
 
 **Status:** Accepted · **Date:** 2026-09-24
 **Relates to:** [ADR-0001](0001-scope-giab-hg002-chr20.md) (locked scope: HG002, GRCh38 chr20 —

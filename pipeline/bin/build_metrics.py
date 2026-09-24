@@ -2,8 +2,8 @@
 """Assemble the structured metrics.json for one sample.
 
 This is the traceability heart of the pipeline: it merges QC + validation metrics
-with a provenance stamp (git commit, tool/reference versions, SHA-256 of every
-input file) into a single insert-only record. Mirrors the record a clinical lab
+with a provenance stamp (git commit, tool/reference versions, SHA-256 of each
+file passed via --inputs) into a single insert-only record. Mirrors the record a clinical lab
 keeps for each run under ISO 15189 traceability requirements.
 """
 import argparse
@@ -52,6 +52,10 @@ def parse_happy(path: str) -> dict:
             vtype = row.get("Type", "").upper()
             if vtype not in ("SNP", "INDEL"):
                 continue
+            # Real summaries have ALL and PASS rows per type; benchmark PASS.
+            # Fixture/stub CSVs have no Filter column and one row per type.
+            if "Filter" in row and row["Filter"].upper() != "PASS":
+                continue
             # hap.py column names vary slightly by version; probe both forms
             def g(*keys):
                 for k in keys:
@@ -95,9 +99,12 @@ def main() -> int:
 
     provenance = json.loads(args.provenance)
     provenance["exported_at"] = datetime.now(timezone.utc).isoformat()
-    provenance["input_checksums"] = {
-        Path(p).name: sha256(p) for p in args.inputs.split(",") if p and Path(p).exists()
-    }
+    inputs = [p for p in args.inputs.split(",") if p]
+    missing = [p for p in inputs if not Path(p).exists()]
+    if missing:
+        # Dropping them would leave a stamp that looks complete but is not.
+        raise SystemExit(f"build_metrics: declared input file(s) not found: {', '.join(missing)}")
+    provenance["input_checksums"] = {Path(p).name: sha256(p) for p in inputs}
     if args.caller_versions:
         # Reported by the caller process itself, not asserted from config
         provenance["caller_version"] = parse_tool_versions(args.caller_versions)

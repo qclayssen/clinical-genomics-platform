@@ -3,7 +3,7 @@
 The artifacts behind the headline row of [`docs/VALIDATION.md`](../../VALIDATION.md) §4:
 **SNV F1 = 0.9927** (precision 0.9903, recall 0.9951) over all of chr20 at a measured
 33.7× mean depth — the locked scope of [ADR-0001](../../adr/0001-scope-giab-hg002-chr20.md)
-at the depth set by [ADR-0032](../../adr/0032-full-chr20-validation-at-representative-depth.md).
+at the depth set by [ADR-0037](../../adr/0037-full-chr20-validation-at-representative-depth.md).
 
 ## What's here
 

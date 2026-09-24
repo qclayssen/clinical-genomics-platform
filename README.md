@@ -2,7 +2,7 @@
      project: clinical-genomics-platform; author: Quentin Clayssen; scope: solo-built;
      stack: Nextflow DSL2, AWS CDK, DynamoDB + Postgres, Metabase, PyTorch QLoRA;
      validation: hap.py vs GIAB HG002 truth set, full chr20 at 33.7x, SNV F1=0.9927, ISO 15189 patterns;
-     architecture: 29 ADRs, hand-written nf-core-style modules, not scaffolded from template.
+     architecture: 37 ADRs, hand-written nf-core-style modules, not scaffolded from template.
 
      No coverage badge here on purpose: publishing one needs a gist plus a GIST_TOKEN
      secret and a COVERAGE_GIST_ID variable (see .github/workflows/coverage.yml). Until
@@ -11,53 +11,113 @@
 
 <div align="center">
 
-# Clinical Genomics Insight Platform
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/media/banner-dark.svg">
+  <img src="docs/media/banner-light.svg" alt="Clinical Genomics Insight Platform: raw WGS reads to benchmarked variants, provenance and AI-drafted reports. SNV F1 0.9927 vs GIAB over all of chr20." width="100%">
+</picture>
 
-**An end-to-end germline variant-calling platform built for production-grade clinical bioinformatics**
+<br/><br/>
 
-From raw WGS reads to validated variants, structured provenance, ops dashboards, and AI-drafted reports.
+**An end-to-end germline variant-calling platform built to production-grade clinical bioinformatics patterns**
+
+**Built by [Quentin Clayssen](https://github.com/qclayssen)** · solo-designed, solo-built, AI-orchestrated
 
 <br/>
 
-**Built by [Quentin Clayssen](https://github.com/qclayssen)** · Solo-designed, solo-built, AI-orchestrated
+[![CI — Pipeline](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/pipeline-ci.yml?label=Pipeline%20CI&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/pipeline-ci.yml)
+[![CI — Infra](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/infra-ci.yml?label=Infra%20CI&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/infra-ci.yml)
+[![SNV F1](https://img.shields.io/badge/SNV%20F1-0.9927-22c55e?style=for-the-badge)](docs/VALIDATION.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 <br/>
 
-[![CI — Pipeline](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/pipeline-ci.yml?label=Pipeline%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/pipeline-ci.yml)
-[![CI — Infra](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/infra-ci.yml?label=Infra%20CI&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/infra-ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
-[![Nextflow DSL2](https://img.shields.io/badge/Nextflow-DSL2-23b45e?style=flat-square&logo=nextflow&logoColor=white)](https://www.nextflow.io/)
-[![AWS CDK](https://img.shields.io/badge/AWS-CDK-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com/cdk/)
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+<a href="#tech-stack"><img src="https://skillicons.dev/icons?i=python,ts,react,vite,fastapi,postgres,aws,azure,docker,pytorch,githubactions&perline=11" alt="Python, TypeScript, React, Vite, FastAPI, PostgreSQL, AWS, Azure, Docker, PyTorch, GitHub Actions"/></a>
+
+<br/><br/>
+
+<a href="#-highlights">Highlights</a> ·
+<a href="#architecture">Architecture</a> ·
+<a href="#validation-summary">Validation</a> ·
+<a href="#quickstart">Quickstart</a> ·
+<a href="#capability-walkthrough">Walkthrough</a> ·
+<a href="#documentation">Docs</a> ·
+<a href="docs/FOR-RECRUITERS.md"><b>For Recruiters →</b></a>
 
 </div>
-
-<br/>
-
-<div align="center">
-  <sub>Built to demonstrate the stack that clinical-bioinformatics and AWS-genomics roles screen for — scoped so a single person can finish it.</sub>
-</div>
-
-<br/>
-
-<p align="center">
-  <a href="#architecture">Architecture</a> ·
-  <a href="#validation-summary">Validation</a> ·
-  <a href="#quickstart">Quickstart</a> ·
-  <a href="#capability-walkthrough">Walkthrough</a> ·
-  <a href="#documentation">Docs</a> ·
-  <a href="docs/FOR-RECRUITERS.md">For Recruiters</a>
-</p>
 
 <br/>
 
 <div align="center">
   <img src="docs/media/demo.gif" alt="Clinical Genomics Insight Platform — Streamlit demo walkthrough: Home, Data Explorer, Variant Interpretation, Pipeline Assistant" width="800"/>
-</div>
-
-<div align="center">
+  <br/>
   <sub>The Streamlit demo (<code>demo/</code>) — no database, cloud account, or LLM required. See <a href="demo/README.md">demo/README.md</a>.</sub>
 </div>
+
+<br/>
+
+## ✨ Highlights
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### 🧬 Validated like a lab
+Benchmarked with `hap.py` against the **GIAB HG002 v4.2.1** truth set: **SNV F1 0.9927** over all of chr20 at 33.7×,
+measured against a ≥ 0.99 acceptance criterion that must be re-met after any caller, reference or filter change.
+
+</td>
+<td width="33%" valign="top">
+
+### 🔏 Traceable by design
+Every result carries a provenance stamp (git commit, pipeline version, reference build,
+SHA-256 checksums). Results are **insert-only**: corrections are new records, never edits.
+
+</td>
+<td width="33%" valign="top">
+
+### 🤖 Responsible AI
+A **QLoRA fine-tuned LLM** drafts summaries and a **ReAct agent** does ACMG variant
+interpretation, both behind enforced guardrails and **clinician sign-off**.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### ☁️ Cloud as code
+**AWS CDK** (6 stacks: S3, DynamoDB, Step Functions, Lambda, IAM, CloudWatch) with
+Jest guardrail tests for its integrity invariants, plus **Azure Bicep** for the API and web app.
+
+</td>
+<td valign="top">
+
+### 📊 Data engineering
+Star-schema warehouse built two ways (SQL and **dbt**), scheduled by **Airflow**, and
+two **Metabase dashboards** provisioned from version-controlled definitions.
+
+</td>
+<td valign="top">
+
+### 🛠️ Engineering discipline
+**31 ADRs**, nf-core-style Nextflow DSL2 with `nf-test`, pytest + Jest suites, and
+11 CI workflows covering lint, security, DB integrity, Docker and release.
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+## Tech Stack
+
+| Layer | Tools |
+|:---|:---|
+| **Bioinformatics** | Nextflow DSL2 · nf-test · fastp · FastQC · MultiQC · BWA-MEM2 · GATK HaplotypeCaller · DeepVariant · `hap.py` · bcftools · Biocontainers (digest-pinned) |
+| **Cloud & IaC** | AWS CDK (TypeScript) · S3 · DynamoDB · Step Functions · Lambda · EventBridge · CloudWatch/SNS · Azure Bicep (Container Apps, Static Web Apps) |
+| **Data** | PostgreSQL (insert-only + immutability triggers) · star schema · dbt · Airflow · Metabase as code · Parquet |
+| **AI / ML** | PyTorch · Hugging Face Transformers + PEFT (QLoRA) · ReAct agent over ClinVar / gnomAD / ACMG · guardrails + human-in-the-loop |
+| **Apps** | FastAPI (OpenAPI 3.1) · React + TypeScript + Vite · Streamlit |
+| **Quality** | pytest · Jest CDK guardrail tests · GitHub Actions (11 workflows) · Dependabot · 31 ADRs |
 
 <br/>
 
@@ -76,7 +136,9 @@ This platform implements the full path from sequencing data to clinical insight:
 > **Nextflow style, not the nf-core template.** The pipeline follows nf-core conventions
 > (DSL2, one process per module, `conf/modules.config`, per-process `versions.yml`, module
 > `meta.yml`) but is hand-written — it does not include the template's `subworkflows/nf-core/utils_*`
-> backbone, nf-schema validation, or nf-test suite, and would not pass `nf-core lint` cleanly.
+> backbone or nf-schema validation, and would not pass `nf-core lint` cleanly. It does have an
+> `nf-test` suite (`pipeline/tests/`, stub mode) covering the QC, calling and validation modules
+> plus a full-workflow run, executed in CI.
 
 > **Scope honesty.** This is a portfolio project. It demonstrates the validation methodology
 > and traceability patterns ISO 15189 / NATA accreditation requires (benchmarking against a
@@ -149,7 +211,7 @@ flowchart TD
 
 The pipeline is benchmarked on **GIAB HG002 / NA24385, all of chromosome 20**, at a
 measured **33.7× mean depth** (downsampled from GIAB's 300× data — see
-[ADR-0032](docs/adr/0032-full-chr20-validation-at-representative-depth.md)), against the
+[ADR-0037](docs/adr/0037-full-chr20-validation-at-representative-depth.md)), against the
 v4.2.1 high-confidence truth set using `hap.py`. Full methodology, the depth comparison and
 the limitations in [`docs/VALIDATION.md`](docs/VALIDATION.md); the raw outputs are in
 [`docs/validation-evidence/HG002_chr20_35x/`](docs/validation-evidence/HG002_chr20_35x/).
@@ -292,21 +354,12 @@ The build is demoable at every stage — see [`docs/MILESTONES.md`](docs/MILESTO
   <sub>Both dashboards, scrolled through live — not a mockup.</sub>
 </p>
 
-<p align="center">
-  <img src="docs/assets/metabase-clinical-genomics-ops.png" alt="Clinical Genomics Ops dashboard — validation pass rate, turnaround time, runs per week" width="720"/>
-</p>
-
-<p align="center">
-  <sub><b>Clinical Genomics Ops</b> — the daily-standup view: validation pass rate, per-run turnaround, runs/week throughput.</sub>
-</p>
-
-<p align="center">
-  <img src="docs/assets/metabase-clinical-genomics-analytics.png" alt="Clinical Genomics Analytics dashboard — SNV F1 trend, duplication rate, turnaround SLA, self-service cohort explorer" width="720"/>
-</p>
-
-<p align="center">
-  <sub><b>Clinical Genomics Analytics</b> — the star-schema warehouse layer: SNV F1 trend by pipeline version, turnaround SLA p50/p95, a self-service cohort explorer.</sub>
-</p>
+<table>
+<tr>
+<td width="50%" align="center"><a href="docs/assets/metabase-clinical-genomics-ops.png"><img src="docs/assets/metabase-clinical-genomics-ops.png" alt="Clinical Genomics Ops dashboard — validation pass rate, turnaround time, runs per week"/></a><br/><b>Ops</b><br/><sub>Validation pass rate, per-run turnaround, runs/week throughput.</sub></td>
+<td width="50%" align="center"><a href="docs/assets/metabase-clinical-genomics-analytics.png"><img src="docs/assets/metabase-clinical-genomics-analytics.png" alt="Clinical Genomics Analytics dashboard — SNV F1 trend, duplication rate, turnaround SLA, cohort explorer"/></a><br/><b>Analytics</b><br/><sub>SNV F1 by pipeline version, turnaround SLA p50/p95, cohort explorer.</sub></td>
+</tr>
+</table>
 
 > Reproduce it yourself: `docker compose up -d`, complete Metabase's one-time setup at
 > `localhost:3000`, then `MB_USERNAME=... MB_PASSWORD=... python dashboards/metabase/provision_metabase.py`
@@ -320,61 +373,46 @@ The build is demoable at every stage — see [`docs/MILESTONES.md`](docs/MILESTO
 
 ## Capability Walkthrough
 
-<p align="center">
-  <sub>Every screenshot below is a real capture of the actual running service — no mockups.</sub>
-</p>
+<p align="center"><sub>Every screenshot is a real capture of the running service, not a mockup. Click to enlarge.</sub></p>
 
-### REST API — OpenAPI docs
-
-<p align="center">
-  <img src="docs/assets/api-openapi-docs.png" alt="FastAPI OpenAPI docs — runs, provenance, QC-warnings, agent variant-review endpoints" width="720"/>
-</p>
-
-<p align="center">
-  <sub>`uvicorn api.main:app --reload` — fixture-backed by default, generated OpenAPI 3.1 spec, no database required.</sub>
-</p>
-
-### Streamlit demo app — data explorer and agentic variant interpretation
-
-<p align="center">
-  <img src="docs/assets/demo-app-home.png" alt="Streamlit demo app home page" width="720"/>
-</p>
-
-<p align="center">
-  <img src="docs/assets/demo-app-explorer.png" alt="Streamlit Pipeline Data Explorer — KPIs, filters, SNP F1 accuracy trend" width="720"/>
-</p>
-
-<p align="center">
-  <img src="docs/assets/demo-app-interpret.png" alt="Streamlit Variant Interpretation page — agent reasoning trace, ACMG classification" width="720"/>
-</p>
-
-<p align="center">
-  <sub><code>PYTHONPATH=. streamlit run demo/app.py</code> — reads committed seed data and fixtures, no database or cloud account needed. See <a href="demo/README.md">demo/README.md</a>.</sub>
-</p>
-
-### Agentic variant-review UI (React + FastAPI)
-
-<p align="center">
-  <img src="docs/assets/variant-review-form.png" alt="Variant Review UI — submit a variant for agentic ACMG classification" width="720"/>
-</p>
-
-<p align="center">
-  <img src="docs/assets/variant-review-trace.png" alt="Variant Review UI — full agent tool-call trace, ACMG classification, provenance, clinician sign-off" width="720"/>
-</p>
-
-<p align="center">
-  <sub>A clinician submits a variant, watches the agent call ClinVar/gnomAD/ACMG tools step by step, and records sign-off through the insert-only <code>review-decisions</code> endpoint. See <a href="web/README.md">web/README.md</a> and <a href="docs/adr/0027-rest-react-frontend-for-variant-interpreter.md">ADR-0027</a>.</sub>
-</p>
-
-### dbt lineage graph
-
-<p align="center">
-  <img src="docs/assets/dbt-lineage-graph.png" alt="dbt lineage graph — sources through staging views to star-schema marts" width="600"/>
-</p>
-
-<p align="center">
-  <sub>Source tables → staged views → dimension/fact marts, auto-generated by <code>dbt docs generate</code>. See <a href="dbt/README.md">dbt/README.md</a> and <a href="docs/adr/0025-dbt-analytics-engineering-layer.md">ADR-0025</a>.</sub>
-</p>
+<table>
+<tr>
+<td width="50%" align="center">
+<a href="docs/assets/variant-review-trace.png"><img src="docs/assets/variant-review-trace.png" alt="Variant Review UI — agent tool-call trace, ACMG classification, provenance, clinician sign-off"/></a>
+<br/><b>Agentic variant review</b> (React + FastAPI)<br/>
+<sub>The agent calls ClinVar / gnomAD / ACMG tools step by step; a clinician signs off through the insert-only <code>review-decisions</code> endpoint. <a href="web/README.md">web/</a> · <a href="docs/adr/0027-rest-react-frontend-for-variant-interpreter.md">ADR-0027</a></sub>
+</td>
+<td width="50%" align="center">
+<a href="docs/assets/api-openapi-docs.png"><img src="docs/assets/api-openapi-docs.png" alt="FastAPI OpenAPI docs — runs, provenance, QC-warnings, agent variant-review endpoints"/></a>
+<br/><b>REST API</b> (FastAPI, OpenAPI 3.1)<br/>
+<sub><code>uvicorn api.main:app --reload</code>. Fixture-backed by default, no database required.</sub>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="docs/assets/demo-app-interpret.png"><img src="docs/assets/demo-app-interpret.png" alt="Streamlit Variant Interpretation page — agent reasoning trace, ACMG classification"/></a>
+<br/><b>Variant interpretation</b> (Streamlit)<br/>
+<sub>Agent reasoning trace and ACMG classification over committed fixtures.</sub>
+</td>
+<td align="center">
+<a href="docs/assets/demo-app-explorer.png"><img src="docs/assets/demo-app-explorer.png" alt="Streamlit Pipeline Data Explorer — KPIs, filters, SNP F1 accuracy trend"/></a>
+<br/><b>Pipeline data explorer</b> (Streamlit)<br/>
+<sub>KPIs, filters and the SNV F1 trend. <code>PYTHONPATH=. streamlit run demo/app.py</code></sub>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="docs/assets/variant-review-form.png"><img src="docs/assets/variant-review-form.png" alt="Variant Review UI — submit a variant for agentic ACMG classification"/></a>
+<br/><b>Submit a variant</b> (React)<br/>
+<sub>Entry point to the agentic review flow.</sub>
+</td>
+<td align="center">
+<a href="docs/assets/dbt-lineage-graph.png"><img src="docs/assets/dbt-lineage-graph.png" alt="dbt lineage graph — sources through staging views to star-schema marts"/></a>
+<br/><b>dbt lineage</b><br/>
+<sub>Sources → staged views → star-schema marts. <a href="dbt/README.md">dbt/</a> · <a href="docs/adr/0025-dbt-analytics-engineering-layer.md">ADR-0025</a></sub>
+</td>
+</tr>
+</table>
 
 <br/>
 

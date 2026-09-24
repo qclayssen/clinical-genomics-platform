@@ -198,3 +198,79 @@ def test_tool_steps_are_not_scrubbed():
     steps, violations = _scrubbed_trace_steps([_Step()])
     assert steps[0].content == "GeneReviews entry mentions gene therapy trials."
     assert violations == []
+
+
+# ═══ LLM observability (AI-8) ═════════════════════════════════════════════════
+
+
+def _with_fresh_repo():
+    from api.dependencies import get_repository
+    from api.repository import FixtureRepository
+
+    repo = FixtureRepository()
+    app.dependency_overrides[get_repository] = lambda: repo
+    return repo, get_repository
+
+
+def test_variant_review_reports_llm_usage_and_persists_metrics_row():
+    repo, dep = _with_fresh_repo()
+    try:
+        resp = client.post(
+            "/agent/variant-review",
+            json={"chrom": "chr20", "pos": 4699605, "ref": "G", "alt": "A", "gene": "PRNP", "run_id": KNOWN_RUN_ID},
+        )
+    finally:
+        app.dependency_overrides.pop(dep, None)
+    assert resp.status_code == 201
+    body = resp.json()
+    # Deterministic default: no LLM is called, so zero calls — truthfully.
+    assert body["llm_usage"]["n_llm_calls"] == 0
+    assert body["llm_calls"] == []
+    assert len(repo._agent_call_metrics) == 1
+    row = repo._agent_call_metrics[0]
+    assert row["run_id"] == KNOWN_RUN_ID
+    assert row["n_llm_calls"] == 0
+    assert row["price_table_version"].startswith("list-prices-")
+    assert "4699605" not in str(row)
+
+
+def test_llm_calls_survive_deterministic_fallback(monkeypatch):
+    # openai with no key: the agent's LLM call fails, the route falls back to
+    # the deterministic interpreter — the failed call must still be accounted.
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    repo, dep = _with_fresh_repo()
+    try:
+        resp = client.post(
+            "/agent/variant-review",
+            json={"chrom": "chr20", "pos": 4699605, "ref": "G", "alt": "A", "run_id": KNOWN_RUN_ID, "backend": "openai"},
+        )
+    finally:
+        app.dependency_overrides.pop(dep, None)
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["llm_usage"]["n_llm_calls"] == 1
+    assert body["llm_usage"]["n_failed_calls"] == 1
+    assert body["llm_calls"][0]["prompt_tokens"] is None
+    assert body["llm_calls"][0]["estimated_cost_usd"] is None
+    row = repo._agent_call_metrics[0]
+    assert row["backend"] == "openai"
+    assert row["fallback_triggered"] is True
+    assert row["prompt_tokens"] is None  # never zero-filled
+
+
+def test_metrics_write_failure_does_not_fail_interpretation():
+    from api.dependencies import get_repository
+
+    class _Broken:
+        def record_agent_call_metrics(self, row):
+            raise RuntimeError("db down")
+
+    app.dependency_overrides[get_repository] = lambda: _Broken()
+    try:
+        resp = client.post(
+            "/agent/variant-review",
+            json={"chrom": "chr20", "pos": 4699605, "ref": "G", "alt": "A", "run_id": KNOWN_RUN_ID},
+        )
+    finally:
+        app.dependency_overrides.pop(get_repository, None)
+    assert resp.status_code == 201

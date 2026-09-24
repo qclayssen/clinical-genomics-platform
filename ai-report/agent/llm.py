@@ -59,7 +59,9 @@ class LLMResponse:
     model : str
         Model identifier that produced this response.
     usage : dict
-        Token usage info (input_tokens, output_tokens).
+        Token usage info (input_tokens, output_tokens). A value is ``None``
+        when the provider did not report it — consumers must not treat that
+        as zero (see agent/observability.py).
     raw : Any
         Raw response from the provider (for debugging).
     """
@@ -351,7 +353,12 @@ class DeterministicBackend(LLMBackend):
         return "UNKNOWN"
 
     def _gather_evidence_codes(self, messages: list[Message]) -> list[str]:
-        """Gather ACMG evidence codes from tool results."""
+        """Gather ACMG evidence codes from tool results.
+
+        Only codes some tool observation supports are returned. With no
+        supporting evidence the list is empty (classify_acmg then yields
+        Uncertain Significance) — never a default code the trace can't ground.
+        """
         codes: list[str] = []
         for msg in messages:
             if msg.role != "tool":
@@ -373,7 +380,7 @@ class DeterministicBackend(LLMBackend):
                             codes.append("PP5")
             except (json.JSONDecodeError, KeyError):
                 pass
-        return codes if codes else ["PM2"]
+        return codes
 
     def _extract_classification(self, messages: list[Message]) -> dict:
         """Extract the ACMG classification from the classify_acmg result."""
@@ -396,7 +403,7 @@ class DeterministicBackend(LLMBackend):
                     pass
         return {
             "classification": "Uncertain Significance",
-            "evidence": ["PM2"],
+            "evidence": [],
             "summary": "Insufficient evidence for definitive classification.",
             "confidence": "low",
         }
@@ -513,8 +520,9 @@ class OllamaBackend(LLMBackend):
                 stop_reason=stop_reason,
                 model=self.model_id,
                 usage={
-                    "input_tokens": result.get("prompt_eval_count", 0),
-                    "output_tokens": result.get("eval_count", 0),
+                    # None (not 0) when Ollama omits the counts — never fabricate usage.
+                    "input_tokens": result.get("prompt_eval_count"),
+                    "output_tokens": result.get("eval_count"),
                 },
                 raw=result,
             )
@@ -591,8 +599,9 @@ def _parse_openai_style_response(response: Any, model_id: str) -> LLMResponse:
         stop_reason=stop_reason,
         model=model_id,
         usage={
-            "input_tokens": response.usage.prompt_tokens if response.usage else 0,
-            "output_tokens": response.usage.completion_tokens if response.usage else 0,
+            # None (not 0) when the API omits usage — never fabricate usage.
+            "input_tokens": response.usage.prompt_tokens if response.usage else None,
+            "output_tokens": response.usage.completion_tokens if response.usage else None,
         },
         raw=response,
     )
@@ -1046,8 +1055,9 @@ class BedrockBackend(LLMBackend):
             stop_reason=stop_reason,
             model=self.model_id,
             usage={
-                "input_tokens": usage.get("inputTokens", 0),
-                "output_tokens": usage.get("outputTokens", 0),
+                # None (not 0) when Converse omits usage — never fabricate usage.
+                "input_tokens": usage.get("inputTokens"),
+                "output_tokens": usage.get("outputTokens"),
             },
             raw=response,
         )

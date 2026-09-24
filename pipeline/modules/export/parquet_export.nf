@@ -1,7 +1,7 @@
 process PARQUET_EXPORT {
     tag   { meta.id }
     label 'process_low'
-    container 'quay.io/biocontainers/pyarrow:4.0.1'
+    container 'quay.io/biocontainers/pyarrow:4.0.1@sha256:f4b5e14e392f0edbe802386c7f7c6dbf3897c5c0b92915b27535ec7a4508afdd'
 
     input:
     tuple val(meta), path(json)

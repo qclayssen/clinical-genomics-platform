@@ -56,8 +56,8 @@ jobs:
 
       - name: Load schema + seed data
         run: |
-          psql -f db/schema.sql
-          psql -f db/seed_demo.sql
+          psql -v ON_ERROR_STOP=1 -f db/schema.sql
+          psql -v ON_ERROR_STOP=1 -f db/seed_demo.sql
 
       - name: Install dbt
         run: pip install dbt-postgres

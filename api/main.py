@@ -14,7 +14,10 @@ instance (see db/schema.sql) — the routes and response shapes are identical.
 
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.repository import RunNotFoundError
@@ -44,6 +47,18 @@ app = FastAPI(
         {"name": "meta", "description": "Service health"},
     ],
 )
+
+# The deployed frontend calls this API cross-origin (azure/README.md builds web/
+# with VITE_API_BASE_URL set to the API host). Off unless CGP_CORS_ORIGINS lists
+# the allowed origins, comma-separated — never a wildcard.
+_cors_origins = [o.strip() for o in os.environ.get("CGP_CORS_ORIGINS", "").split(",") if o.strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
+    )
 
 app.include_router(runs.router)
 app.include_router(agent.router)

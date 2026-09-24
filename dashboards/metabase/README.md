@@ -144,6 +144,36 @@ GROUP BY date_key
 ORDER BY date_key;
 ```
 
+### 11. Agent LLM latency, tokens & estimated cost per backend (line)
+LLM observability for the variant-interpretation agent (roadmap AI-8,
+ADR-0036). Reads the insert-only `agent_call_metrics` table
+(`db/migrations/0002_agent_call_metrics.sql`), one row per interpretation
+written by `POST /agent/variant-review`. Plotted as mean LLM latency per
+backend per day; the token and cost columns are in the same result (switch
+the plotted metric in the card's visualization settings). Caveats the card
+deliberately surfaces rather than hides:
+
+- Token counts are only what the provider reported. `avg_tokens_reported`
+  averages over rows with usage (SQL `avg` skips NULL); `calls_without_usage`
+  counts LLM calls that reported none.
+- `avg_estimated_cost_usd` comes from a small, dated list-price table in
+  `ai-report/agent/observability.py` (stamped per row in
+  `price_table_version`), not an invoice. Unknown models → NULL.
+- The table holds counts and ids only — no prompts, completions, or variant
+  coordinates.
+
+```sql
+SELECT date_trunc('day', recorded_at) AS day, backend,
+       count(*) AS n_interpretations,
+       round(avg(llm_latency_ms)::numeric, 1) AS avg_llm_latency_ms,
+       round(avg(prompt_tokens + completion_tokens)::numeric, 1) AS avg_tokens_reported,
+       round(avg(estimated_cost_usd), 6) AS avg_estimated_cost_usd,
+       sum(n_calls_without_usage) AS calls_without_usage
+FROM agent_call_metrics
+GROUP BY 1, 2
+ORDER BY 1, 2;
+```
+
 ## Other Metabase capabilities worth wiring up
 
 Beyond adding cards, these are the "modern BI tool" features that turn a
@@ -161,7 +191,7 @@ the role description asks for:
 - **X-rays / auto-explore** on `fact_run` for ad-hoc exploration during a
   stakeholder conversation, without pre-writing a card.
 - **Collections + permissions** separating an "Ops" collection (cards 1, 3,
-  5, 6, 8) from an "Analytics" collection (cards 2, 4, 7, 9, 10) mirrors how
+  5, 6, 8) from an "Analytics" collection (cards 2, 4, 7, 9, 10, 11) mirrors how
   a real org scopes self-service access by audience — see `dashboard_manifest.yaml`
   below, which encodes this exact split.
 

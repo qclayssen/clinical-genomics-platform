@@ -19,11 +19,20 @@ export function SignOffPanel({ assessment }: SignOffPanelProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recorded, setRecorded] = useState<ReviewDecision | null>(null);
+  const [violationsAcknowledged, setViolationsAcknowledged] = useState(false);
+  const hasViolations = assessment.guardrail_violations.length > 0;
+  // Approving over server-flagged guardrail violations needs an explicit
+  // acknowledgement; rejecting never does.
+  const approveBlocked = hasViolations && !violationsAcknowledged;
 
   async function handleDecision(decision: ReviewDecisionOutcome) {
     const trimmedName = reviewer.trim();
     if (!trimmedName) {
       setError("Enter your name before recording a decision.");
+      return;
+    }
+    if (decision === "approved" && approveBlocked) {
+      setError("Acknowledge the guardrail violations before approving.");
       return;
     }
     setError(null);
@@ -47,6 +56,9 @@ export function SignOffPanel({ assessment }: SignOffPanelProps) {
   return (
     <section className="signoff-panel" aria-label="Classification and sign-off">
       <h2>Classification</h2>
+      <p className="signoff-panel__variant">
+        Variant under review: <code>{assessment.variant_key}</code>
+      </p>
       <p
         className={`classification-badge classification-badge--${assessment.classification
           .toLowerCase()
@@ -92,16 +104,17 @@ export function SignOffPanel({ assessment }: SignOffPanelProps) {
 
       <div className="signoff-control">
         {recorded ? (
-          <p className="signoff-control__recorded">
-            <strong>{recorded.decision === "approved" ? "Approved" : "Rejected"}</strong> by{" "}
-            <strong>{recorded.reviewer}</strong> at <strong>{recorded.decided_at}</strong>
+          <p className="signoff-control__recorded" role="status">
+            <strong>{recorded.decision === "approved" ? "Approved" : "Rejected"}</strong>{" "}
+            <code>{assessment.variant_key}</code> by <strong>{recorded.reviewer}</strong> at{" "}
+            <strong>{recorded.decided_at}</strong>
           </p>
         ) : (
           <>
             <h3>Reviewer decision</h3>
             <p className="signoff-control__hint">
               Confirms you, a qualified clinician, have reviewed the agent trace and summary above
-              and take responsibility for this decision.
+              for <code>{assessment.variant_key}</code> and take responsibility for this decision.
             </p>
             <div className="signoff-control__form">
               <label htmlFor="reviewer-name">Your name</label>
@@ -122,8 +135,25 @@ export function SignOffPanel({ assessment }: SignOffPanelProps) {
                 placeholder="Confirmed against ClinVar submission…"
                 disabled={isSubmitting}
               />
+              {hasViolations && (
+                <label className="signoff-control__ack" htmlFor="ack-violations">
+                  <input
+                    id="ack-violations"
+                    type="checkbox"
+                    checked={violationsAcknowledged}
+                    onChange={(event) => setViolationsAcknowledged(event.target.checked)}
+                    disabled={isSubmitting}
+                  />
+                  I have read the {assessment.guardrail_violations.length} guardrail violation
+                  {assessment.guardrail_violations.length === 1 ? "" : "s"} flagged above.
+                </label>
+              )}
               <div className="signoff-control__buttons">
-                <button type="button" onClick={() => handleDecision("approved")} disabled={isSubmitting}>
+                <button
+                  type="button"
+                  onClick={() => handleDecision("approved")}
+                  disabled={isSubmitting || approveBlocked}
+                >
                   {isSubmitting ? "Recording…" : "Approve"}
                 </button>
                 <button

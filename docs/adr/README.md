@@ -35,7 +35,7 @@ Each ADR follows the same tiny structure:
 | [0009](0009-docker-pinned-by-digest.md) | Containerise every step, pin images by digest | Accepted |
 | [0010](0010-ga4gh-standards-alignment.md) | Align with GA4GH standards; implement the refget/VRS digest primitive | Accepted |
 | [0011](0011-serverless-lambda-stepfunctions.md) | Migrate compute Batch/Fargate → Lambda + Step Functions (free-tier) | Accepted (supersedes 0004) |
-| [0012](0012-dynamodb-primary-store.md) | DynamoDB primary store; Postgres → Metabase read-replica | Accepted (supersedes 0005) |
+| [0012](0012-dynamodb-primary-store.md) | DynamoDB primary store; Postgres → Metabase read-replica | Accepted (supersedes 0005; amended by 0031) |
 | [0013](0013-qc-warnings-adaptive-thresholds-self-healing.md) | QC warnings with adaptive thresholds and self-healing | Accepted |
 | [0014](0014-agentic-variant-interpretation.md) | Agentic variant interpretation with a ReAct loop (ACMG/AMP) | Accepted |
 | [0015](0015-happy-xcmp-engine-not-vcfeval.md) | Use hap.py's xcmp engine, not vcfeval | Accepted (supersedes engine choice in 0003) |
@@ -54,11 +54,17 @@ Each ADR follows the same tiny structure:
 | [0028](0028-azure-bedrock-backends-and-fhir-intake.md) | Azure AI Foundry / AWS Bedrock LLM backends, and a minimal HL7 FHIR genomics intake | Accepted |
 | [0029](0029-emr-icu-vved-demo-module.md) | `emr-pipeline/`: an EMR/ICU/VVED data-engineering demo module | Accepted |
 | [0030](0030-azure-deployment-api-web.md) | Azure deployment (Bicep) for the REST API + React frontend | Accepted |
-| [0032](0032-full-chr20-validation-at-representative-depth.md) | Validate full chr20 at a downsampled ~35× depth, not at the 300× source depth | Accepted |
+| [0031](0031-dynamodb-streams-audit-sink-accepted-limitation.md) | DynamoDB Streams audit sink not built — recorded as an accepted limitation | Accepted (amends 0012) |
+| [0032](0032-agent-evaluation-harness.md) | Evaluation harness for the variant-interpretation agent ("hap.py for the LLM") | Accepted |
+| [0033](0033-mcp-server-read-only.md) | Read-only MCP server over run, QC, provenance and knowledge-base data | Accepted |
+| [0034](0034-spatial-genomics-direction.md) | Spatial transcriptomics — a sketched direction, deliberately not built | Proposed |
+| [0035](0035-mlflow-local-tracking-model-registry.md) | Opt-in local MLflow tracking; registered version is the adapter's provenance reference | Accepted |
+| [0036](0036-llm-observability-agent-call-metrics.md) | LLM observability: per-call accounting, dated cost estimates, insert-only `agent_call_metrics` | Accepted |
 
+| [0037](0037-full-chr20-validation-at-representative-depth.md) | Validate full chr20 at a downsampled ~35× depth, not at the 300× source depth | Accepted |
 ---
 
-**Count: 31 ADRs on this branch** (0001–0030, 0032; 0031 is added by the Phase 2 branch). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 37 ADRs** (0001–0037). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 

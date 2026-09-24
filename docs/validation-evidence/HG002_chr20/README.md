@@ -3,7 +3,7 @@
 > **Historical.** Since Phase 3 (2026-09-24) this is no longer the headline result: it
 > covers a 1 Mb window at the source's 255.8× depth. The headline run is all of chr20 at
 > 33.7× — see [`HG002_chr20_35x/`](../HG002_chr20_35x/) and
-> [ADR-0032](../../adr/0032-full-chr20-validation-at-representative-depth.md). This run is
+> [ADR-0037](../../adr/0037-full-chr20-validation-at-representative-depth.md). This run is
 > kept, unchanged, as the third row of [`docs/VALIDATION.md`](../../VALIDATION.md) §4.
 
 This directory commits the two raw artifacts behind the original validation numbers

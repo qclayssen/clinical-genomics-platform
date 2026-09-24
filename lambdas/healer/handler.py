@@ -18,6 +18,7 @@ Requirements: Task 10 — AI diagnostics with rule-based fallback.
 import json
 import logging
 import os
+import re
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,12 @@ QC_PATTERNS = ["qc", "threshold", "quality", "duplication", "f1", "precision", "
                "exit code 42", "qc_soft_fail"]
 HARD_FAIL_PATTERNS = ["exit code 43", "qc_hard_fail", "corruption", "invalid format"]
 
+# Textual patterns match as substrings ("outofmemoryerror"); the exit code 137
+# matches only as a whole number, so a coordinate like chr20:1370021 is not an OOM.
+_OOM_RE = re.compile(
+    "|".join(r"\b137\b" if p == "137" else re.escape(p) for p in OOM_PATTERNS)
+)
+
 
 def rule_based_classify(error_cause: str, attempt_number: int = 1) -> dict:
     """Classify failure using deterministic rules when LLM is unavailable.
@@ -77,8 +84,17 @@ def rule_based_classify(error_cause: str, attempt_number: int = 1) -> dict:
     """
     cause_lower = error_cause.lower()
 
+    # Hard failures first: they are non-retryable, so no other pattern that
+    # happens to appear in the same message may turn them into a retry.
+    if any(p in cause_lower for p in HARD_FAIL_PATTERNS):
+        return {
+            "action": "quarantine_hard",
+            "reasoning": "Error pattern matches non-retryable quality failure",
+            "confidence": 0.80,
+        }
+
     # Check for OOM/memory issues
-    if any(p in cause_lower for p in OOM_PATTERNS):
+    if _OOM_RE.search(cause_lower):
         return {
             "action": "retry_more_memory",
             "reasoning": "Error pattern matches memory exhaustion (OOM/signal 137)",
@@ -91,14 +107,6 @@ def rule_based_classify(error_cause: str, attempt_number: int = 1) -> dict:
             "action": "retry_longer_timeout",
             "reasoning": "Error pattern matches timeout/deadline exceeded",
             "confidence": 0.85,
-        }
-
-    # Check for hard QC failure
-    if any(p in cause_lower for p in HARD_FAIL_PATTERNS):
-        return {
-            "action": "quarantine_hard",
-            "reasoning": "Error pattern matches non-retryable quality failure",
-            "confidence": 0.80,
         }
 
     # Check for QC threshold breach

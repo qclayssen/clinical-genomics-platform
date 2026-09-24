@@ -200,3 +200,36 @@ def test_guardrails_reinsert_banner_if_model_drops_it():
     assert fixed.startswith("AI-DRAFTED — REQUIRES CLINICIAN REVIEW")
     assert "recommend" not in fixed.lower()   # scrubbed
     assert "Provenance:" in fixed
+
+
+def test_parse_happy_selects_pass_row_regardless_of_order(tmp_path):
+    # Real hap.py summaries carry a Filter column with ALL and PASS rows per
+    # type; the PASS row is the one benchmarked, whatever order the rows are in.
+    csv = tmp_path / "happy.csv"
+    csv.write_text(
+        "Type,Filter,METRIC.Precision,METRIC.Recall,METRIC.F1_Score\n"
+        "SNP,PASS,0.95,0.95,0.95\n"
+        "SNP,ALL,0.999,0.999,0.999\n"
+    )
+    assert bm.parse_happy(str(csv))["snp"]["f1"] == 0.95
+
+
+def test_main_fails_when_a_declared_input_is_missing(tmp_path, monkeypatch):
+    """A missing --inputs file used to be dropped from input_checksums without
+    a word, so the provenance stamp looked complete. It must fail instead."""
+    import pytest
+
+    dup = tmp_path / "dup.metrics"
+    dup.write_text("LIBRARY\tPERCENT_DUPLICATION\ns\t0.05\n")
+    happy = tmp_path / "happy.csv"
+    happy.write_text("Type,METRIC.Precision,METRIC.Recall,METRIC.F1_Score\nSNP,0.995,0.994,0.9945\n")
+    monkeypatch.setattr("sys.argv", [
+        "build_metrics.py", "--sample", "s", "--dup-metrics", str(dup),
+        "--happy-summary", str(happy), "--provenance", "{}",
+        "--inputs", f"{dup},{tmp_path / 'typo_reference.fasta'}",
+        "--output", str(tmp_path / "out.json"),
+    ])
+    with pytest.raises(SystemExit) as exc:
+        bm.main()
+    assert "typo_reference.fasta" in str(exc.value)
+    assert not (tmp_path / "out.json").exists()

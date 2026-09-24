@@ -58,7 +58,15 @@ VITE_API_BASE_URL=https://<api-fqdn-from-step-2-output> npm run build
 npx @azure/static-web-apps-cli deploy ./dist --deployment-token <token-from-portal-or-az-cli>
 ```
 
-Then link the Container App as the Static Web App's backend so `/api/*` (per
+The browser now calls the API host cross-origin, so the API must allow the Static Web App's
+origin. Re-run the step-2 deployment with it (the `webUrl` output of the first deploy):
+
+```bash
+az deployment group create --resource-group <rg> --template-file main.bicep \
+  --parameters containerImage=<image> corsOrigins=https://<webUrl-host>
+```
+
+Alternatively, link the Container App as the Static Web App's backend so `/api/*` (per
 `../web/staticwebapp.config.json`) proxies there without CORS setup:
 
 ```bash

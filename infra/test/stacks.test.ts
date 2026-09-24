@@ -197,6 +197,61 @@ describe('CGP infrastructure invariants', () => {
       expect(denyActions).toContain('s3:DeleteObject');
     });
 
+    // INTEG-01: the test above only proves the deny actions exist *somewhere* in
+    // the template. This one proves they are attached to *each* role that can
+    // write to the metadata table, so dropping the deny from a single role fails.
+    test('every role that can write to DynamoDB carries the DynamoDB mutation deny', () => {
+      const asList = (v: any) => (Array.isArray(v) ? v : [v]);
+      const isDynamoAction = (a: string) => a === '*' || a.startsWith('dynamodb:');
+      const requiredDenies = ['dynamodb:DeleteItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteTable'];
+
+      // Scan every stack: a Lambda given a CDK default role would put its writer
+      // role in the Orchestration template, not the IAM one.
+      const writers: { role: string; stmts: any[] }[] = [];
+      for (const { name, template } of allTemplates) {
+        const resources = template.toJSON().Resources ?? {};
+        const statementsByRole = new Map<string, any[]>();
+        for (const [logicalId, r] of Object.entries(resources) as [string, any][]) {
+          if (r.Type === 'AWS::IAM::Role') statementsByRole.set(logicalId, []);
+        }
+        for (const r of Object.values(resources) as any[]) {
+          if (r.Type !== 'AWS::IAM::Policy') continue;
+          const statements = r.Properties?.PolicyDocument?.Statement ?? [];
+          for (const roleRef of r.Properties?.Roles ?? []) {
+            statementsByRole.get(roleRef.Ref)?.push(...statements);
+          }
+        }
+        for (const [roleId, stmts] of statementsByRole) {
+          if (stmts.some((s) => s.Effect !== 'Deny' && asList(s.Action).some(isDynamoAction))) {
+            writers.push({ role: `${name}/${roleId}`, stmts });
+          }
+        }
+      }
+
+      // metadataIngestor and reportGenerator both write to cgp-metadata; guards
+      // against the filter silently matching nothing.
+      expect(writers.length).toBeGreaterThanOrEqual(2);
+      for (const { role, stmts } of writers) {
+        // The deny must cover the table ARN(s) this role is allowed to act on,
+        // not just exist with the right action names.
+        const tableArns = new Set(
+          stmts
+            .filter((s) => s.Effect !== 'Deny' && asList(s.Action).some(isDynamoAction))
+            .flatMap((s) => asList(s.Resource).map((r: any) => JSON.stringify(r)))
+            .filter((r: string) => !r.includes('/index/')),
+        );
+        const denies = stmts.filter((s) => s.Effect === 'Deny');
+        for (const action of requiredDenies) {
+          for (const arn of tableArns) {
+            const covered = denies.some((s) =>
+              asList(s.Action).includes(action) &&
+              asList(s.Resource).some((r: any) => JSON.stringify(r) === arn));
+            expect({ role, action, arn, covered }).toEqual({ role, action, arn, covered: true });
+          }
+        }
+      }
+    });
+
     test('no IAM policy grants * resource ARN in non-deny statements (except DenyPrivilegeEscalation)', () => {
       const resources = iamTemplate.toJSON().Resources ?? {};
       const policies = Object.values(resources).filter(

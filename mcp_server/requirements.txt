@@ -1,0 +1,7 @@
+# Read-only MCP server (mcp_server/, ADR-0033).
+# Official Python MCP SDK (FastMCP, stdio transport):
+mcp>=1.2,<2.0
+# Reused repository layer (api/repository.py, api/models.py):
+pydantic>=2.7,<3.0
+# Only needed when CGP_DB_URL is set (read-only PostgresRepository):
+psycopg[binary]>=3.1,<4.0

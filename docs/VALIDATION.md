@@ -3,7 +3,7 @@
 **Assay:** Germline single-nucleotide variant (SNV) calling, whole-genome sequencing
 **Scope of this validation:** GRCh38, **all of chromosome 20**, at a measured **33.7× mean
 depth** — the locked scope of [ADR-0001](adr/0001-scope-giab-hg002-chr20.md), at the
-representative depth set by [ADR-0032](adr/0032-full-chr20-validation-at-representative-depth.md)
+representative depth set by [ADR-0037](adr/0037-full-chr20-validation-at-representative-depth.md)
 **Reference material:** GIAB HG002 / NA24385 (Ashkenazi son), NIST benchmark v4.2.1
 **Comparator:** `hap.py` (xcmp engine — see [ADR-0015](adr/0015-happy-xcmp-engine-not-vcfeval.md)) against the v4.2.1 high-confidence VCF + BED
 
@@ -37,8 +37,10 @@ downstream automation.
 ## 3. Acceptance criterion
 
 - **SNV F1 ≥ 0.99** within the high-confidence regions.
-- Recorded per run as `validation_pass` and enforced by the DB/dashboard.
-- A run below threshold is flagged; results are withheld from reporting until reviewed.
+- Recorded per run as `validation_pass` (computed in `pipeline/bin/build_metrics.py`).
+- **Not yet enforced.** Nothing in the pipeline, DB or dashboard blocks, fails, or withholds
+  a run with `validation_pass: false` — it is a recorded flag that a reviewer has to check.
+  Enforcement is an open item in [FIXES-TODO](FIXES-TODO.md).
 
 ## 4. Results
 
@@ -56,6 +58,14 @@ effect of depth alone can be read off one region.
 
 ¹ Query Ti/Tv over *all* calls, including calls outside the high-confidence BED; not a
 benchmarked metric.
+
+**About the historical row.** It passes §3 but should not carry weight on its own: its
+recall (0.9894) is below the QC layer's `snp_recall` fail line; with 1,226 truth SNVs
+(13 FN, 8 FP) the 95% Wilson interval for its recall is roughly 0.982–0.994, so the margin
+is within sampling noise; and its `metrics.json` predates the current stamp
+(`git_commit: local-dev`, `pipeline_version: 0.3.0`, checksums of the two derived artifacts
+only). The Phase 3 runs above were made from a clean checkout with the complete stamp (§6)
+to replace it as evidence.
 
 **Headline result.** Over all of chr20 at 33.7×, SNV F1 = 0.9927 meets the ≥ 0.99
 acceptance criterion (§3): 70,982 of 71,333 truth SNVs recovered (351 false negatives),
@@ -105,10 +115,10 @@ against each other from a clone.
 - **Depth is downsampled, not sequenced.** The ~35× read sets are subsampled from one very
   deep library, so they keep that library's insert-size and error profile and do not model a
   real 35× run's duplicate rate (0.25% here). See
-  [ADR-0032](adr/0032-full-chr20-validation-at-representative-depth.md).
+  [ADR-0037](adr/0037-full-chr20-validation-at-representative-depth.md).
 - **No native-depth full-chr20 run.** A 255.8×-depth run over all of chr20 is ~55 M read
   pairs and is not feasible on the project's only real-compute substrate
-  ([ADR-0018](adr/0018-execution-substrate-and-healer-llm-runtime.md)); ADR-0032 records why
+  ([ADR-0018](adr/0018-execution-substrate-and-healer-llm-runtime.md)); ADR-0037 records why
   it is not needed for the validation claim.
 - **Narrow precision margin.** Headline SNV precision is 0.9903; a caller, filter or
   reference change could plausibly push it below 0.99 — re-validation on change (§7) is not
@@ -155,14 +165,16 @@ seed and the fraction are recorded in `*.downsample.tsv`.
 
 **Known gap in this stamp (tracked in [FIXES-TODO.md](FIXES-TODO.md)):**
 
-- **Container image digests are not captured.** Images are pinned by tag, not by
-  `@sha256:` digest, and no container identity reaches the provenance block. Only the
-  *caller's* version is in the stamp; the other tools' versions are collated separately into
-  `pipeline_info/software_versions.yml` (committed beside each run's evidence, but not part
-  of the result record). `hap.py` also reports an empty version string there; the pinned
-  image tag is `hap.py:0.3.15--py27hcb73b3d_0`.
-  [ADR-0009](adr/0009-docker-pinned-by-digest.md) sets digest pinning as the production
-  target; it is not met today.
+- **Container identity is not in the stamp.** Every module image is now pinned by
+  `@sha256` digest ([ADR-0009](adr/0009-docker-pinned-by-digest.md)), but no digest reaches
+  the provenance block. Only the *caller's* version is in the stamp; the other tools'
+  versions are collated separately into `pipeline_info/software_versions.yml` (committed
+  beside each run's evidence, but not part of the result record). `hap.py` also reports an
+  empty version string there; the pinned image tag is `hap.py:0.3.15--py27hcb73b3d_0`.
+  The Phase 3 runs predate the digest pins by a few hours and were launched by tag; every
+  image they used was checked afterwards and its local digest matches the digest now pinned
+  in `pipeline/modules/` exactly — so the evidence was produced by the pinned images, but
+  that was verified by hand, not recorded by the run.
 
 The run artifacts backing §4 are committed under
 [`docs/validation-evidence/`](validation-evidence/), one directory per run, so the tables
@@ -193,9 +205,9 @@ concrete counterpart in this repository:
 
 | GxP concept | What it verifies | Existing mechanism here |
 |---|---|---|
-| **IQ** — is the system installed as specified? | The right software, at the right version, is what actually runs. | Docker images pinned by tag, with digest pinning the target but not yet met ([ADR-0009](adr/0009-docker-pinned-by-digest.md)); the caller's version and the checksums of every input are captured in `run_provenance`, container identity is not (§6). CDK guardrail tests (`infra/test/stacks.test.ts`) assert infrastructure invariants — bucket versioning, public-access block, TLS-only, IAM deny-delete — before any environment is considered correctly installed. |
+| **IQ** — is the system installed as specified? | The right software, at the right version, is what actually runs. | Every module container is pinned by `@sha256` digest ([ADR-0009](adr/0009-docker-pinned-by-digest.md)), guarded by `tests/test_container_pinning.py`; the caller's version and the checksums of every input reach `run_provenance`, container identity does not yet (§6). CDK guardrail tests (`infra/test/stacks.test.ts`) assert infrastructure invariants — bucket versioning, public-access block, TLS-only, IAM deny-delete — before any environment is considered correctly installed. |
 | **OQ** — does the system operate correctly across its intended range? | The pipeline runs end-to-end and produces the expected artifacts under normal and stub conditions. | The Nextflow `-stub` profile (`pipeline/main.nf`) exercises every process's structure without real compute; `pytest` covers the provenance/guardrail logic deterministically (`tests/test_build_metrics.py` and this repo's other `tests/test_*.py` files); CI (`.github/workflows/`) runs both on every change. |
-| **PQ** — does the system perform correctly against real-world data and acceptance criteria? | The actual analytical result meets a defined, justified threshold. | The `hap.py`-vs-GIAB benchmark in §4 of this document, against the SNV F1 ≥ 0.99 acceptance criterion in §3, run on real GIAB HG002 reads (not synthetic/stub data) — the result recorded per run as `validation_pass` in `metrics.json` and enforced insert-only in `db/schema.sql`. |
+| **PQ** — does the system perform correctly against real-world data and acceptance criteria? | The actual analytical result meets a defined, justified threshold. | The `hap.py`-vs-GIAB benchmark in §4 of this document, against the SNV F1 ≥ 0.99 acceptance criterion in §3, run on real GIAB HG002 reads (not synthetic/stub data) — the result recorded per run as `validation_pass` in `metrics.json` and stored insert-only in `db/schema.sql` (recorded, not yet enforced as a gate — see §3). |
 
 This mapping is a vocabulary bridge, not new validation work — every cited mechanism already
 existed before this section was written. What it does not claim: formal IQ/OQ/PQ protocol

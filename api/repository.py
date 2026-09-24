@@ -8,11 +8,15 @@ they're talking to:
 - PostgresRepository: reads the tables defined in db/schema.sql. Used when
   CGP_DB_URL is set. review_decisions is insert-only, matching the DB
   trigger that forbids UPDATE/DELETE.
+
+Both also record agent_call_metrics rows (AI-8): per-interpretation LLM
+token/latency/estimated-cost aggregates, insert-only, counts/ids only.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from itertools import count
 from pathlib import Path
@@ -42,12 +46,25 @@ class Repository(Protocol):
 
     def create_review_decision(self, run_id: str, decision: ReviewDecisionCreate) -> ReviewDecision: ...
 
+    def record_agent_call_metrics(self, row: dict) -> None: ...
+
+
+# Columns of agent_call_metrics (db/migrations/0002_agent_call_metrics.sql)
+# the application writes; id / run_pk / recorded_at are filled by the DB.
+AGENT_CALL_METRICS_COLUMNS = (
+    "run_id", "backend", "model_id", "n_llm_calls", "n_failed_calls", "n_calls_without_usage",
+    "prompt_tokens", "completion_tokens", "usage_complete", "llm_latency_ms", "wall_time_ms",
+    "estimated_cost_usd", "price_table_version", "fallback_triggered",
+)
+
 
 class FixtureRepository:
     def __init__(self, data_path: Path = DEMO_DATA_PATH):
         raw = json.loads(data_path.read_text())
         self._runs: dict[str, dict] = {r["provenance"]["run_id"]: r for r in raw["runs"]}
         self._review_decisions: list[ReviewDecision] = []
+        # In-memory stand-in for agent_call_metrics; append-only like the table.
+        self._agent_call_metrics: list[dict] = []
         self._next_id = count(1)
 
     def _to_run(self, record: dict) -> Run:
@@ -116,6 +133,13 @@ class FixtureRepository:
         self._review_decisions.append(record)
         return record
 
+    def record_agent_call_metrics(self, row: dict) -> None:
+        # No run-existence check: the interpretation endpoint doesn't require
+        # one either, and run_pk is nullable in the table for the same reason.
+        self._agent_call_metrics.append(
+            {**{k: row.get(k) for k in AGENT_CALL_METRICS_COLUMNS}, "recorded_at": datetime.now(timezone.utc)}
+        )
+
 
 class PostgresRepository:
     """Reads db/schema.sql tables directly. Requires `psycopg[binary]`."""
@@ -127,7 +151,10 @@ class PostgresRepository:
         import psycopg
         from psycopg.rows import dict_row
 
-        return psycopg.connect(self._dsn, row_factory=dict_row)
+        # Bounded connect so an unreachable DB fails fast instead of hanging the
+        # request for the OS TCP timeout (the agent metrics write is best-effort).
+        timeout = int(os.environ.get("CGP_DB_CONNECT_TIMEOUT", "5"))
+        return psycopg.connect(self._dsn, row_factory=dict_row, connect_timeout=timeout)
 
     @staticmethod
     def _row_to_run(row: dict) -> Run:
@@ -209,9 +236,10 @@ class PostgresRepository:
     def get_provenance(self, run_id: str) -> Provenance:
         query = """
             SELECT r.pipeline_version, r.git_commit, r.caller, r.started_at, r.exported_at,
-                   p.truth_version, p.input_checksums
+                   s.reference_build, p.truth_version, p.input_checksums
             FROM runs r
             JOIN run_provenance p ON p.run_pk = r.id
+            LEFT JOIN samples s ON s.sample_id = r.sample_id
             WHERE r.run_id = %s
             ORDER BY p.recorded_at DESC LIMIT 1
         """
@@ -226,23 +254,33 @@ class PostgresRepository:
             caller=row["caller"],
             started_at=row["started_at"],
             exported_at=row["exported_at"],
+            reference_build=row["reference_build"],
             truth_version=row["truth_version"],
             input_checksums=row["input_checksums"] or {},
         )
 
     def list_qc_warnings(self, run_id: str) -> list[QcWarning]:
+        # LEFT JOIN from runs: no rows means the run does not exist (404, as in
+        # FixtureRepository); a single all-NULL warning row means it has none.
         query = """
-            SELECT w.sample_id, w.overall_status, w.metric_name, w.metric_value,
-                   w.threshold_warn, w.threshold_fail, w.threshold_source, w.recorded_at
-            FROM qc_warnings w
-            JOIN runs r ON r.id = w.run_pk
+            SELECT w.id AS _warning_id, w.sample_id, w.overall_status, w.metric_name,
+                   w.metric_value, w.threshold_warn, w.threshold_fail, w.threshold_source,
+                   w.recorded_at
+            FROM runs r
+            LEFT JOIN qc_warnings w ON w.run_pk = r.id
             WHERE r.run_id = %s
-            ORDER BY w.recorded_at DESC
+            ORDER BY w.recorded_at DESC NULLS LAST
         """
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute(query, [run_id])
             rows = cur.fetchall()
-        return [QcWarning(run_id=run_id, **row) for row in rows]
+        if not rows:
+            raise RunNotFoundError(run_id)
+        return [
+            QcWarning(run_id=run_id, **{k: v for k, v in row.items() if k != "_warning_id"})
+            for row in rows
+            if row["_warning_id"] is not None
+        ]
 
     def create_review_decision(self, run_id: str, decision: ReviewDecisionCreate) -> ReviewDecision:
         query = """
@@ -258,3 +296,14 @@ class PostgresRepository:
         if row is None:
             raise RunNotFoundError(run_id)
         return ReviewDecision(id=row["id"], run_id=run_id, decided_at=row["decided_at"], **decision.model_dump())
+
+    def record_agent_call_metrics(self, row: dict) -> None:
+        cols = ", ".join(AGENT_CALL_METRICS_COLUMNS)
+        params = ", ".join(f"%({c})s" for c in AGENT_CALL_METRICS_COLUMNS)
+        query = f"""
+            INSERT INTO agent_call_metrics (run_pk, {cols})
+            SELECT (SELECT r.id FROM runs r WHERE r.run_id = %(run_id)s), {params}
+        """
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(query, {c: row.get(c) for c in AGENT_CALL_METRICS_COLUMNS})
+            conn.commit()

@@ -119,8 +119,9 @@ def _try_rag_generation(m: dict) -> str | None:
         index_dir = os.environ.get("RAG_INDEX_DIR", "/opt/ai-report/rag/index")
         ollama_model = os.environ.get("OLLAMA_MODEL", "phi3:mini")
 
-        report = render_with_rag(m, index_dir, ollama_model)
-        return report
+        # fallback=False: on Ollama failure return None so the handler renders
+        # offline itself and records generation_method="offline", not "rag".
+        return render_with_rag(m, index_dir, ollama_model, fallback=False)
     except Exception as exc:
         logger.warning(
             json.dumps(
@@ -239,7 +240,9 @@ def handler(event: dict, context) -> dict:
         sample_id=sample_id,
         action="REPORT_DRAFTED",
         detail={
-            "model_version": _MODEL_VERSION,
+            # Only a RAG-generated report came from the model; the offline
+            # template must not be attributed to it.
+            "model_version": _MODEL_VERSION if generation_method == "rag" else None,
             "adapter_version": adapter_version,
             "generation_method": generation_method,
         },
