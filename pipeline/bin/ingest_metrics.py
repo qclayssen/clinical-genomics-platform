@@ -47,15 +47,18 @@ def extract_warning_rows(qc_doc: dict) -> list[dict]:
     return rows
 
 
-def count_variants(vcf: str) -> int:
+def count_variants(vcf: str) -> int | None:
+    """Count VCF records, or None when bcftools is unavailable or fails —
+    stored as NULL (unknown), never as a made-up number in an insert-only row."""
     try:
         out = subprocess.run(
             ["bcftools", "view", "-H", vcf],
             capture_output=True, text=True, check=True,
         )
         return sum(1 for _ in out.stdout.splitlines())
-    except Exception:
-        return -1  # bcftools unavailable in this image; recorded as unknown
+    except (OSError, subprocess.CalledProcessError) as exc:
+        print(f"ingest_metrics: could not count variants in {vcf}: {exc}", file=sys.stderr)
+        return None
 
 
 def main() -> int:
@@ -71,6 +74,8 @@ def main() -> int:
         rec = json.load(fh)
     prov = rec["provenance"]
     n_variants = count_variants(args.vcf)
+    if n_variants is None:
+        n_variants = prov.get("n_variants")  # the stamp's own count, if it has one
 
     with open(args.qc_warnings) as fh:
         qc_doc = json.load(fh)

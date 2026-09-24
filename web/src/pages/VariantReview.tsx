@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import type { AgentBackend, VariantAssessment, VariantReviewRequest } from "../api/client";
 import { submitFhirVariantReview, submitVariantReview } from "../api/client";
 import { GuardrailBanner } from "../components/GuardrailBanner";
@@ -63,6 +63,22 @@ const SAMPLE_FHIR_OBSERVATION = JSON.stringify(
 
 export function VariantReview() {
   const [mode, setMode] = useState<IntakeMode>("manual");
+
+  // WAI-ARIA tabs: arrow keys (and Home/End) move between tabs and focus the
+  // newly selected one; Tab moves on into the panel.
+  function handleTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const order: IntakeMode[] = ["manual", "fhir"];
+    const index = order.indexOf(mode);
+    let next: IntakeMode | null = null;
+    if (event.key === "ArrowRight") next = order[(index + 1) % order.length];
+    else if (event.key === "ArrowLeft") next = order[(index - 1 + order.length) % order.length];
+    else if (event.key === "Home") next = order[0];
+    else if (event.key === "End") next = order[order.length - 1];
+    if (next === null) return;
+    event.preventDefault();
+    setMode(next);
+    document.getElementById(`tab-${next}`)?.focus();
+  }
   const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
   const [fhirJson, setFhirJson] = useState(SAMPLE_FHIR_OBSERVATION);
   const [fhirRunId, setFhirRunId] = useState(INITIAL_FORM_STATE.runId);
@@ -149,11 +165,19 @@ export function VariantReview() {
         </p>
       </header>
 
-      <div className="intake-tabs" role="tablist" aria-label="Variant intake mode">
+      <div
+        className="intake-tabs"
+        role="tablist"
+        aria-label="Variant intake mode"
+        onKeyDown={handleTabKeyDown}
+      >
         <button
           type="button"
           role="tab"
+          id="tab-manual"
           aria-selected={mode === "manual"}
+          aria-controls="panel-manual"
+          tabIndex={mode === "manual" ? 0 : -1}
           className={mode === "manual" ? "intake-tabs__tab intake-tabs__tab--active" : "intake-tabs__tab"}
           onClick={() => setMode("manual")}
         >
@@ -162,7 +186,10 @@ export function VariantReview() {
         <button
           type="button"
           role="tab"
+          id="tab-fhir"
           aria-selected={mode === "fhir"}
+          aria-controls="panel-fhir"
+          tabIndex={mode === "fhir" ? 0 : -1}
           className={mode === "fhir" ? "intake-tabs__tab intake-tabs__tab--active" : "intake-tabs__tab"}
           onClick={() => setMode("fhir")}
         >
@@ -171,7 +198,7 @@ export function VariantReview() {
       </div>
 
       {mode === "manual" ? (
-        <section className="review-form" aria-label="Submit a variant for review">
+        <section className="review-form" role="tabpanel" id="panel-manual" aria-labelledby="tab-manual">
           <form onSubmit={handleManualSubmit}>
             <div className="form-row">
               <label htmlFor="chrom">Chromosome</label>
@@ -297,7 +324,7 @@ export function VariantReview() {
           </form>
         </section>
       ) : (
-        <section className="review-form" aria-label="Submit a FHIR Observation for review">
+        <section className="review-form" role="tabpanel" id="panel-fhir" aria-labelledby="tab-fhir">
           <p className="form-row__hint">
             Paste a FHIR genomics <code>Observation</code> resource. Only a subset of the HL7
             Genomics Reporting IG's component codes is read (chromosome, position, ref/alt
@@ -358,11 +385,16 @@ export function VariantReview() {
         </p>
       )}
 
-      {isSubmitting && (
-        <p className="loading-indicator" role="status">
-          Running the agentic interpreter — querying the knowledge base and applying ACMG rules…
-        </p>
-      )}
+      {/* The live region stays mounted so screen readers announce the message
+          when it appears; a region inserted with its text already inside is
+          often not read at all. */}
+      <div role="status" aria-live="polite">
+        {isSubmitting && (
+          <p className="loading-indicator">
+            Running the agentic interpreter — querying the knowledge base and applying ACMG rules…
+          </p>
+        )}
+      </div>
 
       {assessment && (
         <div className="review-result">

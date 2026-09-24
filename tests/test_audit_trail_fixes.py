@@ -50,3 +50,46 @@ def test_offline_report_never_presents_simulated_f1_as_a_pass():
 
     measured = build_metrics_json({"f1": 0.995, "validation_pass": True, "simulated": False})
     assert "met the F1 ≥ 0.99 acceptance threshold" in infer.render_offline(measured)
+
+
+# ═══ DynamoDB→Postgres sync must not fabricate provenance ═══
+# Missing fields used to be filled with invented values ("unknown" commit,
+# "HaplotypeCaller", "0.0.0", F1 0.0) in insert-only tables that can never be
+# corrected afterwards.
+
+class _RecordingCursor:
+    def __init__(self):
+        self.calls = []
+
+    def execute(self, query, params=None):
+        self.calls.append((query, params))
+
+    def fetchone(self):
+        return None
+
+
+def test_sync_skips_run_with_missing_required_provenance():
+    from db.sync_dynamodb_to_postgres import sync_run
+
+    records = {"RUN": {"run_id": "r1", "sample_id": "HG002_chr20", "validation_pass": True}}
+    result = sync_run(_RecordingCursor(), "r1", records)
+    assert result["status"] == "skipped"
+    for field in ("pipeline_version", "git_commit", "caller"):
+        assert field in result["reason"]
+
+
+def test_sync_stores_missing_qc_numbers_as_null_not_zero():
+    from db.sync_dynamodb_to_postgres import _insert_qc_metrics
+
+    cur = _RecordingCursor()
+    _insert_qc_metrics(cur, 1, {"snp_f1": 0.99})
+    _, params = cur.calls[0]
+    assert params == (1, None, None, None, 0.99, None)
+
+
+def test_sync_takes_reference_build_from_provenance_when_run_lacks_it():
+    from db.sync_dynamodb_to_postgres import _reference_build
+
+    assert _reference_build({"RUN": {}, "PROVENANCE": {"reference_build": "GRCh38"}}) == "GRCh38"
+    assert _reference_build({"RUN": {"reference_build": "GRCh37"}, "PROVENANCE": {}}) == "GRCh37"
+    assert _reference_build({"RUN": {}}) is None

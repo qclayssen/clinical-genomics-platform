@@ -97,3 +97,13 @@ def test_extract_warning_rows_empty_metrics_is_noop():
     """Matches the stub qc_evaluate.nf output used under -stub."""
     doc = {"sample": "s", "overall_status": "pass", "metrics": {}, "warnings": [], "failures": []}
     assert im.extract_warning_rows(doc) == []
+
+
+def test_count_variants_returns_none_not_minus_one_when_bcftools_fails(monkeypatch):
+    """-1 used to be stored in the insert-only qc_metrics.n_variants column when
+    bcftools was missing — an unknown count must be NULL, not a fake number."""
+    def _missing(*a, **k):
+        raise FileNotFoundError("bcftools")
+
+    monkeypatch.setattr(im.subprocess, "run", _missing)
+    assert im.count_variants("x.vcf") is None
