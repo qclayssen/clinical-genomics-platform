@@ -126,7 +126,6 @@ def main() -> int:
         print("[smoke] sample generation (tiny model — gibberish is expected):")
         print("   ", tok.decode(gen[0], skip_special_tokens=True).replace("\n", " ")[:160])
         tracker.log_history(trainer.state.log_history)
-        tracker.log_metrics({"train_loss": float(result.training_loss)})
         tracker.log_adapter(args.out)
         if tracker.enabled:
             print(f"[smoke] mlflow run id: {tracker.run_id}")

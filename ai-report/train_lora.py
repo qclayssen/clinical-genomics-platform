@@ -105,11 +105,10 @@ def main() -> None:
             **{f"lora_{k}": (",".join(v) if isinstance(v, list) else v)
                for k, v in lora_params.items()},
         })
-        result = trainer.train()
+        trainer.train()
         trainer.save_model(args.out)
         print(f"saved LoRA adapter to {args.out}")
         tracker.log_history(trainer.state.log_history)
-        tracker.log_metrics({"train_loss": float(result.training_loss)})
         tracker.log_adapter(args.out)
         if tracker.enabled:
             print(f"mlflow run id: {tracker.run_id}")

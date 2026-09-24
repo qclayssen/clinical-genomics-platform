@@ -27,9 +27,10 @@ gain a dependency.
    standard `MLFLOW_TRACKING_URI` variable can point it elsewhere.
 3. **What a run records.** Hyperparameters (incl. LoRA r/alpha/dropout/targets, quantization);
    the loss curve from the Trainer's `log_history` plus final `train_loss`; tags for git commit
-   (suffixed `-dirty` for uncommitted changes), dataset SHA-256, base model id, and
-   torch/transformers/peft/datasets/trl/mlflow versions; the adapter directory as an artifact plus
-   an `adapter_sha256` over its files.
+   (suffixed `-dirty` for uncommitted changes, including new untracked files), dataset SHA-256,
+   base model id, and torch/transformers/peft/datasets/trl/mlflow versions; the adapter directory
+   as an artifact plus an `adapter_sha256` over its files — excluding the Trainer's `checkpoint-*`
+   folders (optimizer state), which are not part of the adapter.
 4. **Registry version = provenance reference.** Every tracked run registers its adapter as a new
    version of `cgp-report-drafter-adapter` (via `MlflowClient.create_model_version` on the run's
    `adapter/` artifact — the adapter is a plain peft directory, not an MLflow-flavoured model).
@@ -45,7 +46,12 @@ gain a dependency.
   record.
 - The registered version is not yet threaded into `infer.py`'s output or `metrics.json`; a report
   does not currently state which adapter version drafted it. Doing so is follow-up work.
-- `mlflow` is not added to `requirements.txt` / the lock file, so CI and `pip-audit` are unchanged.
+- `mlflow` is not added to `requirements.txt` / the lock file, so `pip-audit` is unchanged; the
+  `ml-finetune-smoke` CI job installs it separately to run `tests/test_tracking.py` against a real
+  store.
+- Graceful degradation covers only a missing `mlflow` package. If tracking itself fails (e.g. a
+  locked SQLite store), the script exits non-zero after the adapter has already been saved to
+  disk; re-run with tracking to register it.
 
 ## Alternatives considered
 

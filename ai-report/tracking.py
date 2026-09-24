@@ -25,10 +25,13 @@ it is safe to import from tests and from ``--help``.
 """
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from importlib import metadata
 from typing import Any, Iterable, Mapping, Optional
 
@@ -71,13 +74,22 @@ def sha256_file(path: str, chunk: int = 1 << 20) -> str:
     return h.hexdigest()
 
 
-def sha256_dir(path: str) -> str:
+# Trainer checkpoints (``checkpoint-N/``, incl. optimizer state) are written
+# into the same output dir as the adapter; they are not part of the adapter.
+ADAPTER_EXCLUDE = ("checkpoint-*",)
+
+
+def sha256_dir(path: str, exclude: Iterable[str] = ()) -> str:
     """Deterministic SHA-256 over a directory: sorted relative paths + file contents.
 
     Used for the adapter directory, so the tag changes iff any saved file changes.
+    Top-level entries matching an ``exclude`` glob are skipped.
     """
     h = hashlib.sha256()
     for root, dirs, files in os.walk(path):
+        if root == path:
+            dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, p) for p in exclude)]
+            files = [f for f in files if not any(fnmatch.fnmatch(f, p) for p in exclude)]
         dirs.sort()
         for name in sorted(files):
             full = os.path.join(root, name)
@@ -95,7 +107,7 @@ def git_commit(cwd: str = REPO_ROOT) -> str:
             check=True, timeout=10,
         ).stdout.strip()
         dirty = subprocess.run(
-            ["git", "status", "--porcelain", "--untracked-files=no"], cwd=cwd,
+            ["git", "status", "--porcelain"], cwd=cwd,
             capture_output=True, text=True, check=True, timeout=10,
         ).stdout.strip()
     except (OSError, subprocess.SubprocessError):
@@ -236,9 +248,13 @@ class MlflowTracker(NullTracker):
         Returns the new registered version number (as a string).
         """
         mlflow = self._mlflow
-        digest = sha256_dir(adapter_dir)
+        digest = sha256_dir(adapter_dir, exclude=ADAPTER_EXCLUDE)
         mlflow.set_tag("adapter_sha256", digest)
-        mlflow.log_artifacts(adapter_dir, artifact_path="adapter")
+        with tempfile.TemporaryDirectory() as tmp:
+            staged = os.path.join(tmp, "adapter")
+            shutil.copytree(adapter_dir, staged,
+                            ignore=shutil.ignore_patterns(*ADAPTER_EXCLUDE))
+            mlflow.log_artifacts(staged, artifact_path="adapter")
 
         client = mlflow.tracking.MlflowClient(
             tracking_uri=self.tracking_uri, registry_uri=self.tracking_uri)

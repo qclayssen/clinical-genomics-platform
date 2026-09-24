@@ -63,7 +63,7 @@ The store is local only (SQLite + artifacts under `ai-report/mlruns/`, gitignore
 |---|---|
 | Params | learning rate, epochs/steps, batch/accumulation, sequence length, quantization, LoRA r/alpha/dropout/target modules |
 | Metrics | loss curve (`loss` per logged step), `grad_norm`, `learning_rate`, final `train_loss` |
-| Tags | `git_commit` (`-dirty` if uncommitted changes), `dataset_sha256`, `base_model`, `version.torch/transformers/peft/datasets/trl/mlflow`, `adapter_sha256` |
+| Tags | `git_commit` (`-dirty` if uncommitted or untracked changes), `dataset_sha256`, `base_model`, `version.torch/transformers/peft/datasets/trl/mlflow`, `adapter_sha256` (adapter files only, `checkpoint-*` excluded) |
 | Artifact | the saved LoRA adapter directory (`adapter/`) |
 
 The adapter is then **registered** as a new version of `cgp-report-drafter-adapter` in the local

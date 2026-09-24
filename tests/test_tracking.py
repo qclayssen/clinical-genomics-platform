@@ -6,6 +6,8 @@ end-to-end test against a real local store runs only when mlflow is importable.
 """
 import argparse
 import hashlib
+import os
+import shutil
 import subprocess
 import sys
 import types
@@ -167,7 +169,9 @@ def _fake_mlflow():
     m.log_params = lambda p: calls["params"].update(p)
     m.log_metrics = lambda d, step=None: calls["metrics"].append((step, d))
     m.set_tag = lambda k, v: calls["tags"].__setitem__(k, v)
-    m.log_artifacts = lambda d, artifact_path=None: calls["artifacts"].append((d, artifact_path))
+    # Record what was actually uploaded (the dir may be a temp staging copy).
+    m.log_artifacts = lambda d, artifact_path=None: calls["artifacts"].append(
+        (sorted(str(p.relative_to(d)) for p in Path(d).rglob("*") if p.is_file()), artifact_path))
     m.get_artifact_uri = lambda p: f"file:///store/run123/artifacts/{p}"
     m.tracking = types.SimpleNamespace(MlflowClient=lambda **kw: _FakeClient(calls, **kw))
     return m, calls
@@ -186,6 +190,8 @@ def test_mlflow_tracker_logs_run_and_registers_adapter(tmp_path):
     adapter = tmp_path / "adapter"
     adapter.mkdir()
     (adapter / "adapter_model.safetensors").write_bytes(b"weights")
+    (adapter / "checkpoint-10").mkdir()
+    (adapter / "checkpoint-10" / "optimizer.pt").write_bytes(b"optimizer state")
     with _tracker(m) as t:
         assert t.run_id == "run123"
         t.log_params({"learning_rate": 5e-4, "unused": None})
@@ -193,12 +199,13 @@ def test_mlflow_tracker_logs_run_and_registers_adapter(tmp_path):
         version = t.log_adapter(str(adapter))
     assert calls["params"] == {"learning_rate": 5e-4}
     assert calls["metrics"] == [(5, {"loss": 3.0}), (10, {"loss": 2.0})]
-    assert calls["artifacts"] == [(str(adapter), "adapter")]
+    # Trainer checkpoints are not part of the registered adapter.
+    assert calls["artifacts"] == [(["adapter_model.safetensors"], "adapter")]
     assert version == "1"
     name, source, run_id, vtags = calls["versions"][0]
     assert (name, run_id) == ("cgp-test-adapter", "run123")
     assert source.endswith("/adapter")
-    assert vtags["adapter_sha256"] == tracking.sha256_dir(str(adapter))
+    assert vtags["adapter_sha256"] == tracking.sha256_dir(str(adapter), exclude=tracking.ADAPTER_EXCLUDE)
     assert vtags["git_commit"] == "abc" and vtags["base_model"] == "tiny"
     assert calls["tags"]["registered_model"] == "cgp-test-adapter/1"
     assert calls["end"] == "FINISHED"
@@ -246,3 +253,32 @@ def test_real_local_store_roundtrip(tmp_path, monkeypatch):
     assert run.data.params["lr"] == "0.001"
     mv = client.get_model_version("t-adapter", "1")
     assert mv.run_id == t.run_id
+
+
+def _git(cwd, *args):
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True,
+                   env={**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+                        "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"})
+
+
+def test_git_commit_dirty_suffix_includes_untracked(tmp_path):
+    if shutil.which("git") is None:
+        pytest.skip("git not installed")
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "a.py").write_text("x = 1\n")
+    _git(tmp_path, "add", "a.py")
+    _git(tmp_path, "commit", "-qm", "init")
+    clean = tracking.git_commit(str(tmp_path))
+    assert len(clean) == 40 and not clean.endswith("-dirty")
+    (tmp_path / "new_helper.py").write_text("y = 2\n")  # untracked source file
+    assert tracking.git_commit(str(tmp_path)) == f"{clean}-dirty"
+
+
+def test_sha256_dir_excludes_trainer_checkpoints(tmp_path):
+    (tmp_path / "adapter_model.safetensors").write_text("weights")
+    before = tracking.sha256_dir(str(tmp_path), exclude=tracking.ADAPTER_EXCLUDE)
+    ck = tmp_path / "checkpoint-10"
+    ck.mkdir()
+    (ck / "optimizer.pt").write_text("big optimizer state")
+    assert tracking.sha256_dir(str(tmp_path), exclude=tracking.ADAPTER_EXCLUDE) == before
+    assert tracking.sha256_dir(str(tmp_path)) != before
