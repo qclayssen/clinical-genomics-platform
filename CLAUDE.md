@@ -91,8 +91,8 @@ templates without an AWS account.
   truth-set version, and SHA-256 checksums — built into `metrics.json` by
   `pipeline/bin/build_metrics.py` and threaded from `main.nf`. Never remove fields from it.
   Two gaps are known and deliberately documented rather than papered over: checksums cover
-  only the derived MarkDuplicates/`hap.py` artifacts (not the reads, reference, or truth
-  set), and no container digest or tool version reaches the stamp. See
+  the derived MarkDuplicates/`hap.py` artifacts plus the reference and truth set, but not the
+  raw reads, and no container digest or tool version reaches the stamp. See
   [docs/VALIDATION.md](docs/VALIDATION.md) §6 and [docs/FIXES-TODO.md](docs/FIXES-TODO.md) —
   don't restate the stamp as complete until those are closed.
 - **AI output always passes `enforce_guardrails()`** ([ai-report/infer.py](ai-report/infer.py)):

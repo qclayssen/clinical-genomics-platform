@@ -151,3 +151,15 @@ def test_guardrails_reinsert_banner_if_model_drops_it():
     assert fixed.startswith("AI-DRAFTED — REQUIRES CLINICIAN REVIEW")
     assert "recommend" not in fixed.lower()   # scrubbed
     assert "Provenance:" in fixed
+
+
+def test_parse_happy_selects_pass_row_regardless_of_order(tmp_path):
+    # Real hap.py summaries carry a Filter column with ALL and PASS rows per
+    # type; the PASS row is the one benchmarked, whatever order the rows are in.
+    csv = tmp_path / "happy.csv"
+    csv.write_text(
+        "Type,Filter,METRIC.Precision,METRIC.Recall,METRIC.F1_Score\n"
+        "SNP,PASS,0.95,0.95,0.95\n"
+        "SNP,ALL,0.999,0.999,0.999\n"
+    )
+    assert bm.parse_happy(str(csv))["snp"]["f1"] == 0.95
