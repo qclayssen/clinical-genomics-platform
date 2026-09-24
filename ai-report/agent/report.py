@@ -47,6 +47,10 @@ class VariantInterpretation:
     summary: str
     reasoning_trace: list[dict] = field(default_factory=list)
     citations: list[str] = field(default_factory=list)
+    # What enforce_safety_constraints() scrubbed out of `summary` in
+    # build_report(); the stored summary is already clean, so re-checking it
+    # alone would report nothing.
+    scrub_violations: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -147,6 +151,7 @@ def build_report(
             summary=summary,
             reasoning_trace=[s.to_dict() for s in result.trace],
             citations=citations,
+            scrub_violations=violations,
         )
         variant_interpretations.append(vi)
 
@@ -348,6 +353,7 @@ def enforce_report_guardrails(report: InterpretationReport) -> list[str]:
     # Check for treatment language in summaries
     for vi in report.variants:
         _, summary_violations = enforce_safety_constraints(vi.summary)
+        summary_violations = vi.scrub_violations + summary_violations
         if summary_violations:
             violations.append(f"Treatment language in summary for {vi.variant}: {summary_violations}")
 

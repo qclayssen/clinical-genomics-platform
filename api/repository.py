@@ -233,18 +233,27 @@ class PostgresRepository:
         )
 
     def list_qc_warnings(self, run_id: str) -> list[QcWarning]:
+        # LEFT JOIN from runs: no rows means the run does not exist (404, as in
+        # FixtureRepository); a single all-NULL warning row means it has none.
         query = """
-            SELECT w.sample_id, w.overall_status, w.metric_name, w.metric_value,
-                   w.threshold_warn, w.threshold_fail, w.threshold_source, w.recorded_at
-            FROM qc_warnings w
-            JOIN runs r ON r.id = w.run_pk
+            SELECT w.id AS _warning_id, w.sample_id, w.overall_status, w.metric_name,
+                   w.metric_value, w.threshold_warn, w.threshold_fail, w.threshold_source,
+                   w.recorded_at
+            FROM runs r
+            LEFT JOIN qc_warnings w ON w.run_pk = r.id
             WHERE r.run_id = %s
-            ORDER BY w.recorded_at DESC
+            ORDER BY w.recorded_at DESC NULLS LAST
         """
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute(query, [run_id])
             rows = cur.fetchall()
-        return [QcWarning(run_id=run_id, **row) for row in rows]
+        if not rows:
+            raise RunNotFoundError(run_id)
+        return [
+            QcWarning(run_id=run_id, **{k: v for k, v in row.items() if k != "_warning_id"})
+            for row in rows
+            if row["_warning_id"] is not None
+        ]
 
     def create_review_decision(self, run_id: str, decision: ReviewDecisionCreate) -> ReviewDecision:
         query = """
