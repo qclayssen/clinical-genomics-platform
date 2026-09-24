@@ -158,12 +158,95 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 
 ---
 
+## AI — AI & ML depth (measure the AI, then deepen it)
+
+The repo already ships a lot of AI (QLoRA report model, ReAct variant-interpretation agent,
+RAG, triage agent, LLM healer, FHIR intake, guardrails). The gap is not *more* LLM wiring — it is
+**measuring** the AI the way hap.py measures the caller, grounding it in **real annotation**, and
+showing the **genomics-specific ML** a 2026 bioinformatician is expected to know. Every item below
+keeps the non-negotiables: AI output passes `enforce_guardrails()`, the report model sees only
+`metrics.json`, results carry provenance, and scope-widening choices get a new ADR (next free: 0037).
+
+### Tier 1 — highest value, reinforces the "validated & traceable" story
+
+#### AI-1 · Agent evaluation harness (the "hap.py for the LLM") ✅ Done ([#92](https://github.com/qclayssen/clinical-genomics-platform/pull/92), [ADR-0032](adr/0032-agent-evaluation-harness.md))
+- **What:** A gold set of ~50–100 chr20 variants with **expert-panel-reviewed** ClinVar
+  classifications (≥ 3 stars). Score the ReAct agent's ACMG call against it: accuracy, confusion
+  matrix per class, hallucinated-citation rate, and tool-grounding (every claim traceable to a tool
+  result). Optional LLM-as-judge for summary *wording* only, never for the classification. Wire a
+  thresholded check into CI (deterministic backend in CI; real-model runs recorded as evidence).
+- **Why it matters:** The strongest AI signal a clinical-genomics reviewer can see — you
+  *evaluate* AI rather than just call it. Mirrors the SNV F1 ≥ 0.99 acceptance gate.
+- **Effort:** M · **Depends on:** nothing.
+- **Outcome:** gold n = 10 (the committed KB has only 15 ClinVar records — growing it needs a real
+  ClinVar download); deterministic baseline 3-class 0.90, 0 hallucinated citations, grounding 1.0.
+  Its first run found and fixed an ungrounded default `PM2`. Grounding means *traceable to a tool*,
+  not *ACMG-correct* — the PS1/PP5 double-count is a documented open limitation.
+
+#### AI-2 · Variant annotation module: VEP + AI pathogenicity scores
+- **What:** `pipeline/modules/annotate/vep.nf` (one process, `stub:`, digest-pinned container)
+  with AlphaMissense, SpliceAI, REVEL and CADD plugins; add a `query_annotation` tool to the agent
+  so ACMG PP3/BP4 use real in-silico evidence instead of ClinVar/gnomAD lookups alone.
+- **Why it matters:** AlphaMissense and SpliceAI are the deep-learning models clinical labs
+  actually use; annotation is a core pipeline stage the platform currently skips.
+- **Effort:** M · **Depends on:** P1-1. Annotation does not change calling, so it does not
+  re-trigger hap.py — but record the plugin/cache versions in provenance.
+
+#### AI-3 · Experiment tracking + model registry for the QLoRA model ✅ Done ([#91](https://github.com/qclayssen/clinical-genomics-platform/pull/91), [ADR-0035](adr/0035-mlflow-local-tracking-model-registry.md))
+- **What:** MLflow (local file store, no server needed) logging `train_smoke.py`/`train_lora.py`
+  runs with git SHA, dataset hash, base-model id and hyperparameters as tags; register the adapter
+  and reference the registered version from `MODEL_CARD.md`.
+- **Why it matters:** Extends the provenance rule to model artifacts; standard MLOps literacy.
+- **Effort:** S · **Depends on:** nothing.
+
+### Tier 2 — modern genomics ML (interview-relevant)
+
+#### AI-4 · Genomic foundation-model variant scoring
+- **What:** Score chr20 missense variants with a small ESM-2 (protein LM, CPU-feasible) —
+  optionally a regulatory-variant model (Nucleotide Transformer / Evo 2) — and report AUROC
+  against ClinVar labels, side by side with AlphaMissense from AI-2.
+- **Why it matters:** Demonstrates hands-on use of foundation models with an honest, measured
+  result rather than a claim.
+- **Effort:** M · **Depends on:** AI-2 (for the comparison baseline).
+
+#### AI-5 · Explainable ML variant filter, validated by hap.py
+- **What:** Gradient-boosted classifier over VCF INFO/FORMAT features (VQSR/CNN-style) with SHAP
+  explanations; accept it only if re-running hap.py shows SNV F1 does not regress (≥ 0.99).
+- **Why it matters:** Ties ML directly to the validation spine — filtering changes re-trigger
+  validation, exactly as the design rules require.
+- **Effort:** M · **Depends on:** P0-3. New ADR (a filtering change).
+
+#### AI-6 · Structural variants & CNVs (Manta + CNVkit, Truvari vs GIAB SV)
+- **What:** SV/CNV calling benchmarked against the GIAB HG002 SV truth set with Truvari.
+- **Why it matters:** A core clinical-genomics expectation today.
+- **Effort:** L · **Depends on:** P1-1. **Widens ADR-0001's SNV-only scope** — needs a
+  superseding/extending ADR first; weigh against P2-1 for focus.
+
+### Tier 3 — agent engineering
+
+#### AI-7 · MCP server over the knowledge base and run/provenance data ✅ Done ([#90](https://github.com/qclayssen/clinical-genomics-platform/pull/90), [ADR-0033](adr/0033-mcp-server-read-only.md))
+- **What:** Expose read-only tools (ClinVar/gnomAD KB, run QC, provenance) via MCP so any MCP
+  client can query runs.
+- **Effort:** S · **Depends on:** nothing.
+
+#### AI-8 · LLM observability ✅ Done ([#93](https://github.com/qclayssen/clinical-genomics-platform/pull/93), [ADR-0036](adr/0036-llm-observability-agent-call-metrics.md))
+- **What:** OpenTelemetry/Langfuse traces of agent steps, token cost and latency, surfaced on the
+  Metabase ops dashboard.
+- **Effort:** S–M · **Depends on:** AI-1 (so traces feed eval, not just logs).
+
+#### AI-9 · Literature-RAG tool with citation guardrail
+- **What:** A PubMed/LitVar lookup per variant; the guardrail rejects any PMID not present in the
+  retrieved set.
+- **Effort:** M · **Depends on:** AI-1 (hallucinated-citation metric measures it).
+
+---
+
 ## P3 — Later / future direction (roadmap only, not a build)
 
-### P3-1 · Spatial genomics — one-page roadmap ADR only
-- **What:** Write a single forward-looking ADR (next free number, e.g.
-  `docs/adr/00NN-spatial-genomics-direction.md` — not yet written; ADR-0014 is agentic variant
-  interpretation), status `Proposed`) sketching how the platform *could* extend to spatial transcriptomics
+### P3-1 · Spatial genomics — one-page roadmap ADR only ✅ Done ([#89](https://github.com/qclayssen/clinical-genomics-platform/pull/89), [ADR-0034](adr/0034-spatial-genomics-direction.md))
+- **What:** Write a single forward-looking ADR
+  ([`docs/adr/0034-spatial-genomics-direction.md`](adr/0034-spatial-genomics-direction.md),
+  status `Proposed`) sketching how the platform *could* extend to spatial transcriptomics
   (Visium/Xenium-style) — new QC/segmentation stages, a spatial-coordinate data model, spatial
   visualization — and, crucially, **why it is deliberately not being built now**.
 - **Why it matters — and why NOT to build it:** Spatial is a genuinely different domain (imaging,
@@ -186,7 +269,10 @@ This roadmap only picks up the **consequences** those changes leave behind for d
    review).
 5. **P2-1** — the MiXCR immune-repertoire branch: prove the assay-agnostic spine (the standout,
    on-target differentiator).
-6. **P3-1** — spatial genomics as a *roadmap ADR only*; a deliberate, documented "not now."
+6. **AI-1, AI-3, AI-7, AI-8** ✅ done — measure the agent, track the model, expose data over MCP,
+   observe LLM calls. Next: **AI-2** (VEP + AlphaMissense/SpliceAI), then AI-4/AI-5/AI-9 (AI-6 only
+   after its ADR). Can run in parallel with P2-1.
+7. **P3-1** ✅ done — spatial genomics as a *roadmap ADR only*; a deliberate, documented "not now."
 
 ---
 
@@ -202,4 +288,13 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 | P1-3 | Resume bullets backed by measured numbers | P1 | S | P0-3 | — |
 | P1-4 | ~~README diagram + demo GIF; make repo public (after security review)~~ ✅ Done | P1 | M | P0-3, security-reviewer | documentation-writer + security-reviewer |
 | P2-1 | MiXCR immune-repertoire (AIRR) branch reusing the spine; new ADR (next free number) | P2 | L | P0-3, P1-1 | pipeline-engineer |
-| P3-1 | Spatial genomics roadmap ADR only (Proposed; do not build) | P3 | S | — | documentation-writer |
+| AI-1 | ~~Agent eval harness: ClinVar gold set, ACMG accuracy, citation/grounding metrics, CI gate~~ ✅ Done (#92) | AI | M | — | test-engineer + validation-reviewer |
+| AI-2 | VEP annotate module (AlphaMissense, SpliceAI, REVEL, CADD) + `query_annotation` agent tool | AI | M | P1-1 | pipeline-engineer |
+| AI-3 | ~~MLflow tracking + model registry for the QLoRA adapter~~ ✅ Done (#91) | AI | S | — | — |
+| AI-4 | Foundation-model (ESM-2) variant scoring, AUROC vs ClinVar | AI | M | AI-2 | — |
+| AI-5 | Explainable ML variant filter (GBM + SHAP), gated on hap.py F1 ≥ 0.99; new ADR | AI | M | P0-3 | pipeline-engineer + validation-reviewer |
+| AI-6 | SV/CNV calling (Manta, CNVkit) + Truvari vs GIAB SV; ADR widening ADR-0001 | AI | L | P1-1, ADR | pipeline-engineer |
+| AI-7 | ~~MCP server over KB + run/provenance data~~ ✅ Done (#90) | AI | S | — | — |
+| AI-8 | ~~LLM observability (traces, cost, latency → Metabase)~~ ✅ Done (#93) | AI | S–M | AI-1 | — |
+| AI-9 | Literature-RAG (PubMed/LitVar) with PMID citation guardrail | AI | M | AI-1 | — |
+| P3-1 | ~~Spatial genomics roadmap ADR only (Proposed; do not build)~~ ✅ Done (#89) | P3 | S | — | documentation-writer |

@@ -67,6 +67,15 @@ suggests the variant calls are biologically believable, not random noise.
 How many times, on average, each position of DNA was read. Higher depth = more confidence.
 *Analogy:* re-reading the same sentence 30 times so you're sure of every word.
 
+**Spatial transcriptomics**
+Measuring which genes are switched on (expressed) *and where* in a slice of tissue, so you get
+a map rather than one average for the whole sample. Only a roadmap idea here — deliberately not
+built ([ADR-0034](adr/0034-spatial-genomics-direction.md)).
+
+**Cell segmentation**
+Drawing the outline of every cell on a microscope image, so measurements can be assigned to
+individual cells. A key (and error-prone) step in spatial transcriptomics.
+
 ---
 
 ## 2. File formats (the data as it flows through)
@@ -338,6 +347,30 @@ precisely to contain this risk.
 Code that runs with no special extra software installed. This project's metrics parser and
 an "offline" version of the report writer are dependency-free, so they run and are tested
 anywhere with basic Python — no GPU or AI libraries needed.
+
+**Evaluation harness / gold set**
+A repeatable test that scores the AI against a small set of variants whose answer is already
+known (the *gold set*, here taken from well-reviewed ClinVar records). It is to the AI agent
+what `hap.py` against GIAB is to the variant caller ([ADR-0032](adr/0032-agent-evaluation-harness.md)).
+
+**Grounding / hallucinated citation**
+An AI claim is *grounded* when it can be traced back to something a tool actually returned. A
+*hallucinated citation* is a reference (e.g. a ClinVar ID) the AI states but no tool gave it.
+Grounded does not automatically mean correct — only traceable.
+
+**MCP (Model Context Protocol)**
+An open standard that lets AI assistants call tools and read data from other programs. This
+repo's MCP server lets an assistant look up runs, QC and provenance — read-only
+([ADR-0033](adr/0033-mcp-server-read-only.md)).
+
+**Experiment tracking / model registry (MLflow)**
+A logbook for training runs (settings, loss curve, code and data versions) plus a catalogue of
+numbered model versions, so you can say exactly which trained adapter produced a result
+([ADR-0035](adr/0035-mlflow-local-tracking-model-registry.md)).
+
+**LLM observability**
+Recording, for every AI call, how long it took, how many tokens it used and roughly what it
+cost — without logging patient data ([ADR-0036](adr/0036-llm-observability-agent-call-metrics.md)).
 
 ---
 

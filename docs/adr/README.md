@@ -55,10 +55,15 @@ Each ADR follows the same tiny structure:
 | [0029](0029-emr-icu-vved-demo-module.md) | `emr-pipeline/`: an EMR/ICU/VVED data-engineering demo module | Accepted |
 | [0030](0030-azure-deployment-api-web.md) | Azure deployment (Bicep) for the REST API + React frontend | Accepted |
 | [0031](0031-dynamodb-streams-audit-sink-accepted-limitation.md) | DynamoDB Streams audit sink not built — recorded as an accepted limitation | Accepted (amends 0012) |
+| [0032](0032-agent-evaluation-harness.md) | Evaluation harness for the variant-interpretation agent ("hap.py for the LLM") | Accepted |
+| [0033](0033-mcp-server-read-only.md) | Read-only MCP server over run, QC, provenance and knowledge-base data | Accepted |
+| [0034](0034-spatial-genomics-direction.md) | Spatial transcriptomics — a sketched direction, deliberately not built | Proposed |
+| [0035](0035-mlflow-local-tracking-model-registry.md) | Opt-in local MLflow tracking; registered version is the adapter's provenance reference | Accepted |
+| [0036](0036-llm-observability-agent-call-metrics.md) | LLM observability: per-call accounting, dated cost estimates, insert-only `agent_call_metrics` | Accepted |
 
 ---
 
-**Count: 31 ADRs** (0001–0031). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 36 ADRs** (0001–0036). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 
