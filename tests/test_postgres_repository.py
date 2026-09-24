@@ -105,3 +105,21 @@ def test_get_run_not_found_when_no_rows():
         assert False, "expected RunNotFoundError"
     except RunNotFoundError:
         pass
+
+
+def test_get_provenance_includes_reference_build_from_samples():
+    """reference_build lives on samples, not runs; the stamp must not drop it."""
+    row = {
+        "pipeline_version": "0.3.0",
+        "git_commit": "abc1234",
+        "caller": "gatk",
+        "started_at": datetime.now(timezone.utc),
+        "exported_at": None,
+        "reference_build": "GRCh38",
+        "truth_version": "v4.2.1",
+        "input_checksums": {},
+    }
+    repo, cursor = make_repo([row])
+    prov = repo.get_provenance("run_new")
+    assert prov.reference_build == "GRCh38"
+    assert "JOIN samples" in cursor.last_query
