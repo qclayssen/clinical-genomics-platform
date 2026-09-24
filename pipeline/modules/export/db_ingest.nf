@@ -1,7 +1,7 @@
 process DB_INGEST {
     tag   { meta.id }
     label 'process_low'
-    container 'quay.io/biocontainers/psycopg2:2.9.9'
+    container 'ghcr.io/qclayssen/cgp-tools:1.0.0@sha256:9505f581a374a0dc1cec76ba7f125557c017e325e7f75fad0ba69f75bff79c8e'
 
     input:
     tuple val(meta), path(json), path(qc_warnings)

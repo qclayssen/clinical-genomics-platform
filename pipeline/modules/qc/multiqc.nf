@@ -1,6 +1,6 @@
 process MULTIQC {
     label 'process_low'
-    container 'quay.io/biocontainers/multiqc:1.21--pyhdfd78af_0'
+    container 'quay.io/biocontainers/multiqc:1.21--pyhdfd78af_0@sha256:ecafca93ba3346775b773bbfd6ff920ecfc259f554777576c15d3139c678311b'
 
     input:
     path '*'

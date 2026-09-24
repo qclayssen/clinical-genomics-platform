@@ -1,7 +1,7 @@
 process DEEPVARIANT {
     tag   { meta.id }
     label 'process_high'
-    container 'google/deepvariant:1.6.1'
+    container 'google/deepvariant:1.6.1@sha256:ccab95548e6c3ec28c75232987f31209ff1392027d67732435ce1ba3d0b55c68'
 
     input:
     tuple val(meta), path(bam), path(bai)
