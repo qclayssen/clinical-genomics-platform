@@ -209,9 +209,10 @@ class PostgresRepository:
     def get_provenance(self, run_id: str) -> Provenance:
         query = """
             SELECT r.pipeline_version, r.git_commit, r.caller, r.started_at, r.exported_at,
-                   p.truth_version, p.input_checksums
+                   s.reference_build, p.truth_version, p.input_checksums
             FROM runs r
             JOIN run_provenance p ON p.run_pk = r.id
+            LEFT JOIN samples s ON s.sample_id = r.sample_id
             WHERE r.run_id = %s
             ORDER BY p.recorded_at DESC LIMIT 1
         """
@@ -226,6 +227,7 @@ class PostgresRepository:
             caller=row["caller"],
             started_at=row["started_at"],
             exported_at=row["exported_at"],
+            reference_build=row["reference_build"],
             truth_version=row["truth_version"],
             input_checksums=row["input_checksums"] or {},
         )
