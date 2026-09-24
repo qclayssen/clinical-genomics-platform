@@ -52,6 +52,35 @@ def test_enforce_guardrails_does_not_duplicate_existing_banner_or_provenance():
     assert result.count("Provenance:") == 1
 
 
+def test_enforce_guardrails_banner_is_first_even_if_model_embeds_it():
+    # The model is untrusted: echoing the banner mid-text must not stand in
+    # for the real one at the top of the report.
+    text = f"Body first.\n(not {guardrails.BANNER})"
+    result = guardrails.enforce_guardrails(text, SAMPLE_METRICS)
+    assert result.startswith(guardrails.BANNER)
+    assert result.count(guardrails.BANNER) == 1
+
+
+def test_enforce_guardrails_replaces_model_forged_provenance():
+    text = "Body.\nProvenance: none."
+    result = guardrails.enforce_guardrails(text, SAMPLE_METRICS)
+    assert "Provenance: none." not in result
+    assert result.rstrip().endswith("Provenance: git abc1234, GIAB-v4.2.1.")
+    assert result.count("Provenance:") == 1
+
+
+def test_enforce_guardrails_tolerates_null_provenance():
+    result = guardrails.enforce_guardrails("Body.", {"provenance": None})
+    assert "Provenance: git ?, ?." in result
+
+
+def test_enforce_guardrails_scrubs_first_person_and_receive_phrasing():
+    text = "Patient should receive tamoxifen; I recommend confirmatory testing."
+    result = guardrails.enforce_guardrails(text, SAMPLE_METRICS)
+    assert "should receive" not in result.lower()
+    assert "i recommend" not in result.lower()
+
+
 # ═══ Advice-phrase scrub: all 8 canonical categories ═══
 # (the earlier infer.py/handler.py copy only scrubbed the first 3 of these)
 

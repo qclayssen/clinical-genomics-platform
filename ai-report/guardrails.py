@@ -12,9 +12,10 @@ something a clinician can safely read" logic had drifted into two shapes:
 See docs/FIXES-TODO.md's "Two divergent copies of enforce_guardrails()" entry.
 Both flavors now share the one canonical pattern list and scrub routine here:
 
-- `enforce_guardrails(text, metrics)` — for a full AI-drafted report: adds the
-  mandatory review banner and a `Provenance:` line if the model dropped them,
-  then scrubs advice language. Used by `ai-report/infer.py` and
+- `enforce_guardrails(text, metrics)` — for a full AI-drafted report: strips
+  any banner/`Provenance:` text the model wrote, puts the mandatory review
+  banner first and a metrics-derived `Provenance:` line last, and scrubs
+  advice language. Used by `ai-report/infer.py` and
   `lambdas/report_generator/handler.py`.
 - `enforce_safety_constraints(text)` — for a smaller fragment (a single
   variant's interpretation summary) that already lives inside a larger,
@@ -41,8 +42,8 @@ BANNER = "AI-DRAFTED — REQUIRES CLINICIAN REVIEW"
 # medication, and "clinical management". Kept broad (not narrowed) on merge
 # so neither call site regresses.
 ADVICE_PATTERNS = [
-    r"\bwe recommend\b",
-    r"\bshould (?:take|start|stop|begin|consider)\b",
+    r"\b(?:we|i) recommend\b",
+    r"\bshould (?:take|start|stop|begin|consider|receive|undergo)\b",
     r"\btreat(?:ment|ed|ing)?\s*with\b",
     r"\bprescri(?:be|bed|ption)\b",
     r"\bdiagnos\w+\b",
@@ -69,19 +70,22 @@ def enforce_guardrails(text: str, metrics: dict) -> str:
     """Guarantee the review banner, provenance line, and advice scrub survive
     in a full AI-drafted report.
 
-    The model output is untrusted: this re-inserts the banner/provenance if
-    the model dropped them, and scrubs advice language either way.
+    The model output is untrusted, so its own copies of the banner and of any
+    ``Provenance:`` line are never taken on trust: both are stripped, the real
+    banner is placed first, and the provenance line is rebuilt from
+    ``metrics.json`` and placed last. Advice language is scrubbed either way.
     """
-    if BANNER not in text:
-        text = BANNER + "\n\n" + text
-    prov = metrics.get("provenance", {})
-    if "Provenance:" not in text:
-        text += (
-            f"\n\nProvenance: git {prov.get('git_commit', '?')}, "
-            f"{prov.get('truth_version', '?')}."
-        )
-    text, _ = scrub_advice_language(text)
-    return text
+    body = "\n".join(
+        line for line in text.replace(BANNER, "").splitlines()
+        if not line.lstrip().startswith("Provenance:")
+    ).strip()
+    body, _ = scrub_advice_language(body)
+    prov = metrics.get("provenance") or {}
+    provenance = (
+        f"Provenance: git {prov.get('git_commit', '?')}, "
+        f"{prov.get('truth_version', '?')}."
+    )
+    return f"{BANNER}\n\n{body}\n\n{provenance}"
 
 
 def enforce_safety_constraints(text: str) -> tuple[str, list[str]]:
