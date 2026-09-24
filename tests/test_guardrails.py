@@ -69,6 +69,14 @@ def test_enforce_guardrails_replaces_model_forged_provenance():
     assert result.count("Provenance:") == 1
 
 
+def test_enforce_guardrails_strips_markdown_formatted_forged_provenance():
+    for forged in ("**Provenance:** git deadbeef.", "> Provenance: git deadbeef.",
+                   "- provenance: git deadbeef.", "## Provenance: git deadbeef."):
+        result = guardrails.enforce_guardrails(f"Body.\n{forged}", SAMPLE_METRICS)
+        assert "deadbeef" not in result, forged
+        assert result.lower().count("provenance:") == 1, forged
+
+
 def test_enforce_guardrails_tolerates_null_provenance():
     result = guardrails.enforce_guardrails("Body.", {"provenance": None})
     assert "Provenance: git ?, ?." in result

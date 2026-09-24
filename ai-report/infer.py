@@ -178,12 +178,20 @@ def render_offline(m: dict) -> str:
     def pct(x):
         return f"{x*100:.1f}%" if isinstance(x, (int, float)) else "n/a"
 
-    verdict = (
-        "The run met the F1 ≥ 0.99 acceptance threshold."
-        if passed else
-        "The run did NOT meet the acceptance threshold; results should not be used "
-        "until reviewed by a clinician."
-    )
+    if m.get("simulated"):
+        # Lambda-path metrics with no real hap.py benchmark (validation_checker
+        # marks them simulated) — never report them as a pass or a fail.
+        verdict = (
+            "These validation metrics are SIMULATED — no hap.py benchmark was run — "
+            "so no acceptance decision can be made from them."
+        )
+    else:
+        verdict = (
+            "The run met the F1 ≥ 0.99 acceptance threshold."
+            if passed else
+            "The run did NOT meet the acceptance threshold; results should not be used "
+            "until reviewed by a clinician."
+        )
     lines = [
         BANNER,
         "",

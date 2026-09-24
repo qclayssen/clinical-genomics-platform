@@ -54,6 +54,10 @@ ADVICE_PATTERNS = [
 
 _ADVICE_RE = re.compile("|".join(ADVICE_PATTERNS), re.IGNORECASE)
 
+# A provenance line the model wrote itself, including markdown-dressed forms
+# ("**Provenance:**", "> Provenance:", "- provenance:", "## Provenance:").
+_MODEL_PROVENANCE_RE = re.compile(r"^[\s>*_#`-]*provenance\s*[*_`]*\s*:", re.IGNORECASE)
+
 
 def scrub_advice_language(text: str, replacement: str = "[review required]") -> tuple[str, list[str]]:
     """Strip hallucinated clinical-recommendation/treatment phrasing.
@@ -77,7 +81,7 @@ def enforce_guardrails(text: str, metrics: dict) -> str:
     """
     body = "\n".join(
         line for line in text.replace(BANNER, "").splitlines()
-        if not line.lstrip().startswith("Provenance:")
+        if not _MODEL_PROVENANCE_RE.match(line)
     ).strip()
     body, _ = scrub_advice_language(body)
     prov = metrics.get("provenance") or {}

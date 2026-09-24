@@ -31,3 +31,22 @@ def test_export_provenance_uses_truth_version_key():
 def test_export_carries_simulated_marker_defaulting_to_true():
     assert build_metrics_json({})["simulated"] is True
     assert build_metrics_json({"simulated": False})["simulated"] is False
+
+
+def test_offline_report_never_presents_simulated_f1_as_a_pass():
+    import sys
+    from pathlib import Path
+
+    ai_report = str(Path(__file__).resolve().parents[1] / "ai-report")
+    if ai_report not in sys.path:
+        sys.path.insert(0, ai_report)
+    import infer
+
+    metrics = build_metrics_json({"f1": 0.995, "precision": 0.99, "recall": 0.99,
+                                  "validation_pass": True, "simulated": True})
+    report = infer.render_offline(metrics)
+    assert "met the F1" not in report
+    assert "SIMULATED" in report
+
+    measured = build_metrics_json({"f1": 0.995, "validation_pass": True, "simulated": False})
+    assert "met the F1 ≥ 0.99 acceptance threshold" in infer.render_offline(measured)

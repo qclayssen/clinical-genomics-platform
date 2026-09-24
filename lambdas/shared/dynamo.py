@@ -6,7 +6,9 @@ as required by the platform's error handling strategy.
 Writes are append-only (ADR-0005): every PutItem carries
 ``attribute_not_exists(record_type)``, so an existing item is never silently
 replaced. The IAM deny on UpdateItem/DeleteItem does not cover that on its
-own — PutItem onto an existing key is an overwrite. Because the table's sort
+own — PutItem onto an existing key is an overwrite. A retried invocation
+re-writing the same record (only ``created_at`` differs) is accepted as
+idempotent; any other difference is rejected. Because the table's sort
 key is ``record_type``, AUDIT records are persisted under a per-event sort key
 (``AUDIT#<created_at>#<action>#<id>``) so one run's audit events accumulate
 instead of each replacing the last.
@@ -44,6 +46,22 @@ def _with_unique_audit_key(item: dict) -> dict:
     }
 
 
+def _is_same_record(table, item: dict) -> bool:
+    """True when the stored item is the same record as ``item`` apart from its
+    ``created_at`` — i.e. a retried invocation re-writing what an earlier
+    attempt already wrote. Any other difference is a real overwrite attempt."""
+    existing = table.get_item(
+        Key={"run_id": item["run_id"], "record_type": item["record_type"]}
+    ).get("Item")
+    if not isinstance(existing, dict):
+        return False
+
+    def strip(d: dict) -> dict:
+        return {k: v for k, v in d.items() if k != "created_at"}
+
+    return strip(existing) == strip(item)
+
+
 def write_item(table_name: str, item: dict, max_retries: int = 3) -> dict:
     """Write an item to DynamoDB with exponential backoff retry.
 
@@ -57,7 +75,9 @@ def write_item(table_name: str, item: dict, max_retries: int = 3) -> dict:
 
     Raises:
         ClientError: If all retry attempts are exhausted, or immediately with
-            ``ConditionalCheckFailedException`` if the key already exists.
+            ``ConditionalCheckFailedException`` if the key already holds a
+            *different* record. Re-writing the same record (only ``created_at``
+            differs, as on a Step Functions retry) returns ``{"idempotent": True}``.
     """
     client = boto3.resource("dynamodb").Table(table_name)
     item = _to_dynamo(_with_unique_audit_key(item))
@@ -72,6 +92,8 @@ def write_item(table_name: str, item: dict, max_retries: int = 3) -> dict:
             return response
         except ClientError as e:
             if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                if _is_same_record(client, item):
+                    return {"idempotent": True}
                 raise
             last_error = e
             if attempt < max_retries - 1:

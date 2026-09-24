@@ -125,6 +125,36 @@ class TestWriteItem:
         assert all(k.startswith("AUDIT#2026-09-24T00:00:00Z#X#") for k in keys)
         assert keys[0] != keys[1]
 
+    @patch("lambdas.shared.dynamo.boto3")
+    def test_write_item_treats_identical_rewrite_as_idempotent_retry(self, mock_boto3):
+        """A Step Functions retry re-writes the same record with a new created_at;
+        that is the same fact, not an overwrite, so it must not fail the run."""
+        mock_table = MagicMock()
+        err = {"Error": {"Code": "ConditionalCheckFailedException", "Message": "exists"}}
+        mock_table.put_item.side_effect = ClientError(err, "PutItem")
+        mock_table.get_item.return_value = {
+            "Item": {"run_id": "r", "record_type": "RUN", "caller": "gatk", "created_at": "2026-09-24T00:00:00Z"}
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = write_item("t", {"run_id": "r", "record_type": "RUN", "caller": "gatk",
+                                  "created_at": "2026-09-24T00:05:00Z"})
+
+        assert result == {"idempotent": True}
+        mock_table.get_item.assert_called_once_with(Key={"run_id": "r", "record_type": "RUN"})
+        assert mock_table.put_item.call_count == 1
+
+    @patch("lambdas.shared.dynamo.boto3")
+    def test_write_item_rejects_rewrite_with_different_content(self, mock_boto3):
+        mock_table = MagicMock()
+        err = {"Error": {"Code": "ConditionalCheckFailedException", "Message": "exists"}}
+        mock_table.put_item.side_effect = ClientError(err, "PutItem")
+        mock_table.get_item.return_value = {"Item": {"run_id": "r", "record_type": "RUN", "caller": "gatk"}}
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        with pytest.raises(ClientError):
+            write_item("t", {"run_id": "r", "record_type": "RUN", "caller": "deepvariant"})
+
     @patch("lambdas.shared.dynamo.time.sleep")
     @patch("lambdas.shared.dynamo.boto3")
     def test_write_item_does_not_retry_an_overwrite_rejection(self, mock_boto3, mock_sleep):
