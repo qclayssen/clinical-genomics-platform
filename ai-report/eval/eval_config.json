@@ -1,0 +1,25 @@
+{
+  "_comment": "Acceptance thresholds for the agent evaluation harness (ADR-0032). These are regression floors set at the deterministic backend's measured baseline on a small KB-derived gold set; they are NOT clinical acceptance criteria. 5-class exact accuracy is reported but deliberately not gated: the automated evidence available (ClinVar + gnomAD only) cannot reach full Pathogenic under ACMG combining rules, so the known conservative P->LP bias would make a 5-class gate meaningless.",
+  "harness_version": "1.0.0",
+  "gates": [
+    {
+      "name": "gold_classification",
+      "description": "Classification agreement on ClinVar >=2-star variants",
+      "tiers": ["gold"],
+      "thresholds": {
+        "min_accuracy_3class": 0.90,
+        "max_opposite_direction_errors": 0
+      }
+    },
+    {
+      "name": "citation_integrity",
+      "description": "No fabricated ClinVar citations; evidence codes traceable to tool output (all tiers, including no-ClinVar probes)",
+      "tiers": ["gold", "silver", "probe"],
+      "thresholds": {
+        "max_hallucinated_citation_rate": 0.0,
+        "min_tool_grounding_rate": 0.95,
+        "min_tool_coverage_rate": 1.0
+      }
+    }
+  ]
+}
