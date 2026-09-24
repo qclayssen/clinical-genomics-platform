@@ -118,6 +118,27 @@ async function parseErrorBody(response: Response): Promise<unknown> {
   }
 }
 
+/**
+ * FastAPI sends `detail` as a string for HTTPException, but as an array of
+ * `{loc, msg}` objects for 422 validation errors — `String()` on that array
+ * rendered as "[object Object]". Turn each entry into "field: message".
+ */
+function formatErrorDetail(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item !== "object" || item === null) return String(item);
+        const { loc, msg } = item as { loc?: unknown; msg?: unknown };
+        const field = Array.isArray(loc) ? loc.filter((part) => part !== "body").join(".") : "";
+        const message = typeof msg === "string" ? msg : JSON.stringify(item);
+        return field ? `${field}: ${message}` : message;
+      })
+      .join("; ");
+  }
+  return JSON.stringify(detail);
+}
+
 async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
   const base = resolveApiBase();
   const response = await fetch(`${base}${path}`, {
@@ -130,7 +151,7 @@ async function postJson<TResponse>(path: string, body: unknown): Promise<TRespon
     const errorBody = await parseErrorBody(response);
     const detail =
       typeof errorBody === "object" && errorBody !== null && "detail" in errorBody
-        ? String((errorBody as { detail: unknown }).detail)
+        ? formatErrorDetail((errorBody as { detail: unknown }).detail)
         : response.statusText;
     throw new ApiError(
       `Request to ${path} failed (${response.status}): ${detail}`,
