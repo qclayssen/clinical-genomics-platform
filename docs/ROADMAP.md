@@ -154,15 +154,16 @@ This roadmap only picks up the **consequences** those changes leave behind for d
   assay is a plug-in," demonstrated by a second modality landing on the same rails.
 - **Effort:** L · **Depends on:** P0-3 and P1-1 (finish and validate the SNV path first, so "reuse
   the spine" is a demonstrated fact, not an aspiration). Record the decision as a new ADR
-  (ADR-0013) when starting.
+  (the next free number — ADR-0013 has since been used for QC warnings) when starting.
 
 ---
 
 ## P3 — Later / future direction (roadmap only, not a build)
 
 ### P3-1 · Spatial genomics — one-page roadmap ADR only
-- **What:** Write a single forward-looking ADR (e.g. `docs/adr/0014-spatial-genomics-direction.md`,
-  status `Proposed`) sketching how the platform *could* extend to spatial transcriptomics
+- **What:** Write a single forward-looking ADR (next free number, e.g.
+  `docs/adr/00NN-spatial-genomics-direction.md` — not yet written; ADR-0014 is agentic variant
+  interpretation), status `Proposed`) sketching how the platform *could* extend to spatial transcriptomics
   (Visium/Xenium-style) — new QC/segmentation stages, a spatial-coordinate data model, spatial
   visualization — and, crucially, **why it is deliberately not being built now**.
 - **Why it matters — and why NOT to build it:** Spatial is a genuinely different domain (imaging,
@@ -200,5 +201,5 @@ This roadmap only picks up the **consequences** those changes leave behind for d
 | P1-2 | Write `docs/NEXTFLOW-MIGRATION.md` (strict-DSL fixes + P1-1) | P1 | S | P1-1 | documentation-writer |
 | P1-3 | Resume bullets backed by measured numbers | P1 | S | P0-3 | — |
 | P1-4 | ~~README diagram + demo GIF; make repo public (after security review)~~ ✅ Done | P1 | M | P0-3, security-reviewer | documentation-writer + security-reviewer |
-| P2-1 | MiXCR immune-repertoire (AIRR) branch reusing the spine; new ADR-0013 | P2 | L | P0-3, P1-1 | pipeline-engineer |
+| P2-1 | MiXCR immune-repertoire (AIRR) branch reusing the spine; new ADR (next free number) | P2 | L | P0-3, P1-1 | pipeline-engineer |
 | P3-1 | Spatial genomics roadmap ADR only (Proposed; do not build) | P3 | S | — | documentation-writer |

@@ -1,6 +1,6 @@
 # ADR-0012 — DynamoDB as the primary metadata store (Postgres demoted to read-replica)
 
-**Status:** Accepted · **Date:** 2026-07-15 · **Supersedes:** [ADR-0005](0005-insert-only-postgres.md)
+**Status:** Accepted · **Date:** 2026-07-15 · **Supersedes:** [ADR-0005](0005-insert-only-postgres.md) · **Amended by:** [ADR-0031](0031-dynamodb-streams-audit-sink-accepted-limitation.md) (compensating control #2 was never built; recorded as an accepted limitation)
 
 ## Context
 

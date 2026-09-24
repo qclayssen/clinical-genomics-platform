@@ -44,8 +44,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # ON_ERROR_STOP: without it `psql -f` exits 0 even when statements in
-      # the file fail, so a broken schema would still turn this job green.
+      # psql -f exits 0 even when statements in the file fail unless
+      # ON_ERROR_STOP is set — without it these steps report green on broken SQL.
       - name: Apply schema.sql
         run: psql -v ON_ERROR_STOP=1 -f db/schema.sql
 
@@ -231,7 +231,7 @@ jobs:
           python-version: '3.11'
 
       - name: Apply schema.sql
-        run: PGHOST=localhost PGPORT=5432 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=cgp_test psql -f db/schema.sql
+        run: PGHOST=localhost PGPORT=5432 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=cgp_test psql -v ON_ERROR_STOP=1 -f db/schema.sql
 
       - name: Install sync script dependencies
         run: pip install psycopg2-binary boto3

@@ -25,9 +25,9 @@ evidence beside its limits.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Execution Substrate Decision** - Record one authoritative answer to where real genomics compute runs, and make every document agree with it
-- [ ] **Phase 2: Machine-Verified Integrity** - Make the blocking CI posture and the tamper-evidence guarantee true for the primary store, not just the replica
+- [x] **Phase 2: Machine-Verified Integrity** - Make the blocking CI posture and the tamper-evidence guarantee true for the primary store, not just the replica
 - [ ] **Phase 3: Full-Scope Validation Evidence** - Measure SNV F1 over the full locked chr20 scope at representative depth and record it honestly
-- [ ] **Phase 4: Documentation Accuracy** - Bring CLAUDE.md, the ADR index and cross-references back in line with 16 ADRs and the current architecture
+- [x] **Phase 4: Documentation Accuracy** - Bring CLAUDE.md, the ADR index and cross-references back in line with 16 ADRs and the current architecture
 - [ ] **Phase 5: Reviewer Clickthrough** - Guarantee the three-minute demo path works and shows the measured evidence beside its limits
 
 ## Phase Details
@@ -165,9 +165,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Execution Substrate Decision | 1/1 | Complete | 2026-09-22 |
-| 2. Machine-Verified Integrity | 0/TBD | Not started | - |
+| 2. Machine-Verified Integrity | 1/1 | Complete | 2026-09-24 |
 | 3. Full-Scope Validation Evidence | 0/TBD | Not started | - |
-| 4. Documentation Accuracy | 0/TBD | Not started | - |
+| 4. Documentation Accuracy | 1/1 | Complete (ahead of Phase 3) | 2026-09-24 |
 | 5. Reviewer Clickthrough | 0/TBD | Not started | - |
 
 ## Coverage
