@@ -19,6 +19,10 @@ pydantic
 httpx2
 requests
 
+# db/sync_dynamodb_to_postgres.py imports psycopg2 at module level; the wheel
+# needs no running Postgres server (tests exercise its pure helpers only)
+psycopg2-binary
+
 # lambdas/ (handlers import botocore at module level)
 boto3
 botocore
