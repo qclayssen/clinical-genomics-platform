@@ -26,8 +26,10 @@ downstream automation.
 ## 3. Acceptance criterion
 
 - **SNV F1 ≥ 0.99** within the high-confidence regions.
-- Recorded per run as `validation_pass` and enforced by the DB/dashboard.
-- A run below threshold is flagged; results are withheld from reporting until reviewed.
+- Recorded per run as `validation_pass` (computed in `pipeline/bin/build_metrics.py`).
+- **Not yet enforced.** Nothing in the pipeline, DB or dashboard blocks, fails, or withholds
+  a run with `validation_pass: false` — it is a recorded flag that a reviewer has to check.
+  Enforcement is an open item in [FIXES-TODO](FIXES-TODO.md).
 
 ## 4. Results
 
@@ -45,7 +47,17 @@ scoping bugs this run surfaced and fixed).
 | DeepVariant | _not yet run_ | _not yet run_ | _not yet run_ | _not yet run_ | _not yet run_ | _not yet run_ |
 
 SNV F1 = 0.9914 meets the ≥ 0.99 acceptance criterion (§3); `validation_pass: true` in the
-run's `metrics.json`.
+run's `metrics.json`. Three caveats a reviewer should weigh against that pass:
+
+- **SNV recall (0.9894) is below the pipeline's own QC fail threshold** for `snp_recall`
+  (0.99, `pipeline/conf/qc_thresholds.yaml`), so `qc_evaluate.py` marks this same run
+  `overall_status: fail` on recall. The F1 criterion is met; the recall QC threshold is not.
+- **The margin is within sampling noise.** The window holds 1,226 truth SNPs (13 FN, 8 FP);
+  the 95% Wilson interval for SNV recall is roughly 0.982–0.994 and F1 clears 0.99 by 0.0014.
+- **The evidence predates the current stamp.** Its `metrics.json` records
+  `git_commit: local-dev` and `pipeline_version: 0.3.0`, and its `input_checksums` cover
+  only the two derived artifacts (the reference/truth checksums were added later), so this
+  result is not yet tied to a commit. A re-run from a clean checkout is needed.
 
 The raw `hap.py` summary and `metrics.json` behind this table are committed at
 [`docs/validation-evidence/HG002_chr20/`](validation-evidence/HG002_chr20/) — see that
@@ -124,9 +136,9 @@ concrete counterpart in this repository:
 
 | GxP concept | What it verifies | Existing mechanism here |
 |---|---|---|
-| **IQ** — is the system installed as specified? | The right software, at the right version, is what actually runs. | Docker images pinned by SHA-256 digest, not floating tags ([ADR-0009](adr/0009-docker-pinned-by-digest.md)); every run's exact tool/container identity is captured in `run_provenance` (§6). CDK guardrail tests (`infra/test/stacks.test.ts`) assert infrastructure invariants — bucket versioning, public-access block, TLS-only, IAM deny-delete — before any environment is considered correctly installed. |
+| **IQ** — is the system installed as specified? | The right software, at the right version, is what actually runs. Target: Docker images pinned by SHA-256 digest ([ADR-0009](adr/0009-docker-pinned-by-digest.md)) with tool/container identity in `run_provenance` — **not yet met**: images are tag-pinned and the stamp records no container identity (§6, [FIXES-TODO](FIXES-TODO.md) P1). CDK guardrail tests (`infra/test/stacks.test.ts`) assert infrastructure invariants — bucket versioning, public-access block, TLS-only, IAM deny-delete — before any environment is considered correctly installed. |
 | **OQ** — does the system operate correctly across its intended range? | The pipeline runs end-to-end and produces the expected artifacts under normal and stub conditions. | The Nextflow `-stub` profile (`pipeline/main.nf`) exercises every process's structure without real compute; `pytest` covers the provenance/guardrail logic deterministically (`tests/test_build_metrics.py` and this repo's other `tests/test_*.py` files); CI (`.github/workflows/`) runs both on every change. |
-| **PQ** — does the system perform correctly against real-world data and acceptance criteria? | The actual analytical result meets a defined, justified threshold. | The `hap.py`-vs-GIAB benchmark in §4 of this document, against the SNV F1 ≥ 0.99 acceptance criterion in §3, run on real GIAB HG002 reads (not synthetic/stub data) — the result recorded per run as `validation_pass` in `metrics.json` and enforced insert-only in `db/schema.sql`. |
+| **PQ** — does the system perform correctly against real-world data and acceptance criteria? | The actual analytical result meets a defined, justified threshold. | The `hap.py`-vs-GIAB benchmark in §4 of this document, against the SNV F1 ≥ 0.99 acceptance criterion in §3, run on real GIAB HG002 reads (not synthetic/stub data) — the result recorded per run as `validation_pass` in `metrics.json` and stored insert-only in `db/schema.sql` (recorded, not yet enforced as a gate — see §3). |
 
 This mapping is a vocabulary bridge, not new validation work — every cited mechanism already
 existed before this section was written. What it does not claim: formal IQ/OQ/PQ protocol

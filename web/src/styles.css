@@ -357,6 +357,26 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.signoff-control__ack {
+  display: flex;
+  flex-basis: 100%;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+/* The form's input rule stretches every input; keep the checkbox its natural size. */
+.signoff-control__form .signoff-control__ack input {
+  flex: none;
+  min-width: 0;
+  padding: 0;
+}
+
+.signoff-panel__variant {
+  color: var(--color-muted);
+  margin-top: 0;
+}
+
 .signoff-control__form {
   display: flex;
   align-items: center;

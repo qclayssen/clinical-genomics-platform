@@ -8,6 +8,9 @@ param containerAppName string = 'cgp-api'
 param containerImage string
 @secure()
 param cgpDbUrl string = ''
+// Comma-separated browser origins allowed to call the API (the Static Web App's
+// https://<host>). Empty = no CORS headers, matching api/main.py's default.
+param corsOrigins string = ''
 
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: containerAppName
@@ -36,12 +39,17 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
             cpu: json('0.5')
             memory: '1Gi'
           }
-          env: empty(cgpDbUrl) ? [] : [
+          env: concat(empty(cgpDbUrl) ? [] : [
             {
               name: 'CGP_DB_URL'
               secretRef: 'cgp-db-url'
             }
-          ]
+          ], empty(corsOrigins) ? [] : [
+            {
+              name: 'CGP_CORS_ORIGINS'
+              value: corsOrigins
+            }
+          ])
         }
       ]
       scale: {
