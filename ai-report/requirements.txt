@@ -13,5 +13,9 @@ sentence-transformers>=5.6.0
 faiss-cpu>=1.14.3
 numpy>=2.5.1,<2.6
 
+# Optional experiment tracking + model registry (train_*.py --mlflow, ADR-0035).
+# Deliberately NOT a hard requirement: without it --mlflow warns and training continues.
+#   pip install mlflow
+
 # HTTP client for Ollama API
 requests>=2.34.2

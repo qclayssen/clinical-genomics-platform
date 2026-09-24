@@ -27,6 +27,9 @@ pipeline/assets/testdata/*
 *.fa
 *.fa.*
 ai-report/checkpoints/
+# Local MLflow tracking store + model registry (ai-report/tracking.py, --mlflow)
+ai-report/mlruns/
+mlruns/
 ai-report/data/*.jsonl
 
 # ...but DO commit the tiny placeholder test data + curated ML sample (small, needed for CI)
