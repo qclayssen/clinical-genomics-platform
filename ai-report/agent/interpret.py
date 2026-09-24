@@ -215,6 +215,10 @@ def run_interpretation(args: argparse.Namespace) -> int:
                 fallback_result = fallback.run(result.variant)
                 # Keep the original trace but use fallback classification
                 fallback_result.trace = result.trace + fallback_result.trace
+                # Keep the agent's LLM-call accounting (AI-8) — those calls
+                # happened and cost tokens even though their answer was discarded.
+                fallback_result.llm_calls = result.llm_calls
+                fallback_result.total_tokens = result.total_tokens
                 results[i] = fallback_result
 
     # ── Step 3: Build report ───────────────────────────────────────────────

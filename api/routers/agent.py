@@ -30,15 +30,23 @@ Two additions on top of that thin adapter (ADR-0028):
   genomics `Observation` instead of discrete chrom/pos/ref/alt fields, via
   `agent.fhir_intake.variant_from_fhir_observation` — an EMR-shaped intake
   path alongside the manual form.
+
+LLM observability (AI-8, ADR-0036): the response carries `llm_usage` (a
+summary) and `llm_calls` (one record per LLM call — backend, model, tokens
+when the provider reports them, latency, estimated cost). One aggregate row
+per interpretation is written to the insert-only `agent_call_metrics` table
+via the repository. Counts and ids only: no prompt/completion text, no
+variant coordinates.
 """
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 # ai-report/ isn't a package root (see ai-report/agent/interpret.py and
@@ -51,9 +59,15 @@ if str(_AI_REPORT_DIR) not in sys.path:
 from agent.deterministic import DeterministicInterpreter  # noqa: E402
 from agent.fhir_intake import FhirIntakeError, variant_from_fhir_observation  # noqa: E402
 from agent.llm import create_backend  # noqa: E402
+from agent.observability import build_call_metrics_row  # noqa: E402
 from agent.react import ReActAgent, Variant, enforce_safety_constraints  # noqa: E402
 from agent.report import INTERPRETATION_BANNER, build_report, enforce_report_guardrails  # noqa: E402
 from agent.review_store import variant_key  # noqa: E402
+
+from api.dependencies import get_repository  # noqa: E402
+from api.repository import Repository  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -170,6 +184,18 @@ class VariantAssessment(BaseModel):
     guardrail_violations: list[str] = Field(
         default_factory=list, description="Empty when the report is fully guardrail-compliant"
     )
+    llm_usage: dict = Field(
+        default_factory=dict,
+        description=(
+            "Aggregate LLM usage for this interpretation: call count, prompt/completion tokens "
+            "(summed over calls that reported usage; see n_calls_without_usage), latency, and an "
+            "estimated cost from a dated price table (null when not estimable). Counts only."
+        ),
+    )
+    llm_calls: list[dict] = Field(
+        default_factory=list,
+        description="Per-LLM-call records (backend, model_id, tokens or null, latency_ms, estimated_cost_usd).",
+    )
 
 
 def _run_interpretation(variant: Variant, backend_name: str):
@@ -197,6 +223,10 @@ def _run_interpretation(variant: Variant, backend_name: str):
     if result.fallback_triggered:
         fallback_result = DeterministicInterpreter().run(variant)
         fallback_result.trace = result.trace + fallback_result.trace
+        # The agent's LLM calls happened (and cost tokens) even though their
+        # answer was discarded — keep their accounting on the returned result.
+        fallback_result.llm_calls = result.llm_calls
+        fallback_result.total_tokens = result.total_tokens
         return fallback_result
     return result
 
@@ -227,7 +257,26 @@ def _to_assessment(variant: Variant, run_id: str, result) -> VariantAssessment:
         agent_trace=trace_steps,
         provenance=report.provenance,
         guardrail_violations=violations,
+        llm_usage=result.llm_usage,
+        llm_calls=[c.to_dict() for c in result.llm_calls],
     )
+
+
+def _persist_call_metrics(repo: Repository, run_id: str, result) -> None:
+    """Write one aggregate agent_call_metrics row. Observability must never
+    block a clinical interpretation, so a write failure is logged (type only —
+    no payload) and swallowed rather than turned into a 5xx."""
+    row = build_call_metrics_row(
+        run_id=run_id,
+        backend_used=result.backend_used,
+        fallback_triggered=result.fallback_triggered,
+        wall_time_ms=result.wall_time_ms,
+        calls=result.llm_calls,
+    )
+    try:
+        repo.record_agent_call_metrics(row)
+    except Exception as e:  # noqa: BLE001 — see docstring
+        logger.warning("agent_call_metrics write failed: %s", type(e).__name__)
 
 
 @router.post(
@@ -236,7 +285,9 @@ def _to_assessment(variant: Variant, run_id: str, result) -> VariantAssessment:
     status_code=201,
     summary="Run the existing agentic variant interpreter (ADR-0014) on a single variant",
 )
-def create_variant_review(query: VariantReviewRequest) -> VariantAssessment:
+def create_variant_review(
+    query: VariantReviewRequest, repo: Repository = Depends(get_repository)
+) -> VariantAssessment:
     variant = Variant(
         chrom=query.chrom,
         pos=query.pos,
@@ -246,7 +297,9 @@ def create_variant_review(query: VariantReviewRequest) -> VariantAssessment:
         genotype=query.genotype,
     )
     result = _run_interpretation(variant, query.backend)
-    return _to_assessment(variant, query.run_id, result)
+    assessment = _to_assessment(variant, query.run_id, result)
+    _persist_call_metrics(repo, query.run_id, result)
+    return assessment
 
 
 @router.post(
@@ -255,11 +308,15 @@ def create_variant_review(query: VariantReviewRequest) -> VariantAssessment:
     status_code=201,
     summary="Same as /variant-review, but the variant comes from a FHIR genomics Observation",
 )
-def create_variant_review_from_fhir(query: FhirVariantReviewRequest) -> VariantAssessment:
+def create_variant_review_from_fhir(
+    query: FhirVariantReviewRequest, repo: Repository = Depends(get_repository)
+) -> VariantAssessment:
     try:
         variant = variant_from_fhir_observation(query.resource)
     except FhirIntakeError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
     result = _run_interpretation(variant, query.backend)
-    return _to_assessment(variant, query.run_id, result)
+    assessment = _to_assessment(variant, query.run_id, result)
+    _persist_call_metrics(repo, query.run_id, result)
+    return assessment

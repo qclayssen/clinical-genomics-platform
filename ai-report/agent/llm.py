@@ -59,7 +59,9 @@ class LLMResponse:
     model : str
         Model identifier that produced this response.
     usage : dict
-        Token usage info (input_tokens, output_tokens).
+        Token usage info (input_tokens, output_tokens). A value is ``None``
+        when the provider did not report it — consumers must not treat that
+        as zero (see agent/observability.py).
     raw : Any
         Raw response from the provider (for debugging).
     """
@@ -518,8 +520,9 @@ class OllamaBackend(LLMBackend):
                 stop_reason=stop_reason,
                 model=self.model_id,
                 usage={
-                    "input_tokens": result.get("prompt_eval_count", 0),
-                    "output_tokens": result.get("eval_count", 0),
+                    # None (not 0) when Ollama omits the counts — never fabricate usage.
+                    "input_tokens": result.get("prompt_eval_count"),
+                    "output_tokens": result.get("eval_count"),
                 },
                 raw=result,
             )
@@ -596,8 +599,9 @@ def _parse_openai_style_response(response: Any, model_id: str) -> LLMResponse:
         stop_reason=stop_reason,
         model=model_id,
         usage={
-            "input_tokens": response.usage.prompt_tokens if response.usage else 0,
-            "output_tokens": response.usage.completion_tokens if response.usage else 0,
+            # None (not 0) when the API omits usage — never fabricate usage.
+            "input_tokens": response.usage.prompt_tokens if response.usage else None,
+            "output_tokens": response.usage.completion_tokens if response.usage else None,
         },
         raw=response,
     )
@@ -1051,8 +1055,9 @@ class BedrockBackend(LLMBackend):
             stop_reason=stop_reason,
             model=self.model_id,
             usage={
-                "input_tokens": usage.get("inputTokens", 0),
-                "output_tokens": usage.get("outputTokens", 0),
+                # None (not 0) when Converse omits usage — never fabricate usage.
+                "input_tokens": usage.get("inputTokens"),
+                "output_tokens": usage.get("outputTokens"),
             },
             raw=response,
         )

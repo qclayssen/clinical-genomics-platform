@@ -49,6 +49,11 @@ schema's insert-only trigger — there is no update/delete path.
 | POST | `/agent/variant-review` | Interpret one variant with the agentic interpreter (ADR-0014, ADR-0027) |
 | POST | `/agent/variant-review/fhir` | Same review, with the variant read from an HL7 FHIR Observation (ADR-0028) |
 
+Both `/agent/variant-review` routes return `llm_usage` and `llm_calls` (per-call backend, model,
+tokens when the provider reports them, latency, and estimated cost from a dated price table). Each
+call also appends one aggregate row to the insert-only `agent_call_metrics` table (ADR-0036). These
+records hold counts and ids only, never prompts or variant coordinates.
+
 ## Tests
 
 ```bash

@@ -20,6 +20,7 @@ from typing import Optional
 
 from guardrails import enforce_safety_constraints
 
+from . import observability as obs
 from .llm import LLMBackend, Message, ToolCall, create_backend
 from .tools import ToolRegistry, ToolResult
 
@@ -105,6 +106,13 @@ class InterpretationResult:
     total_tokens: int = 0
     wall_time_ms: float = 0.0
     error: Optional[str] = None
+    # One record per LLM call (AI-8): backend, model, tokens (None when not
+    # reported), latency, estimated cost. Counts/ids only — no text.
+    llm_calls: list[obs.LLMCallRecord] = field(default_factory=list)
+
+    @property
+    def llm_usage(self) -> dict:
+        return obs.summarize_calls(self.llm_calls)
 
     def to_dict(self) -> dict:
         return {
@@ -119,6 +127,8 @@ class InterpretationResult:
             "total_tokens": self.total_tokens,
             "wall_time_ms": self.wall_time_ms,
             "error": self.error,
+            "llm_calls": [c.to_dict() for c in self.llm_calls],
+            "llm_usage": self.llm_usage,
         }
 
 
@@ -187,9 +197,23 @@ class ReActAgent:
         InterpretationResult
             Classification result with full reasoning trace.
         """
+        with obs.span("agent.run", {"llm.backend": self._backend.name}) as run_span:
+            result = self._run(variant)
+            run_span.set_attributes({
+                "llm.model_id": result.backend_used,
+                "agent.fallback_triggered": result.fallback_triggered,
+                "agent.n_steps": len(result.trace),
+                "llm.prompt_tokens": result.llm_usage["prompt_tokens"],
+                "llm.completion_tokens": result.llm_usage["completion_tokens"],
+                "llm.estimated_cost_usd": result.llm_usage["estimated_cost_usd"],
+            })
+            return result
+
+    def _run(self, variant: Variant) -> InterpretationResult:
         start_time = time.perf_counter()
         trace: list[TraceStep] = []
         total_tokens = 0
+        llm_calls: list[obs.LLMCallRecord] = []
 
         # Build initial messages
         messages: list[Message] = [
@@ -210,12 +234,37 @@ class ReActAgent:
                 # Get LLM response
                 step_start = time.perf_counter()
                 try:
-                    response = self._backend.generate(
-                        messages=messages,
-                        tools=self._tool_registry.get_tool_schemas("openai"),
-                        temperature=0.1,
-                        max_tokens=min(1024, self._max_tokens - total_tokens),
-                    )
+                    with obs.span("agent.llm_call", {"agent.iteration": iteration}) as call_span:
+                        try:
+                            response = self._backend.generate(
+                                messages=messages,
+                                tools=self._tool_registry.get_tool_schemas("openai"),
+                                temperature=0.1,
+                                max_tokens=min(1024, self._max_tokens - total_tokens),
+                            )
+                        except Exception:
+                            call_record = obs.record_for_failed_call(
+                                iteration=iteration,
+                                backend=self._backend.name,
+                                model_id=self._backend.model_id,
+                                latency_ms=(time.perf_counter() - step_start) * 1000,
+                                trace_step_index=len(trace),
+                            )
+                            llm_calls.append(call_record)
+                            call_span.set_attributes(obs.call_span_attrs(call_record))
+                            raise
+                        call_record = obs.record_from_response(
+                            iteration=iteration,
+                            # Read after the call: FallbackLLM reports the
+                            # backend that actually answered.
+                            backend=self._backend.name,
+                            model_id=self._backend.model_id,
+                            response=response,
+                            latency_ms=(time.perf_counter() - step_start) * 1000,
+                            trace_step_index=len(trace),
+                        )
+                        llm_calls.append(call_record)
+                        call_span.set_attributes(obs.call_span_attrs(call_record))
                 except (ConnectionError, ValueError, RuntimeError) as e:
                     trace.append(TraceStep(
                         step_type="error",
@@ -228,9 +277,9 @@ class ReActAgent:
 
                 step_duration = (time.perf_counter() - step_start) * 1000
 
-                # Track tokens
-                usage = response.usage
-                total_tokens += usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+                # Track tokens for the budget. Unreported counts (None) can't
+                # be budgeted — they're surfaced via llm_calls, not guessed.
+                total_tokens += (call_record.prompt_tokens or 0) + (call_record.completion_tokens or 0)
 
                 # Record thought
                 if response.content:
@@ -284,9 +333,16 @@ class ReActAgent:
                         tool_input=tool_call.arguments,
                     ))
 
-                    tool_result = self._tool_registry.invoke(
-                        tool_call.name, tool_call.arguments
-                    )
+                    # Span carries the tool name only — never its arguments,
+                    # which hold variant coordinates.
+                    with obs.span("agent.tool_call", {
+                        "agent.iteration": iteration,
+                        "agent.tool_name": tool_call.name,
+                    }) as tool_span:
+                        tool_result = self._tool_registry.invoke(
+                            tool_call.name, tool_call.arguments
+                        )
+                        tool_span.set_attributes({"agent.tool_success": tool_result.success})
 
                     trace.append(TraceStep(
                         step_type="observation",
@@ -320,6 +376,7 @@ class ReActAgent:
                             result.confidence = output.get("confidence", "moderate")
                             result.trace = trace
                             result.total_tokens = total_tokens
+                            result.llm_calls = llm_calls
                             result.wall_time_ms = (time.perf_counter() - start_time) * 1000
                             return result
 
@@ -377,6 +434,7 @@ class ReActAgent:
         # If we reach here, the agent didn't produce a final answer
         result.trace = trace
         result.total_tokens = total_tokens
+        result.llm_calls = llm_calls
         result.wall_time_ms = (time.perf_counter() - start_time) * 1000
         return result
 
