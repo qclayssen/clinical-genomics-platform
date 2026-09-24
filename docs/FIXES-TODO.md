@@ -49,13 +49,12 @@ Severity: [P1] fix first · [P2] worth fixing · [P3] nice-to-have.
   `pipeline_version: 0.3.0`; its recall (0.9894) also trips the pipeline's own `snp_recall`
   fail threshold. Needs a re-run from a clean, tagged checkout with the current stamp.
 
-- **[P1] No images are digest-pinned, and container identity is not in the provenance stamp.**
-  `git grep '@sha256:'` returns nothing; all 12 module containers are tag-pinned.
-  [ADR-0009](adr/0009-docker-pinned-by-digest.md) treats digest pinning as the production
-  target — it is not yet met. The provenance map in `pipeline/main.nf` records no container
-  and no tool versions (those reach `pipeline_info/software_versions.yml` only). Needs a
-  registry digest lookup per image (no local Docker daemon available in the environment this
-  was last worked from) — see `docs/ROADMAP.md` P1-1 for the related nf-core lint/nf-test work.
+- **[P1] Container identity is not in the provenance stamp.** All 12 module containers are
+  now pinned by `@sha256` digest ([ADR-0009](adr/0009-docker-pinned-by-digest.md)), guarded by
+  `tests/test_container_pinning.py`. `DB_INGEST` moved from a non-existent
+  `biocontainers/psycopg2:2.9.9` image to the repo's own `ghcr.io/qclayssen/cgp-tools:1.0.0`.
+  Still open: the provenance map in `pipeline/main.nf` records no container digest and no tool
+  versions (those reach `pipeline_info/software_versions.yml` only).
 
 - **[P1] Raw FASTQ reads are still not checksummed** (the other half of item 8 above).
   Only the reference and truth set were added to `input_checksums` in #78; the input reads

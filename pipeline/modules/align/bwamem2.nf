@@ -1,7 +1,7 @@
 process BWAMEM2_ALIGN {
     tag   { meta.id }
     label 'process_high'
-    container 'quay.io/biocontainers/mulled-v2-e5d375990341c5aef3c9aff74f96f66f65375ef6:2cdf6bf1e92acbeb9b2834b1c58754167173a410-0'
+    container 'quay.io/biocontainers/mulled-v2-e5d375990341c5aef3c9aff74f96f66f65375ef6:2cdf6bf1e92acbeb9b2834b1c58754167173a410-0@sha256:d7cac67f6adf36de469f839093956ba99c9a3c4fe5541e7180ff97e7942f7271'
 
     input:
     tuple val(meta), path(reads)

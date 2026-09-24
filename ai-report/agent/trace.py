@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from .observability import LLMCallRecord, summarize_calls
 from .react import InterpretationResult, TraceStep
 
 # ═══ Agent Trace ══════════════════════════════════════════════════════════════
@@ -50,6 +51,9 @@ class AgentTrace:
         Evidence codes supporting the classification.
     error : str or None
         Error message if the agent failed.
+    llm_calls : list[LLMCallRecord]
+        Per-LLM-call backend/model/tokens/latency/estimated cost (AI-8).
+        Counts and ids only — no prompt or completion text.
     """
 
     run_id: str = ""
@@ -62,6 +66,11 @@ class AgentTrace:
     classification: str = ""
     evidence_codes: list[str] = field(default_factory=list)
     error: Optional[str] = None
+    llm_calls: list[LLMCallRecord] = field(default_factory=list)
+
+    @property
+    def llm_usage(self) -> dict:
+        return summarize_calls(self.llm_calls)
 
     def to_dict(self) -> dict:
         return {
@@ -77,6 +86,8 @@ class AgentTrace:
             "n_tool_calls": sum(1 for s in self.steps if s.step_type == "action"),
             "n_errors": sum(1 for s in self.steps if s.step_type == "error"),
             "error": self.error,
+            "llm_usage": self.llm_usage,
+            "llm_calls": [c.to_dict() for c in self.llm_calls],
             "steps": [s.to_dict() for s in self.steps],
         }
 
@@ -94,6 +105,7 @@ class AgentTrace:
             classification=result.classification,
             evidence_codes=result.evidence_codes,
             error=result.error,
+            llm_calls=list(result.llm_calls),
         )
 
 
@@ -125,6 +137,9 @@ class RunTrace:
                 "any_fallback": any(t.fallback_triggered for t in self.variant_traces),
                 "any_errors": any(t.error for t in self.variant_traces),
                 "classifications": self._classification_summary(),
+                "llm_usage": summarize_calls(
+                    [c for t in self.variant_traces for c in t.llm_calls]
+                ),
             },
             "variant_traces": [t.to_dict() for t in self.variant_traces],
         }
@@ -309,6 +324,16 @@ def pretty_print_trace(trace: AgentTrace) -> str:
     lines.append(f"  Evidence: {', '.join(trace.evidence_codes)}")
     lines.append(f"  Wall time: {trace.wall_time_ms:.1f}ms")
     lines.append(f"  Tokens: {trace.total_tokens}")
+    usage = trace.llm_usage
+    if usage["n_llm_calls"]:
+        cost = usage["estimated_cost_usd"]
+        cost_str = f"${cost:.6f} (est., {usage['price_table_version']})" if cost is not None else "unknown"
+        lines.append(
+            f"  LLM calls: {usage['n_llm_calls']} "
+            f"(prompt={usage['prompt_tokens']}, completion={usage['completion_tokens']}, "
+            f"without usage={usage['n_calls_without_usage']}, "
+            f"latency={usage['total_latency_ms']}ms, cost={cost_str})"
+        )
     lines.append(f"  Fallback: {trace.fallback_triggered}")
     if trace.error:
         lines.append(f"  Error: {trace.error}")

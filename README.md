@@ -63,7 +63,7 @@
 
 ### 🧬 Validated like a lab
 Benchmarked with `hap.py` against the **GIAB HG002 v4.2.1** truth set: **SNV F1 0.9914**,
-gated by a ≥ 0.99 acceptance criterion that must be re-met after any caller, reference or filter change.
+measured against a ≥ 0.99 acceptance criterion that must be re-met after any caller, reference or filter change.
 
 </td>
 <td width="33%" valign="top">
@@ -112,7 +112,7 @@ two **Metabase dashboards** provisioned from version-controlled definitions.
 
 | Layer | Tools |
 |:---|:---|
-| **Bioinformatics** | Nextflow DSL2 · nf-test · fastp · FastQC · MultiQC · BWA-MEM2 · GATK HaplotypeCaller · DeepVariant · `hap.py` · bcftools · Biocontainers (version-pinned) |
+| **Bioinformatics** | Nextflow DSL2 · nf-test · fastp · FastQC · MultiQC · BWA-MEM2 · GATK HaplotypeCaller · DeepVariant · `hap.py` · bcftools · Biocontainers (digest-pinned) |
 | **Cloud & IaC** | AWS CDK (TypeScript) · S3 · DynamoDB · Step Functions · Lambda · EventBridge · CloudWatch/SNS · Azure Bicep (Container Apps, Static Web Apps) |
 | **Data** | PostgreSQL (insert-only + immutability triggers) · star schema · dbt · Airflow · Metabase as code · Parquet |
 | **AI / ML** | PyTorch · Hugging Face Transformers + PEFT (QLoRA) · ReAct agent over ClinVar / gnomAD / ACMG · guardrails + human-in-the-loop |

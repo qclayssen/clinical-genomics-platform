@@ -96,6 +96,35 @@ CREATE TABLE IF NOT EXISTS review_decisions (
 CREATE INDEX IF NOT EXISTS idx_review_variant ON review_decisions(variant_key);
 CREATE INDEX IF NOT EXISTS idx_review_run ON review_decisions(run_id);
 
+-- ── agent_call_metrics: LLM observability for the variant agent (AI-8) ───────
+-- One row per variant interpretation: LLM call count, tokens, latency and an
+-- *estimated* cost (dated price table in ai-report/agent/observability.py,
+-- stamped in price_table_version). Counts/ids only — no prompt/completion text,
+-- no variant coordinates, no PHI. Token columns are NULL (never 0) when no call
+-- reported usage; usage_complete says whether every call did. Insert-only.
+-- Also shipped as a standalone forward migration: db/migrations/0002_agent_call_metrics.sql.
+CREATE TABLE IF NOT EXISTS agent_call_metrics (
+    id                    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    run_pk                BIGINT REFERENCES runs(id),
+    run_id                TEXT NOT NULL,
+    backend               TEXT NOT NULL,
+    model_id              TEXT NOT NULL,
+    n_llm_calls           INTEGER NOT NULL CHECK (n_llm_calls >= 0),
+    n_failed_calls        INTEGER NOT NULL DEFAULT 0 CHECK (n_failed_calls >= 0),
+    n_calls_without_usage INTEGER NOT NULL DEFAULT 0 CHECK (n_calls_without_usage >= 0),
+    prompt_tokens         INTEGER CHECK (prompt_tokens >= 0),
+    completion_tokens     INTEGER CHECK (completion_tokens >= 0),
+    usage_complete        BOOLEAN NOT NULL,
+    llm_latency_ms        DOUBLE PRECISION NOT NULL CHECK (llm_latency_ms >= 0),
+    wall_time_ms          DOUBLE PRECISION NOT NULL CHECK (wall_time_ms >= 0),
+    estimated_cost_usd    NUMERIC(12, 8) CHECK (estimated_cost_usd >= 0),
+    price_table_version   TEXT NOT NULL,
+    fallback_triggered    BOOLEAN NOT NULL,
+    recorded_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_agent_call_metrics_backend ON agent_call_metrics(backend, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_agent_call_metrics_run ON agent_call_metrics(run_id);
+
 -- ── Guardrail: block UPDATE/DELETE/TRUNCATE on the immutable tables at the DB level ──
 CREATE OR REPLACE FUNCTION forbid_mutation() RETURNS trigger AS $$
 BEGIN
@@ -106,7 +135,7 @@ $$ LANGUAGE plpgsql;
 DO $$
 DECLARE t TEXT;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['runs','qc_metrics','run_provenance','audit_log','qc_warnings','review_decisions'] LOOP
+    FOREACH t IN ARRAY ARRAY['runs','qc_metrics','run_provenance','audit_log','qc_warnings','review_decisions','agent_call_metrics'] LOOP
         EXECUTE format(
             'DROP TRIGGER IF EXISTS trg_immutable_%1$s ON %1$s;
              CREATE TRIGGER trg_immutable_%1$s

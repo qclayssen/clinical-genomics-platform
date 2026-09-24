@@ -332,10 +332,15 @@ def _final_answer(
             "error": f"Invalid classification '{classification}'. Must be one of: {sorted(valid_classifications)}",
         }
 
-    if not evidence:
+    # "No ACMG criteria met" is a legitimate Uncertain Significance with no
+    # codes; any other classification must cite the evidence behind it.
+    if not evidence and classification != "Uncertain Significance":
         return {
             "success": False,
-            "error": "Evidence codes list cannot be empty. Provide at least one ACMG evidence code.",
+            "error": (
+                "Evidence codes list cannot be empty unless the classification is "
+                "Uncertain Significance. Provide at least one ACMG evidence code."
+            ),
         }
 
     if not summary or len(summary) < 20:

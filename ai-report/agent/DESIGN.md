@@ -130,6 +130,42 @@ Classification accuracy is measured against the local knowledge base ground trut
 Property-based tests verify universal invariants (BA1 → Benign, agent termination, etc.)
 across 200+ generated examples per property.
 
+## Observability: tokens, latency, cost (AI-8, ADR-0036)
+
+The existing trace is extended, not duplicated. Every LLM call in the ReAct loop produces an
+`LLMCallRecord` (`observability.py`) on `InterpretationResult.llm_calls`, carried into
+`AgentTrace`/`RunTrace` and the REST response (`llm_calls`, `llm_usage`):
+
+| Field | Source | When unknown |
+|---|---|---|
+| `backend`, `model_id` | the backend that answered (read after the call, so `FallbackLLM` reports the real one) | — |
+| `prompt_tokens`, `completion_tokens` | the provider's usage block (`LLMResponse.usage`) | `None`, never 0 or a tokenizer guess |
+| `latency_ms` | wall-clock around `backend.generate()` | always measured, including failed calls |
+| `estimated_cost_usd` | `PRICE_TABLE` (list prices, dated `PRICE_TABLE_AS_OF`) × tokens | `None` for unknown models or missing usage; 0.0 for local backends |
+| `trace_step_index` | index of the first `TraceStep` that call produced | `None` |
+
+Aggregates (`summarize_calls`) sum only calls that reported usage and expose
+`n_calls_without_usage`. The aggregate cost is `None` if any call's cost is unknown, because a
+partial sum would look complete. When the route or CLI falls back to the deterministic
+interpreter, the agent's `llm_calls` are kept on the returned result: those calls happened and
+cost tokens.
+
+**Persistence.** `POST /agent/variant-review` writes one row per interpretation to the
+insert-only `agent_call_metrics` table (`db/migrations/0002_agent_call_metrics.sql`, also in
+`db/schema.sql`, protected by `forbid_mutation()`), and Metabase card 11 plots it. A failed
+metrics write is logged and never fails the interpretation.
+
+**OpenTelemetry (optional).** Set `AGENT_OTEL_ENABLED=1` and install `opentelemetry-api` plus an
+SDK/exporter to get spans `agent.run` → `agent.llm_call` / `agent.tool_call`. If the variable is
+unset or the package is missing, spans are no-ops. Span attributes pass an allow-list
+(`_ALLOWED_SPAN_ATTRS`).
+
+**What is never logged.** Call records, span attributes and `agent_call_metrics` rows hold
+**counts, ids and timings only**: no prompt or completion text, no tool arguments, no variant
+coordinates or other PHI. This is the default, and there is no flag to turn it off. The
+reasoning trace (`TraceStep.content`) is unchanged and still returned to the reviewer, because
+clinical sign-off needs it. It is not exported to OTel or the metrics table.
+
 ## File Layout
 
 ```
@@ -144,6 +180,7 @@ ai-report/agent/
 ├── vcf_parser.py         # VCF parsing + gene annotation
 ├── report.py             # Report generation + guardrails
 ├── trace.py              # Observability + provenance + audit
+├── observability.py      # Per-LLM-call tokens/latency/cost, price table, optional OTel spans
 ├── prompts/
 │   └── system.md         # Agent system prompt
 ├── data/

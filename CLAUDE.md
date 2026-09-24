@@ -26,10 +26,11 @@ be used for clinical decisions (see the scope-honesty note in [README.md](README
 | `web/` | React + TypeScript + Vite frontend for `/agent/variant-review`: submit a variant, see the agent's step-by-step trace, record clinician sign-off via `/runs/{run_id}/review-decisions` (ADR-0027) |
 | `orchestration/` | Airflow DAG scheduling the warehouse ETL/refresh — runnable via `docker-compose.airflow.yml` demo mode (ADR-0023, ADR-0026) |
 | `dbt/` | dbt project rebuilding the star-schema warehouse (staging + marts, schema tests) in its own `analytics` schema — additive alongside `db/schema.sql`'s production warehouse, see ADR-0025 |
-| `ai-report/` | PyTorch QLoRA fine-tune + inference (`infer.py`, `train_lora.py`, `train_smoke.py`, `make_dataset.py`), `MODEL_CARD.md` |
+| `ai-report/` | PyTorch QLoRA fine-tune + inference (`infer.py`, `train_lora.py`, `train_smoke.py`, `make_dataset.py`; opt-in `--mlflow` tracking, ADR-0035), `MODEL_CARD.md`; `agent/` variant interpreter; `eval/` agent evaluation harness (ADR-0032) |
+| `mcp_server/` | Read-only MCP server (stdio) over run/QC/provenance data and the chr20 ClinVar/gnomAD KB — no write, report or classification tools (ADR-0033) |
 | `docker/` | `Dockerfile.tools` (helper scripts) and `Dockerfile.demo` (Streamlit app). The per-stage tool containers are Biocontainer images pinned in each module's `container` directive, not Dockerfiles here |
 | `docs/` | Beginner's guide, glossary, `VALIDATION.md`, `SOP-run-pipeline.md`, `MILESTONES.md`, `FOR-RECRUITERS.md` |
-| `docs/adr/` | 31 Architecture Decision Records (append-only); see `README.md` there for the index |
+| `docs/adr/` | 36 Architecture Decision Records (append-only); see `README.md` there for the index |
 | `lambdas/` | Python handlers for the serverless path (ADR-0011): `ingestion_trigger`, `metadata_ingestor`, `qc_orchestrator`, `validation_checker`, `variant_calling`, `report_generator`, `export_handler`, the LLM `healer` (ADR-0018), and `shared/` helpers. Covered by `pytest` and the CI coverage gate |
 | `demo/` | Streamlit walkthrough app (home / data explorer / pipeline assistant) over the committed fixtures — a browsable demo, not part of the pipeline |
 | `scripts/` | Helper scripts: `fetch_testdata.sh` (stage real GIAB data), `preflight.sh` (contig-name consistency check before a real run), `make_tiny_testdata.py`, `build_chr20_knowledgebase.py`, plus local agent-routing utilities |
@@ -71,6 +72,9 @@ uvicorn api.main:app --reload   # then open http://127.0.0.1:8000/docs
 # Deterministic offline report renderer (no ML deps at all)
 python3 ai-report/infer.py --metrics tests/fixtures/HG002_chr20.metrics.json --offline
 
+# Agent evaluation harness — gold set vs the variant agent, offline (ADR-0032)
+python3 ai-report/eval/run_eval.py
+
 # CPU LoRA smoke test — the identical fine-tuning loop on a tiny model, ~1 min
 # (needs: pip install torch transformers datasets peft — CPU wheels are fine)
 python ai-report/train_smoke.py
@@ -103,7 +107,7 @@ templates without an AWS account.
   raw reads, and no container digest or tool version reaches the stamp. See
   [docs/VALIDATION.md](docs/VALIDATION.md) §6 and [docs/FIXES-TODO.md](docs/FIXES-TODO.md) —
   don't restate the stamp as complete until those are closed.
-- **AI output always passes `enforce_guardrails()`** ([ai-report/infer.py](ai-report/infer.py)):
+- **AI output always passes `enforce_guardrails()`** ([ai-report/guardrails.py](ai-report/guardrails.py)):
   mandatory `AI-DRAFTED — REQUIRES CLINICIAN REVIEW` banner, provenance line, and advice-phrase
   scrubbing — then a human signs off. The model only ever sees `metrics.json`, never raw reads
   or the VCF body. ([ADR-0008](docs/adr/0008-guardrails-human-in-the-loop.md))
