@@ -53,8 +53,9 @@ metrics set in config.
 | Tool coverage (both ClinVar and gnomAD queried), `classify_acmg` consistency, fallback rate | coverage gated; others reported |
 
 5-class accuracy is not gated because the only automated evidence is ClinVar plus gnomAD.
-For a ≥ 2★ Pathogenic variant that gives PS1 + PM2 + PP5, which the ACMG combining rules
-call **Likely** Pathogenic. Full Pathogenic needs PS2/PS3-type evidence that no tool
+For a ≥ 2★ Pathogenic variant the agent derives PS1 + PM2 + PP5, which the ACMG combining
+rules call **Likely** Pathogenic. (That derivation is itself a known simplification: see
+"Grounding is traceability, not ACMG correctness" below.) Full Pathogenic needs PS2/PS3-type evidence that no tool
 supplies. A 5-class gate would therefore only encode this known, documented and
 deliberately conservative bias.
 
@@ -118,6 +119,16 @@ supports that code. It stayed within the original 0.95 grounding floor. It was f
 same change set: the default was removed, `final_answer` now accepts an empty evidence
 list only for Uncertain Significance ("no ACMG criteria met"), a regression test covers
 both, and the floor was raised to 1.0.
+
+### Grounding is traceability, not ACMG correctness
+
+A grounding rate of 1.0 means every evidence code traces to a tool observation. It does not
+mean the code was applied correctly. The PS1/PP5 grounding rule mirrors the agent's own rule
+(this variant's ClinVar P/LP assertion ≥ 2★), so it cannot detect that misuse: PS1 strictly
+requires a *different* established pathogenic variant with the same amino-acid change, one
+assertion used for both PS1 and PP5 double-counts evidence, and ClinGen SVI recommended
+retiring PP5 in 2018. Correcting the agent's evidence rules is separate work; it would change
+classifications and requires re-baselining this harness.
 
 ## What would change this decision
 

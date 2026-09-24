@@ -333,5 +333,5 @@ def test_final_answer_empty_evidence_only_for_vus():
     from agent.tools import _final_answer  # noqa: E402
 
     summary = "No ACMG criteria were met by any tool observation."
-    assert _final_answer("Uncertain Significance", [], summary).get("success") is not False
+    assert _final_answer("Uncertain Significance", [], summary)["success"] is True
     assert _final_answer("Likely Pathogenic", [], summary)["success"] is False

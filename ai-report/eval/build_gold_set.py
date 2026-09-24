@@ -43,6 +43,15 @@ GOLD_REVIEW_STATUSES = frozenset({
     "practice_guideline",                                 # 4 stars
 })
 
+# ClinVar's own star scale, by review-status string (the KB column is shifted).
+_CLINVAR_STARS = {
+    "practice_guideline": 4,
+    "reviewed_by_expert_panel": 3,
+    "criteria_provided_multiple_submitters_no_conflicts": 2,
+    "criteria_provided_single_submitter": 1,
+    "criteria_provided_conflicting_interpretations": 1,
+}
+
 # ClinVar significance string (as stored in the KB) -> 5-class code.
 _SIG_TO_CLASS = {
     "Pathogenic": "P",
@@ -91,7 +100,6 @@ def build_rows(db_path: Path = DEFAULT_DB) -> list[dict]:
 
         rows: list[dict] = []
         for r in clinvar:
-            stars = int(r["review_stars"] or 0)
             rows.append({
                 "id": f"{r['gene']}:{r['hgvs_p'] or r['pos']}",
                 "tier": "gold" if r["review_status"] in GOLD_REVIEW_STATUSES else "silver",
@@ -105,7 +113,7 @@ def build_rows(db_path: Path = DEFAULT_DB) -> list[dict]:
                 "clinvar_significance": r["clinical_significance"],
                 "clinvar_variation_id": r["variant_id"],
                 "review_status": r["review_status"],
-                "review_stars": stars,
+                "clinvar_review_stars": _CLINVAR_STARS.get(r["review_status"], 0),
                 "source": source,
             })
 
@@ -129,7 +137,7 @@ def build_rows(db_path: Path = DEFAULT_DB) -> list[dict]:
                 "clinvar_significance": None,
                 "clinvar_variation_id": None,
                 "review_status": None,
-                "review_stars": 0,
+                "clinvar_review_stars": 0,
                 "source": f"negative control — {p['note']}",
             })
         return rows

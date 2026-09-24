@@ -33,7 +33,7 @@ asserts the gates in [`eval_config.json`](eval_config.json).
 |---|---|
 | **Source** | `ai-report/agent/data/chr20_knowledge.db`, `clinvar` table, the repo's embedded ClinVar subset. Its `metadata` table says *"ClinVar VCV 2026-06 subset"*, KB v1.0.0, built 2026-07-15 by `scripts/build_chr20_knowledgebase.py` |
 | **Derivation** | `python ai-report/eval/build_gold_set.py` (deterministic). `--check` fails if the committed file has drifted from the KB, and the pytest suite runs that check |
-| **Selection criterion (`gold` tier)** | ClinVar review status **≥ 2 stars**: `criteria_provided_multiple_submitters_no_conflicts` or `reviewed_by_expert_panel`. Note: the KB's `review_stars` column stores 3 for the multi-submitter status, where ClinVar's own scale gives it 2★ (and expert panel 3★). The criterion is the same under either scale, but it is the review-status *string* that decides eligibility |
+| **Selection criterion (`gold` tier)** | ClinVar review status **≥ 2 stars**: `criteria_provided_multiple_submitters_no_conflicts` or `reviewed_by_expert_panel`. Note: the KB's `review_stars` column stores 3 for the multi-submitter status, where ClinVar's own scale gives it 2★ (and expert panel 3★). The criterion is the same under either scale, but it is the review-status *string* that decides eligibility, and `gold_set.jsonl` records `clinvar_review_stars` on ClinVar's own scale |
 | **Pinned by** | SHA-256 of the file, recorded in every report |
 
 | Tier | n | Label | Scored? | Gated? |
@@ -62,6 +62,9 @@ asserts the gates in [`eval_config.json`](eval_config.json).
   in this change (no network access).
 - Probe positions are **synthetic** and are never presented as real variants.
 
+- **Class coverage:** the gold tier has no VUS or Likely Benign rows, so the 3-class gate
+  exercises only the P/LP and B directions. Don't quote the gold accuracy without this.
+
 ## Metrics
 
 Defined in [`eval_metrics.py`](eval_metrics.py). Every function is pure and unit-tested.
@@ -78,6 +81,15 @@ Defined in [`eval_metrics.py`](eval_metrics.py). Every function is pure and unit
 | `tool_coverage_rate` | Share of cases in which both `query_clinvar` and `query_gnomad` were called |
 | `classify_acmg_consistency_rate` | Share of cases whose final class matches the `classify_acmg` tool output |
 | `fallback_rate` | Share of cases where the ReAct loop fell back to the deterministic interpreter |
+
+**What grounding does and doesn't mean.** A grounded code is *traceable to a tool
+observation*, not *correctly applied under ACMG*. The grounding rule for PS1/PP5 mirrors
+the scripted backend's rule (this variant's own ClinVar P/LP assertion), so it cannot
+catch that misuse: strictly, PS1 means the same amino-acid change as a *different*
+established pathogenic variant, using one ClinVar assertion for both PS1 and PP5
+double-counts it, and ClinGen SVI recommended retiring PP5 in 2018. This is a known
+limitation of the agent's evidence rules, recorded here and in ADR-0032, not fixed by
+this harness.
 
 ## Baseline (deterministic backend, commit `633cd77`)
 
