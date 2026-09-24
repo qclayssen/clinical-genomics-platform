@@ -309,3 +309,29 @@ class TestHarnessDeterministic:
         cfg_path = tmp_path / "cfg.json"
         cfg_path.write_text(json.dumps(cfg))
         assert run_eval.main(["--config", str(cfg_path), "--out", str(tmp_path / "r.json")]) == 1
+
+
+def test_scripted_backend_adds_no_ungrounded_default_code():
+    """Regression: with no supporting tool evidence the scripted backend must
+    not invent a default PM2 (found by this harness on its first run)."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai-report"))
+    from agent.llm import DeterministicBackend, Message  # noqa: E402
+
+    backend = DeterministicBackend()
+    msgs = [Message(role="tool", content='{"records": [], "af": null}')]
+    assert backend._gather_evidence_codes(msgs) == []
+
+
+def test_final_answer_empty_evidence_only_for_vus():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai-report"))
+    from agent.tools import _final_answer  # noqa: E402
+
+    summary = "No ACMG criteria were met by any tool observation."
+    assert _final_answer("Uncertain Significance", [], summary).get("success") is not False
+    assert _final_answer("Likely Pathogenic", [], summary)["success"] is False

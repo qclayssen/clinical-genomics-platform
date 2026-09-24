@@ -63,12 +63,14 @@ deliberately conservative bias.
 | Gate | Tiers | Thresholds |
 |---|---|---|
 | `gold_classification` | gold | `accuracy_3class ≥ 0.90`, `opposite_direction_errors ≤ 0` |
-| `citation_integrity` | gold + silver + probe | `hallucinated_citation_rate ≤ 0.0`, `tool_grounding_rate ≥ 0.95`, `tool_coverage_rate ≥ 1.0` |
+| `citation_integrity` | gold + silver + probe | `hallucinated_citation_rate ≤ 0.0`, `tool_grounding_rate ≥ 1.0`, `tool_coverage_rate ≥ 1.0` |
 
 These are **regression floors at the deterministic backend's measured baseline**, not
 clinical acceptance criteria. Baseline at commit `633cd77`: gold n = 10, 3-class 0.90,
 5-class 0.30 (all six P → LP; the single LP → VUS), 0 opposite-direction errors,
-0 hallucinated citations across all 21 rows, grounding 38/39 = 0.974.
+0 hallucinated citations across all 21 rows, grounding 38/39 = 0.974 — rising to
+38/38 = 1.0 once the first finding below was fixed, after which the grounding floor was
+raised from 0.95 to 1.0.
 
 ### Backends
 
@@ -112,8 +114,10 @@ clinical acceptance criteria. Baseline at commit `633cd77`: gold n = 10, 3-class
 The harness flagged one ungrounded evidence code on its first run. For probe
 `chr20:5555555 G>T` (gnomAD AF 0.001, which triggers no frequency code), the scripted
 backend's `_gather_evidence_codes` falls back to a default `["PM2"]`, and no tool output
-supports that code. It stays within the 0.95 grounding floor. It is recorded here and not
-fixed in this change.
+supports that code. It stayed within the original 0.95 grounding floor. It was fixed in the
+same change set: the default was removed, `final_answer` now accepts an empty evidence
+list only for Uncertain Significance ("no ACMG criteria met"), a regression test covers
+both, and the floor was raised to 1.0.
 
 ## What would change this decision
 

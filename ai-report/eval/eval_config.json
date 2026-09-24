@@ -17,7 +17,7 @@
       "tiers": ["gold", "silver", "probe"],
       "thresholds": {
         "max_hallucinated_citation_rate": 0.0,
-        "min_tool_grounding_rate": 0.95,
+        "min_tool_grounding_rate": 1.0,
         "min_tool_coverage_rate": 1.0
       }
     }

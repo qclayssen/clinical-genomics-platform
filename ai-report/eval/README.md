@@ -85,8 +85,8 @@ Defined in [`eval_metrics.py`](eval_metrics.py). Every function is pure and unit
 |---|---:|---:|---:|---:|---:|
 | gold (n=10) | 0.30 | 0.90 | 0 | 0.00 | 1.00 |
 | silver (n=5) | 0.60 | 0.60 | 0 | 0.00 | 1.00 |
-| probe (n=6) | n/a | n/a | 0 | 0.00 | 0.875 |
-| **all (n=21)** | | | 0 | **0.00** | **0.974** (38/39) |
+| probe (n=6) | n/a | n/a | 0 | 0.00 | 1.00 |
+| **all (n=21)** | | | 0 | **0.00** | **1.00** (38/38) |
 
 What these numbers say:
 
@@ -97,8 +97,10 @@ What these numbers say:
   accuracy is reported but not gated.
 - **The single gold LP (JAG1 p.Gly277Ser) → VUS.** For ClinVar LP the backend derives
   only PP5 (not PS1), and PP5 + PM2 meets no ACMG rule.
-- **One ungrounded code:** probe `chr20:5555555 G>T` (gnomAD AF 0.001, which triggers
-  no frequency code). The scripted `DeterministicBackend` (`agent/llm.py`,
-  `_gather_evidence_codes`) falls back to a default `["PM2"]` when no tool produced
-  evidence, and no tool output supports that code. The harness exists to catch this
-  kind of issue. It is recorded, not fixed, in this change.
+- **First finding (fixed):** on its first run the harness flagged one ungrounded code.
+  For probe `chr20:5555555 G>T` (gnomAD AF 0.001, which triggers no frequency code) the
+  scripted `DeterministicBackend` (`agent/llm.py`, `_gather_evidence_codes`) fell back
+  to a default `["PM2"]` that no tool output supported (grounding was 38/39 = 0.974).
+  The default was removed: with no supporting evidence the agent now returns
+  Uncertain Significance with no codes (`final_answer` accepts an empty list only for
+  VUS), and the grounding floor was raised to 1.0.

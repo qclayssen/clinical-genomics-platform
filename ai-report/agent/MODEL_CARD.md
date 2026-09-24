@@ -77,8 +77,8 @@ gates the deterministic backend in CI.
   (evidence codes supported by tool output).
 - **Deterministic baseline:** 3-class 0.90 and 5-class 0.30 on gold (every Pathogenic →
   Likely Pathogenic, as explained below), 0 opposite-direction errors, 0 hallucinated
-  citations, grounding 0.974. That ungrounded code is a default `PM2` the scripted backend
-  emits when no tool gave evidence (see ADR-0032).
+  citations, grounding 1.0 (38/38). The harness's first run found a default `PM2` the
+  scripted backend emitted with no supporting tool evidence; that was fixed (see ADR-0032).
 - **Limits:** n = 10 is far too small to estimate performance, and a pass is a
   regression check, not a clinical validation. Real-LLM backends have not been
   benchmarked in CI. LLM-as-judge is never used to decide classification or citation
