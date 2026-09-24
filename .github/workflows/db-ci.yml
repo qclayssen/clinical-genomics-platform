@@ -44,18 +44,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # ON_ERROR_STOP: without it `psql -f` exits 0 even when statements in
+      # the file fail, so a broken schema would still turn this job green.
       - name: Apply schema.sql
-        run: psql -f db/schema.sql
+        run: psql -v ON_ERROR_STOP=1 -f db/schema.sql
 
-      - name: Apply migration 0001_init.sql (idempotency check)
+      - name: Apply migration 0001_init.sql, then re-apply (idempotency check)
         run: |
-          psql -c "DROP DATABASE IF EXISTS cgp_migration_test;"
-          psql -c "CREATE DATABASE cgp_migration_test;"
-          PGDATABASE=cgp_migration_test psql -f db/schema.sql
-          echo "Migration idempotency check done"
+          psql -v ON_ERROR_STOP=1 -c "DROP DATABASE IF EXISTS cgp_migration_test;"
+          psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE cgp_migration_test;"
+          # Run from inside db/migrations/ so the include path is exercised the
+          # way a migration runner would resolve it, not only from the repo root.
+          (cd db/migrations && PGDATABASE=cgp_migration_test psql -v ON_ERROR_STOP=1 -f 0001_init.sql)
+          PGDATABASE=cgp_migration_test psql -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
 
       - name: Load seed data
-        run: psql -f db/seed_demo.sql
+        run: psql -v ON_ERROR_STOP=1 -f db/seed_demo.sql
 
       - name: Test immutability triggers
         run: |
@@ -183,6 +187,21 @@ jobs:
           "
           psql -c "SELECT date_key, sum(n_warn) AS warn_count, sum(n_fail) AS fail_count FROM fact_run GROUP BY date_key ORDER BY date_key;"
           echo "=== Warehouse layer check done ==="
+
+      - name: Row sandboxing (v_fact_run_secured) — barrier set, cohorts isolated
+        run: |
+          psql -v ON_ERROR_STOP=1 -f db/sandboxing_demo.sql
+          BARRIER=$(psql -tA -c "SELECT coalesce(array_to_string(reloptions, ','), '') FROM pg_class WHERE relname = 'v_fact_run_secured';")
+          case "$BARRIER" in
+            *security_barrier=true*) echo "✅ v_fact_run_secured is a security_barrier view" ;;
+            *) echo "❌ v_fact_run_secured is missing security_barrier (reloptions: '$BARRIER')"; exit 1 ;;
+          esac
+          LEAKED=$(psql -tA -c "SET ROLE cgp_analyst_cohort_a; SELECT count(*) FROM v_fact_run_secured WHERE sample_id NOT IN ('HG002_chr20', 'HG003_chr20');" | tail -n1)
+          if [ "$LEAKED" != "0" ]; then
+            echo "❌ cohort A can see $LEAKED row(s) outside its samples"
+            exit 1
+          fi
+          echo "✅ cohort A sees only its own samples"
 
   sync-fixture-demo:
     name: Fixture-mode sync (proves the Airflow demo DAG's ETL step actually runs)
