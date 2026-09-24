@@ -25,7 +25,12 @@ CREATE TABLE IF NOT EXISTS dim_sample_access (
 -- whoever is actually connected — so an analyst role can be granted SELECT
 -- on this view alone, never on fact_run or dim_sample_access directly, and
 -- still only ever see the rows dim_sample_access assigns to their role.
-CREATE OR REPLACE VIEW v_fact_run_secured AS
+--
+-- security_barrier: without it the planner may push a caller's own WHERE
+-- predicate (e.g. a leaky pg_temp function that RAISEs its arguments) below
+-- the cohort filter and evaluate it on every fact_run row, other cohorts'
+-- included. The barrier forces the cohort filter to run first.
+CREATE OR REPLACE VIEW v_fact_run_secured WITH (security_barrier = true) AS
 SELECT f.*
 FROM fact_run f
 WHERE f.sample_id IN (

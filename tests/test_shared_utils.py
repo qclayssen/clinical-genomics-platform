@@ -93,8 +93,80 @@ class TestWriteItem:
 
         assert result == {"ResponseMetadata": {"HTTPStatusCode": 200}}
         mock_table.put_item.assert_called_once_with(
-            Item={"run_id": "run-001", "record_type": "RUN"}
+            Item={"run_id": "run-001", "record_type": "RUN"},
+            ConditionExpression="attribute_not_exists(record_type)",
         )
+
+    @patch("lambdas.shared.dynamo.boto3")
+    def test_write_item_converts_floats_to_decimal(self, mock_boto3):
+        """boto3 rejects Python floats; nested floats must reach PutItem as Decimal."""
+        from decimal import Decimal
+
+        mock_table = MagicMock()
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        write_item("t", {"run_id": "r", "record_type": "RUN", "detail": {"f1": 0.985, "xs": [0.5]}})
+
+        item = mock_table.put_item.call_args.kwargs["Item"]
+        assert item["detail"]["f1"] == Decimal("0.985")
+        assert item["detail"]["xs"] == [Decimal("0.5")]
+
+    @patch("lambdas.shared.dynamo.boto3")
+    def test_write_item_gives_each_audit_event_its_own_sort_key(self, mock_boto3):
+        """Audit events for one run must not overwrite each other on (run_id, record_type)."""
+        mock_table = MagicMock()
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+        rec = {"run_id": "r", "record_type": "AUDIT", "action": "X", "created_at": "2026-09-24T00:00:00Z"}
+
+        write_item("t", dict(rec))
+        write_item("t", dict(rec))
+
+        keys = [c.kwargs["Item"]["record_type"] for c in mock_table.put_item.call_args_list]
+        assert all(k.startswith("AUDIT#2026-09-24T00:00:00Z#X#") for k in keys)
+        assert keys[0] != keys[1]
+
+    @patch("lambdas.shared.dynamo.boto3")
+    def test_write_item_treats_identical_rewrite_as_idempotent_retry(self, mock_boto3):
+        """A Step Functions retry re-writes the same record with a new created_at;
+        that is the same fact, not an overwrite, so it must not fail the run."""
+        mock_table = MagicMock()
+        err = {"Error": {"Code": "ConditionalCheckFailedException", "Message": "exists"}}
+        mock_table.put_item.side_effect = ClientError(err, "PutItem")
+        mock_table.get_item.return_value = {
+            "Item": {"run_id": "r", "record_type": "RUN", "caller": "gatk", "created_at": "2026-09-24T00:00:00Z"}
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = write_item("t", {"run_id": "r", "record_type": "RUN", "caller": "gatk",
+                                  "created_at": "2026-09-24T00:05:00Z"})
+
+        assert result == {"idempotent": True}
+        mock_table.get_item.assert_called_once_with(Key={"run_id": "r", "record_type": "RUN"})
+        assert mock_table.put_item.call_count == 1
+
+    @patch("lambdas.shared.dynamo.boto3")
+    def test_write_item_rejects_rewrite_with_different_content(self, mock_boto3):
+        mock_table = MagicMock()
+        err = {"Error": {"Code": "ConditionalCheckFailedException", "Message": "exists"}}
+        mock_table.put_item.side_effect = ClientError(err, "PutItem")
+        mock_table.get_item.return_value = {"Item": {"run_id": "r", "record_type": "RUN", "caller": "gatk"}}
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        with pytest.raises(ClientError):
+            write_item("t", {"run_id": "r", "record_type": "RUN", "caller": "deepvariant"})
+
+    @patch("lambdas.shared.dynamo.time.sleep")
+    @patch("lambdas.shared.dynamo.boto3")
+    def test_write_item_does_not_retry_an_overwrite_rejection(self, mock_boto3, mock_sleep):
+        """An existing item is an append-only violation, not a transient error."""
+        mock_table = MagicMock()
+        err = {"Error": {"Code": "ConditionalCheckFailedException", "Message": "exists"}}
+        mock_table.put_item.side_effect = ClientError(err, "PutItem")
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        with pytest.raises(ClientError):
+            write_item("t", {"run_id": "r", "record_type": "RUN"})
+        assert mock_table.put_item.call_count == 1
 
     @patch("lambdas.shared.dynamo.time.sleep")
     @patch("lambdas.shared.dynamo.boto3")

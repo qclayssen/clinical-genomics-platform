@@ -5,8 +5,14 @@ Deliberately small and single-GPU friendly (Colab/RunPod). Uses 4-bit quantizati
 + LoRA adapters via peft/trl so the whole thing fits in ~10-12 GB VRAM.
 
   python train_lora.py --data data/synth_report_pairs.jsonl --out checkpoints/cgp-lora
+  python train_lora.py ... --mlflow   # + local MLflow tracking/registry (pip install mlflow)
 """
 import argparse
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import tracking  # noqa: E402  (stdlib-only; mlflow is imported lazily and optional)
 
 
 def main() -> None:
@@ -18,6 +24,7 @@ def main() -> None:
     ap.add_argument("--batch-size", type=int, default=1)
     ap.add_argument("--grad-accum", type=int, default=8)
     ap.add_argument("--lr", type=float, default=2e-4)
+    tracking.add_cli_args(ap)
     args = ap.parse_args()
 
     # Imports kept inside main so --help works without a GPU stack installed.
@@ -62,10 +69,9 @@ def main() -> None:
     )
     model = prepare_model_for_kbit_training(model)
 
-    peft_config = LoraConfig(
-        r=16, lora_alpha=32, lora_dropout=0.05, bias="none", task_type="CAUSAL_LM",
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-    )
+    lora_params = dict(r=16, lora_alpha=32, lora_dropout=0.05, bias="none",
+                       target_modules=["q_proj", "k_proj", "v_proj", "o_proj"])
+    peft_config = LoraConfig(task_type="CAUSAL_LM", **lora_params)
 
     trainer = SFTTrainer(
         model=model,
@@ -84,9 +90,28 @@ def main() -> None:
             max_seq_length=1024,
         ),
     )
-    trainer.train()
-    trainer.save_model(args.out)
-    print(f"saved LoRA adapter to {args.out}")
+    tracker = tracking.start_tracking(
+        args.mlflow, base_model=args.base_model, data_path=args.data,
+        script="ai-report/train_lora.py", experiment=args.mlflow_experiment,
+        run_name=args.mlflow_run_name, registered_model=args.mlflow_model_name,
+    )
+    with tracker:
+        tracker.log_params({
+            "base_model": args.base_model, "epochs": args.epochs,
+            "learning_rate": args.lr, "per_device_train_batch_size": args.batch_size,
+            "gradient_accumulation_steps": args.grad_accum, "max_seq_length": 1024,
+            "quantization": "4bit-nf4-double-quant", "compute_dtype": "bfloat16",
+            "n_train_examples": len(dataset),
+            **{f"lora_{k}": (",".join(v) if isinstance(v, list) else v)
+               for k, v in lora_params.items()},
+        })
+        trainer.train()
+        trainer.save_model(args.out)
+        print(f"saved LoRA adapter to {args.out}")
+        tracker.log_history(trainer.state.log_history)
+        tracker.log_adapter(args.out)
+        if tracker.enabled:
+            print(f"mlflow run id: {tracker.run_id}")
 
 
 if __name__ == "__main__":

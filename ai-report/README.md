@@ -41,6 +41,27 @@ python train_smoke.py                            # uses data/report_pairs.sample
 Verified output shows the LoRA adapter training and a saved checkpoint; the tiny model's
 generated text is intentionally gibberish — the point is that the *loop* works.
 
+## Experiment tracking + model registry (optional, MLflow)
+
+Add `--mlflow` to either trainer to log the run to a **local** MLflow store (no server):
+hyperparameters, the loss curve, provenance tags (git commit SHA, dataset SHA-256, base model id,
+torch/transformers/peft versions, adapter SHA-256) and the adapter itself, which is registered as
+a new version of `cgp-report-drafter-adapter`. That registered version is the provenance
+reference for the adapter. Without the flag — or without `mlflow` installed — nothing changes.
+
+```bash
+pip install mlflow
+python train_smoke.py --mlflow        # prints "[smoke] mlflow run id: <id>"
+python train_lora.py --data data/synth_report_pairs.jsonl --mlflow
+# view runs, loss curves and registered versions (run from the repo root):
+mlflow ui --backend-store-uri sqlite:///ai-report/mlruns/mlflow.db
+```
+
+Store: `ai-report/mlruns/` (SQLite + artifacts, gitignored); override with `MLFLOW_TRACKING_URI`.
+Other flags: `--mlflow-experiment`, `--mlflow-model-name`, `--mlflow-run-name`. Details in the
+[Model Card](MODEL_CARD.md#experiment-tracking--provenance) and
+[ADR-0035](../docs/adr/0035-mlflow-local-tracking-model-registry.md).
+
 ## Non-negotiable guardrails
 
 Every generated report:

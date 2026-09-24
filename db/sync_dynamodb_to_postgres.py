@@ -139,6 +139,11 @@ def group_by_run_id(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             logger.warning("Skipping item with missing run_id or record_type: %s", item)
             continue
 
+        # Audit events are persisted under per-event sort keys
+        # (AUDIT#<created_at>#<action>#<id>, see lambdas/shared/dynamo.py).
+        if record_type.startswith("AUDIT#"):
+            record_type = "AUDIT"
+
         if record_type not in _SYNCABLE_RECORD_TYPES:
             continue
 

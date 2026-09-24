@@ -38,6 +38,17 @@ Severity: [P1] fix first · [P2] worth fixing · [P3] nice-to-have.
 
 ## Open
 
+- **[P1] The SNV F1 ≥ 0.99 gate is recorded, not enforced.** `validation_pass` is computed in
+  `pipeline/bin/build_metrics.py` but no process fails on it and neither ingest path
+  (`ingest_metrics.py`, `lambdas/metadata_ingestor`) recomputes or acts on it, so a run with
+  F1 < 0.99 is still ingested and reported. VALIDATION.md §3 now states this; closing it
+  means failing or quarantining the run before DB_INGEST/report.
+
+- **[P1] The committed validation evidence is not tied to a commit.** It records
+  `git_commit: local-dev` (`workflow.commitId` is empty for a local checkout) and
+  `pipeline_version: 0.3.0`; its recall (0.9894) also trips the pipeline's own `snp_recall`
+  fail threshold. Needs a re-run from a clean, tagged checkout with the current stamp.
+
 - **[P1] Container identity is not in the provenance stamp.** All 12 module containers are
   now pinned by `@sha256` digest ([ADR-0009](adr/0009-docker-pinned-by-digest.md)), guarded by
   `tests/test_container_pinning.py`. `DB_INGEST` moved from a non-existent

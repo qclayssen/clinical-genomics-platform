@@ -2,8 +2,8 @@
 """Assemble the structured metrics.json for one sample.
 
 This is the traceability heart of the pipeline: it merges QC + validation metrics
-with a provenance stamp (git commit, tool/reference versions, SHA-256 of every
-input file) into a single insert-only record. Mirrors the record a clinical lab
+with a provenance stamp (git commit, tool/reference versions, SHA-256 of each
+file passed via --inputs) into a single insert-only record. Mirrors the record a clinical lab
 keeps for each run under ISO 15189 traceability requirements.
 """
 import argparse
@@ -51,6 +51,10 @@ def parse_happy(path: str) -> dict:
         for row in csv.DictReader(fh):
             vtype = row.get("Type", "").upper()
             if vtype not in ("SNP", "INDEL"):
+                continue
+            # Real summaries have ALL and PASS rows per type; benchmark PASS.
+            # Fixture/stub CSVs have no Filter column and one row per type.
+            if "Filter" in row and row["Filter"].upper() != "PASS":
                 continue
             # hap.py column names vary slightly by version; probe both forms
             def g(*keys):

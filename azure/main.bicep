@@ -15,6 +15,9 @@ param location string = resourceGroup().location
 param containerImage string
 @secure()
 param cgpDbUrl string = ''
+// Set to the Static Web App's https://<host> after the first deploy so the
+// frontend build (VITE_API_BASE_URL = API host) can call the API cross-origin.
+param corsOrigins string = ''
 
 // Container Apps managed environments require an appLogsConfiguration destination —
 // an empty properties object is rejected by ARM at deploy time (bicep build/lint only
@@ -51,6 +54,7 @@ module api 'api.bicep' = {
     containerAppEnvId: containerAppEnv.id
     containerImage: containerImage
     cgpDbUrl: cgpDbUrl
+    corsOrigins: corsOrigins
   }
 }
 
