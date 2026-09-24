@@ -1,7 +1,7 @@
 process QC_EVALUATE {
     tag   { meta.id }
     label 'process_low'
-    container 'quay.io/biocontainers/python:3.11'
+    container 'quay.io/biocontainers/python:3.11@sha256:b322907f8e52b2055ccad4e46848d28a4a5631b403116cc80ddf61ec8601e05e'
 
     input:
     tuple val(meta), path(fastp_json), path(dup_metrics), path(happy_summary)

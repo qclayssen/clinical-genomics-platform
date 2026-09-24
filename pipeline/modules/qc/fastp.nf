@@ -1,7 +1,7 @@
 process FASTP {
     tag   { meta.id }
     label 'process_medium'
-    container 'quay.io/biocontainers/fastp:0.23.4--hadf994f_2'
+    container 'quay.io/biocontainers/fastp:0.23.4--hadf994f_2@sha256:1fcefd00ab08856727a2cfe097d88eb400829d449114d6939b68cdf67b7b7d54'
 
     input:
     tuple val(meta), path(reads)

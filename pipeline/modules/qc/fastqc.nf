@@ -1,7 +1,7 @@
 process FASTQC {
     tag   { meta.id }
     label 'process_low'
-    container 'quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0'
+    container 'quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0@sha256:e194048df39c3145d9b4e0a14f4da20b59d59250465b6f2a9cb698445fd45900'
 
     input:
     tuple val(meta), path(reads)

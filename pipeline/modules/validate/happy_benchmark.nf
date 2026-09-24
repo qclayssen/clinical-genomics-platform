@@ -1,7 +1,7 @@
 process HAPPY_BENCHMARK {
     tag   { meta.id }
     label 'process_medium'
-    container 'quay.io/biocontainers/hap.py:0.3.15--py27hcb73b3d_0'
+    container 'quay.io/biocontainers/hap.py:0.3.15--py27hcb73b3d_0@sha256:d63b963a6cb01b4830393b22369e7b91d298e4156dde353739e74e4cfa4f96d0'
 
     input:
     tuple val(meta), path(vcf), path(tbi)
