@@ -117,13 +117,13 @@ Current milestone: **close the gap between what the repo claims and what it has 
 
 ### Validation evidence (VAL) — closes W3
 
-- [ ] **VAL-01**: A `hap.py` benchmark run over the **full chr20** is executed and
+- [x] **VAL-01**: A `hap.py` benchmark run over the **full chr20** is executed and
       `docs/VALIDATION.md` records the measured SNV precision, recall and F1 with the run's
       provenance stamp — no placeholders.
-- [ ] **VAL-02**: A run at a representative clinical depth (~30–40×, downsampled from the 300×
+- [x] **VAL-02**: A run at a representative clinical depth (~30–40×, downsampled from the 300×
       source BAM) is executed and recorded, so the reported metrics are not tied to an
       unrepresentative 255.8× depth.
-- [ ] **VAL-03**: `docs/VALIDATION.md` states the validated region and depth explicitly and
+- [x] **VAL-03**: `docs/VALIDATION.md` states the validated region and depth explicitly and
       either matches ADR-0001's locked full-chr20 scope or cites a new ADR that narrows it, with
       the residual limitations (single sample, high-confidence BED exclusions, xcmp conservatism)
       still listed.
@@ -201,9 +201,9 @@ Acknowledged, deferred, not in the current roadmap.
 | CI-01 | Phase 2 | Complete |
 | CI-02 | Phase 2 | Complete |
 | CI-03 | Phase 2 | Complete |
-| VAL-01 | Phase 3 | Pending |
-| VAL-02 | Phase 3 | Pending |
-| VAL-03 | Phase 3 | Pending |
+| VAL-01 | Phase 3 | Complete |
+| VAL-02 | Phase 3 | Complete |
+| VAL-03 | Phase 3 | Complete |
 | DOC-01 | Phase 4 | Complete |
 | DOC-02 | Phase 4 | Complete |
 | DOC-03 | Phase 4 | Complete |

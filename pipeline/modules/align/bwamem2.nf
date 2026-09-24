@@ -14,6 +14,10 @@ process BWAMEM2_ALIGN {
 
     script:
     def rg = "@RG\\tID:${meta.id}\\tSM:${meta.id}\\tPL:ILLUMINA\\tLB:${meta.id}"
+    // samtools sort defaults to 768 MB per thread, which with -@ task.cpus alone can exceed
+    // the task's memory while bwa-mem2 is still running. Give sort ~40% of it, split across
+    // threads; it spills to temp files instead of being OOM-killed. Output is unchanged.
+    def sort_mem_mb = Math.max(128, (task.memory.toMega() * 0.4 / task.cpus).intValue())
     """
     # Build index on the fly if not already present
     if [ ! -f ${fasta}.bwt.2bit.64 ]; then
@@ -24,7 +28,7 @@ process BWAMEM2_ALIGN {
         -t ${task.cpus} \\
         -R "${rg}" \\
         ${fasta} ${reads[0]} ${reads[1]} 2> ${meta.id}.bwamem2.log \\
-    | samtools sort -@ ${task.cpus} -o ${meta.id}.sorted.bam -
+    | samtools sort -@ ${task.cpus} -m ${sort_mem_mb}M -o ${meta.id}.sorted.bam -
     samtools index ${meta.id}.sorted.bam
 
     printf '"%s":\\n    bwa-mem2: %s\\n    samtools: %s\\n' "${task.process}" "\$(bwa-mem2 version 2>&1 | tail -1)" "\$(samtools --version | head -1 | sed 's/samtools //')" > versions.yml

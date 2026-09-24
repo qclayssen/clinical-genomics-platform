@@ -1,7 +1,9 @@
 process QC_EVALUATE {
     tag   { meta.id }
     label 'process_low'
-    container 'quay.io/biocontainers/python:3.11@sha256:b322907f8e52b2055ccad4e46848d28a4a5631b403116cc80ddf61ec8601e05e'
+    // qc_evaluate.py needs PyYAML, which the bare python:3.11 image lacks; the already-pinned
+    // MultiQC image ships Python 3.11 + PyYAML, so no new image enters the supply chain.
+    container 'quay.io/biocontainers/multiqc:1.21--pyhdfd78af_0@sha256:ecafca93ba3346775b773bbfd6ff920ecfc259f554777576c15d3139c678311b'
 
     input:
     tuple val(meta), path(fastp_json), path(dup_metrics), path(happy_summary)

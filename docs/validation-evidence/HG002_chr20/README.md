@@ -1,8 +1,14 @@
-# Validation evidence — HG002 chr20 run
+# Validation evidence — HG002 chr20 1 Mb window, 255.8× (historical)
 
-This directory commits the two raw artifacts behind the headline validation numbers
-(**SNV F1 = 0.9914, INDEL F1 = 0.9971**) reported in [`docs/VALIDATION.md`](../../VALIDATION.md)
-§4 and the summary table in the main [`README.md`](../../../README.md). Previously these
+> **Historical.** Since Phase 3 (2026-09-24) this is no longer the headline result: it
+> covers a 1 Mb window at the source's 255.8× depth. The headline run is all of chr20 at
+> 33.7× — see [`HG002_chr20_35x/`](../HG002_chr20_35x/) and
+> [ADR-0037](../../adr/0037-full-chr20-validation-at-representative-depth.md). This run is
+> kept, unchanged, as the third row of [`docs/VALIDATION.md`](../../VALIDATION.md) §4.
+
+This directory commits the two raw artifacts behind the original validation numbers
+(**SNV F1 = 0.9914, INDEL F1 = 0.9971**), previously reported as the headline in
+[`docs/VALIDATION.md`](../../VALIDATION.md) §4 and the main [`README.md`](../../../README.md). Previously these
 lived only under the git-ignored `pipeline/results/` on the machine that ran them, so a
 clone of this repo had no way to check the reported numbers against anything. This closes
 that gap ([FIXES-TODO.md](../../FIXES-TODO.md) tracks the finding).

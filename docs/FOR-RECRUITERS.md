@@ -122,7 +122,7 @@ the role:
   GIAB truth-set validation → provenance-tracked Postgres → BI dashboard →
   QLoRA-fine-tuned LLM reporting) spanning Nextflow, AWS CDK, and PyTorch.
 - Validated a germline SNV pipeline against the GIAB HG002 truth set with `hap.py`,
-  meeting an SNV F1 ≥ 0.99 acceptance threshold (measured 0.9914), with every result
+  meeting an SNV F1 ≥ 0.99 acceptance threshold (measured 0.9927 over all of chr20 at 33.7×), with every result
   carrying a provenance stamp — git commit, pipeline version, reference build and
   truth-set version — written to insert-only storage.
 - Designed an insert-only Postgres schema with DB-level immutability triggers and a

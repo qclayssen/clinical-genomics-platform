@@ -1,0 +1,2 @@
+source_bam	region	source_mean_depth	target_depth	seed	fraction
+HG002.GRCh38.300x_chr20.bam	chr20:1000000-2000000	269.70	35	42	0.1298

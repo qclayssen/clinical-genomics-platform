@@ -31,9 +31,20 @@ workflow {
     ch_versions = Channel.empty()
 
     // ── Provenance stamp captured once, threaded into every export ──────────
+    // A local `nextflow run main.nf` has no workflow.commitId, so read the commit
+    // from the checkout itself; a "-dirty" suffix records uncommitted changes.
+    def git_commit = workflow.commitId ?: {
+        try {
+            def sha   = ['git', '-C', "${projectDir}", 'rev-parse', 'HEAD'].execute().text.trim()
+            def dirty = ['git', '-C', "${projectDir}", 'status', '--porcelain'].execute().text.trim()
+            sha ? (dirty ? "${sha}-dirty" : sha) : 'local-dev'
+        } catch (Exception ignored) {
+            'local-dev'
+        }
+    }()
     def provenance = [
         pipeline_version : workflow.manifest.version,
-        git_commit       : workflow.commitId ?: 'local-dev',
+        git_commit       : git_commit,
         run_id           : workflow.runName,
         started_at       : workflow.start.toString(),
         reference_build  : params.reference_build,
@@ -84,10 +95,12 @@ workflow {
     if (params.caller == 'deepvariant') {
         DEEPVARIANT(MARKDUPLICATES.out.bam, ch_reference)
         ch_vcf = DEEPVARIANT.out.vcf
+        ch_caller_versions = DEEPVARIANT.out.versions
         ch_versions = ch_versions.mix(DEEPVARIANT.out.versions)
     } else {
         HAPLOTYPECALLER(MARKDUPLICATES.out.bam, ch_reference)
         ch_vcf = HAPLOTYPECALLER.out.vcf
+        ch_caller_versions = HAPLOTYPECALLER.out.versions
         ch_versions = ch_versions.mix(HAPLOTYPECALLER.out.versions)
     }
 
@@ -110,13 +123,17 @@ workflow {
     ch_versions = ch_versions.mix(QC_EVALUATE.out.versions)
 
     // ── Structured export + provenance ────────────────────────────────────────
+    // Raw reads are joined in by sample so they're checksummed too; the caller's
+    // versions.yml is the same for every sample (one container), hence .first().
     JSON_METRICS(
         MARKDUPLICATES.out.metrics
-            .join(HAPPY_BENCHMARK.out.summary),
+            .join(HAPPY_BENCHMARK.out.summary)
+            .join(ch_reads),
         provenance,
         ch_reference_fasta,
         ch_truth_vcf,
-        ch_truth_bed
+        ch_truth_bed,
+        ch_caller_versions.first()
     )
     PARQUET_EXPORT(JSON_METRICS.out.json)
     ch_versions = ch_versions.mix(JSON_METRICS.out.versions, PARQUET_EXPORT.out.versions)
