@@ -351,7 +351,12 @@ class DeterministicBackend(LLMBackend):
         return "UNKNOWN"
 
     def _gather_evidence_codes(self, messages: list[Message]) -> list[str]:
-        """Gather ACMG evidence codes from tool results."""
+        """Gather ACMG evidence codes from tool results.
+
+        Only codes some tool observation supports are returned. With no
+        supporting evidence the list is empty (classify_acmg then yields
+        Uncertain Significance) — never a default code the trace can't ground.
+        """
         codes: list[str] = []
         for msg in messages:
             if msg.role != "tool":
@@ -373,7 +378,7 @@ class DeterministicBackend(LLMBackend):
                             codes.append("PP5")
             except (json.JSONDecodeError, KeyError):
                 pass
-        return codes if codes else ["PM2"]
+        return codes
 
     def _extract_classification(self, messages: list[Message]) -> dict:
         """Extract the ACMG classification from the classify_acmg result."""
@@ -396,7 +401,7 @@ class DeterministicBackend(LLMBackend):
                     pass
         return {
             "classification": "Uncertain Significance",
-            "evidence": ["PM2"],
+            "evidence": [],
             "summary": "Insufficient evidence for definitive classification.",
             "confidence": "low",
         }
