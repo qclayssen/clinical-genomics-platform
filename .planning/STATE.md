@@ -3,10 +3,10 @@ gsd_state_version: '1.0'
 status: planning
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 0
   completed_plans: 0
-  percent: 20
+  percent: 40
 ---
 
 # Project State
@@ -17,7 +17,7 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Every number the platform reports can be traced back to a provenance-stamped,
 truth-set-validated run — and the repo never claims more than it has actually measured.
-**Current focus:** Phase 2 — Machine-Verified Integrity
+**Current focus:** Phase 2 — Machine-Verified Integrity (Phase 3 completed out of order, on its own branch)
 
 ## Current Position
 
@@ -27,7 +27,7 @@ Status: Ready to plan
 Last activity: 2026-09-22 — Closed out Phase 1 (Execution Substrate Decision): EXEC-01/02/03
 satisfied by ADR-0017/ADR-0018, ADR-0002 annotated, CI guard added.
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
@@ -53,13 +53,14 @@ ADR-0004 (compute) and ADR-0005 (Postgres as primary) are superseded.
 
 Open decisions blocking work:
 - [Phase 2]: Build the DynamoDB Streams audit sink, or record it as an accepted limitation?
-- [Phase 3]: Keep the locked full-chr20 scope, or narrow it with a new ADR?
 
 Resolved:
 - [Phase 1]: Where does real genomics compute run in the cloud? **Answered by ADR-0018** (affirms
   ADR-0017): local Nextflow is the sole real-compute path; cloud is orchestration/metadata only.
 - [Phase 1]: Where does the healer Lambda's Ollama runtime execute? **Answered by ADR-0018**:
   nowhere in the cloud — `rule_based_classify()` is the only deployed path.
+- [Phase 3]: Keep the locked full-chr20 scope, or narrow it? **Kept, by ADR-0032**: all of chr20
+  at a downsampled ~35× (measured 33.7×); no native-depth full-chr20 run. SNV F1 0.9927.
 
 ### Pending Todos
 
@@ -80,8 +81,11 @@ None yet.
   making `db-ci.yml`, `lint.yml`, `pipeline-ci.yml`, `infra-ci.yml` and `security.yml` report
   green on failure. Contradicts ADR-0016. Deliberately left in place for now; do not plan around
   it as if committed.
-- **[Phase 3] W3** — measured validation covers `chr20:1,000,000-2,000,000` at 255.8× depth.
-  ADR-0001 locks full chr20. Requires Nextflow + Docker + the staged 11 GB BAM locally.
+- **[Phase 3] W3 — RESOLVED** — `docs/VALIDATION.md` §4 now leads with all of chr20 at 33.7×
+  (SNV F1 0.9927, precision 0.9903), evidence in `docs/validation-evidence/HG002_chr20_35x/`.
+- **[Phase 3 → open] QC gate vs acceptance criterion** — `qc_thresholds.yaml` fails a run on SNV
+  recall < 0.99 even when F1 ≥ 0.99 passes (the 1 Mb / 33.9× run does exactly that). Needs an
+  ADR; tracked in `docs/FIXES-TODO.md`. Headline SNV precision (0.9903) also has a narrow margin.
 - **[Phase 4] Doc drift** — `CLAUDE.md` claims 9 ADRs (16 exist) and presents insert-only Postgres
   as the primary store's non-negotiable despite ADR-0012.
 

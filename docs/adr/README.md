@@ -54,10 +54,11 @@ Each ADR follows the same tiny structure:
 | [0028](0028-azure-bedrock-backends-and-fhir-intake.md) | Azure AI Foundry / AWS Bedrock LLM backends, and a minimal HL7 FHIR genomics intake | Accepted |
 | [0029](0029-emr-icu-vved-demo-module.md) | `emr-pipeline/`: an EMR/ICU/VVED data-engineering demo module | Accepted |
 | [0030](0030-azure-deployment-api-web.md) | Azure deployment (Bicep) for the REST API + React frontend | Accepted |
+| [0032](0032-full-chr20-validation-at-representative-depth.md) | Validate full chr20 at a downsampled ~35× depth, not at the 300× source depth | Accepted |
 
 ---
 
-**Count: 30 ADRs** (0001–0030). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 31 ADRs on this branch** (0001–0030, 0032; 0031 is added by the Phase 2 branch). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 

@@ -1,8 +1,9 @@
 # Analytical Validation Report
 
 **Assay:** Germline single-nucleotide variant (SNV) calling, whole-genome sequencing
-**Scope of this validation:** GRCh38, chromosome 20, region chr20:1,000,000-2,000,000 (see
-§5 Known limitations — this run covers a 1 Mb window, not the full chromosome)
+**Scope of this validation:** GRCh38, **all of chromosome 20**, at a measured **33.7× mean
+depth** — the locked scope of [ADR-0001](adr/0001-scope-giab-hg002-chr20.md), at the
+representative depth set by [ADR-0032](adr/0032-full-chr20-validation-at-representative-depth.md)
 **Reference material:** GIAB HG002 / NA24385 (Ashkenazi son), NIST benchmark v4.2.1
 **Comparator:** `hap.py` (xcmp engine — see [ADR-0015](adr/0015-happy-xcmp-engine-not-vcfeval.md)) against the v4.2.1 high-confidence VCF + BED
 
@@ -18,10 +19,20 @@ downstream automation.
 
 ## 2. Method
 
-1. Reads processed through the standard pipeline (`fastp` → `bwa-mem2` → MarkDuplicates
-   → HaplotypeCaller/DeepVariant).
-2. Output VCF compared to the GIAB truth VCF, restricted to the high-confidence BED.
-3. Metrics parsed from `hap.py summary.csv` into `metrics.json` (see `build_metrics.py`).
+1. **Input reads.** NIST's `HG002.GRCh38.300x_chr20.bam` (12.1 GB, public/CC0) is
+   downsampled to ~35× by seeded read-name-hash subsampling and written back to paired
+   FASTQs with [`scripts/downsample_giab_bam.sh`](../scripts/downsample_giab_bam.sh)
+   (seed 42; both mates of a pair are kept or dropped together, so the read set is
+   reproducible from the public BAM). The fraction is computed against the source's own
+   measured depth and recorded in each run's `*.downsample.tsv`.
+2. Reads processed through the standard pipeline (`fastp` → `bwa-mem2` → MarkDuplicates
+   → HaplotypeCaller) with `-profile validation,docker`
+   ([`pipeline/conf/validation.config`](../pipeline/conf/validation.config)).
+3. Output VCF compared to the GIAB truth VCF, restricted to the high-confidence BED — the
+   full chr20 BED for the headline run, no `--intervals` window.
+4. Metrics parsed from `hap.py summary.csv` into `metrics.json` (see `build_metrics.py`).
+5. Mean depth is measured on the MarkDuplicates BAM (`samtools depth -a -G 0xD04`, every
+   position in the region, zero-depth gaps included), not taken from the downsampling target.
 
 ## 3. Acceptance criterion
 
@@ -31,41 +42,82 @@ downstream automation.
 
 ## 4. Results
 
-Measured 2026-07-15 from a real, non-stub run: real GIAB HG002 reads (NIST
-`HG002.GRCh38.300x_chr20.bam`, remotely region-extracted to chr20:1,000,000-2,000,000),
-real GRCh38 chr20 reference, real GIAB v4.2.1 truth VCF/BED, run through the actual
-Nextflow pipeline (`fastp` → `bwa-mem2` → MarkDuplicates → HaplotypeCaller → `hap.py`) in
-Docker. Truth BED was intersected to the same window before comparison, so the pipeline's
-calling scope and the benchmarking scope match (see the note in §5 about the two truth-set
-scoping bugs this run surfaced and fixed).
+All three rows are real, non-stub runs of the Nextflow pipeline in Docker on real GIAB
+HG002 reads, the real GRCh38 chr20 reference and the real GIAB v4.2.1 truth VCF/BED. The
+**headline** row is the first; the other two are the same 1 Mb window at two depths, so the
+effect of depth alone can be read off one region.
 
-| Caller | SNV precision | SNV recall | SNV F1 | INDEL F1 | Ti/Tv | Mean depth |
-|---|---|---|---|---|---|---|
-| GATK HaplotypeCaller | 0.9934 | 0.9894 | 0.9914 | 0.9971 | 2.07 | 255.8x |
-| DeepVariant | _not yet run_ | _not yet run_ | _not yet run_ | _not yet run_ | _not yet run_ | _not yet run_ |
+| Run | Region | Mean depth | Truth SNVs | SNV precision | SNV recall | SNV F1 | INDEL F1 | Ti/Tv¹ | `validation_pass` |
+|---|---|---|---|---|---|---|---|---|---|
+| **Headline** — 2026-09-24 | **all of chr20** | **33.7×** | 71,333 | 0.9903 | 0.9951 | **0.9927** | 0.9862 | 1.87 | ✅ true |
+| Window, downsampled — 2026-09-24 | chr20:1,000,000-2,000,000 | 33.9× | 1,226 | 0.9992 | 0.9878 | 0.9934 | 0.9969 | 2.11 | ✅ true |
+| Window, source depth (historical) — 2026-07-15 | chr20:1,000,000-2,000,000 | 255.8× | 1,226 | 0.9934 | 0.9894 | 0.9914 | 0.9971 | 2.07 | ✅ true |
+| DeepVariant | — | — | — | _not yet run_ | _not yet run_ | _not yet run_ | _not yet run_ | — | — |
 
-SNV F1 = 0.9914 meets the ≥ 0.99 acceptance criterion (§3); `validation_pass: true` in the
-run's `metrics.json`.
+¹ Query Ti/Tv over *all* calls, including calls outside the high-confidence BED; not a
+benchmarked metric.
 
-The raw `hap.py` summary and `metrics.json` behind this table are committed at
-[`docs/validation-evidence/HG002_chr20/`](validation-evidence/HG002_chr20/) — see that
-directory's README for how to check the numbers above against the source files yourself.
+**Headline result.** Over all of chr20 at 33.7×, SNV F1 = 0.9927 meets the ≥ 0.99
+acceptance criterion (§3): 70,982 of 71,333 truth SNVs recovered (351 false negatives),
+699 false positives. Genotype mismatches are a small share of the errors (61 of the 699
+FPs are `FP.gt`, 32 are `FP.al`).
+
+**What the full scope showed that the window didn't.** The 1 Mb window is an easy region:
+its precision (0.9992) is not representative. Over the whole chromosome, precision drops to
+0.9903 — within 0.0003 of the 0.99 line on its own — so the headline F1 has a narrow margin,
+driven by false positives rather than missed calls. That is the main reason the window
+result should not be read as the platform's performance.
+
+**What depth changed on the same window.** Downsampling from 255.8× to 33.9× raised
+precision (8 → 1 false positive) and cost a little recall (13 → 15 false negatives); F1 moved
+from 0.9914 to 0.9934. At this size (1,226 truth SNVs) the difference is a handful of sites
+and not meaningful on its own.
+
+**QC layer verdict ([ADR-0013](adr/0013-qc-warnings-adaptive-thresholds-self-healing.md)).**
+`QC_EVALUATE` grades each component metric against
+[`pipeline/conf/qc_thresholds.yaml`](../pipeline/conf/qc_thresholds.yaml), which is stricter
+than the §3 acceptance criterion (it warns below 0.995 and fails below 0.99 for SNV precision,
+recall and F1 separately):
+
+| Run | `overall_status` | Failures | Warnings |
+|---|---|---|---|
+| Headline, full chr20 | **warn** | — | `snp_precision` (0.9903), `snp_f1` (0.9927) |
+| Window, 33.9× | **fail** | `snp_recall` (0.9878) | `snp_f1` (0.9934) |
+| Window, 255.8× (historical) | _not evaluated_² | — | — |
+
+² `QC_EVALUATE` had never completed on a real run before Phase 3: `qc_evaluate.py` was not
+executable and its container lacked PyYAML, so every real run failed there. Its recall of
+0.9894 would also fall below the `snp_recall` fail line. The two gates disagreeing — a run
+can pass §3 and fail the QC layer — is an open question, not resolved here; neither
+threshold has been changed.
+
+The raw `hap.py` summary, the provenance-stamped `metrics.json`, the `QC_EVALUATE` verdict,
+the downsampling record and the collated tool versions for each run are committed under
+[`docs/validation-evidence/`](validation-evidence/) — see
+[`HG002_chr20_35x/`](validation-evidence/HG002_chr20_35x/) (headline),
+[`HG002_chr20_window_35x/`](validation-evidence/HG002_chr20_window_35x/) and
+[`HG002_chr20/`](validation-evidence/HG002_chr20/) (historical). Each directory's
+`metrics.json` records the SHA-256 of its own `summary.csv`, so the pair can be checked
+against each other from a clone.
 
 ## 5. Known limitations
 
-- Validated on a **chr20:1,000,000-2,000,000 (1 Mb) window**, not the full chromosome —
-  narrower than the "chr20" scope in [ADR-0001](adr/0001-scope-giab-hg002-chr20.md). A
-  full-chromosome run needs the full `HG002.GRCh38.300x_chr20.bam` (11 GB) rather than a
-  region-restricted pull; this run used the smaller, region-restricted extraction to stay
-  laptop-feasible. Extending to full chr20 is mechanical (drop `--intervals`, use the whole
-  BAM) but not yet done.
-- Depth (255.8x) is high because the source BAM is 300x-coverage GIAB data and no
-  downsampling was applied for this run; it is not representative of typical 30-40x
-  clinical WGS depth. A future run should downsample to a realistic depth for a more
-  representative precision/recall figure.
+- **Depth is downsampled, not sequenced.** The ~35× read sets are subsampled from one very
+  deep library, so they keep that library's insert-size and error profile and do not model a
+  real 35× run's duplicate rate (0.25% here). See
+  [ADR-0032](adr/0032-full-chr20-validation-at-representative-depth.md).
+- **No native-depth full-chr20 run.** A 255.8×-depth run over all of chr20 is ~55 M read
+  pairs and is not feasible on the project's only real-compute substrate
+  ([ADR-0018](adr/0018-execution-substrate-and-healer-llm-runtime.md)); ADR-0032 records why
+  it is not needed for the validation claim.
+- **Narrow precision margin.** Headline SNV precision is 0.9903; a caller, filter or
+  reference change could plausibly push it below 0.99 — re-validation on change (§7) is not
+  a formality here.
 - Comparison uses `hap.py`'s **xcmp** engine, not vcfeval — see
   [ADR-0015](adr/0015-happy-xcmp-engine-not-vcfeval.md) for why (the pinned container lacks
   `rtg-tools`, and the alternative image bundling it can't be pulled with modern Docker).
+  xcmp's representation matching is less forgiving of complex/nearby variants, so it can
+  make precision/recall slightly more conservative than vcfeval would.
 - Low-complexity / segmental-duplication regions are excluded by the GIAB
   high-confidence BED and are therefore **out of scope** of this validation.
 - INDEL performance reported for information; the acceptance criterion is SNV-only.
@@ -74,36 +126,53 @@ directory's README for how to check the numbers above against the source files y
 
 ## 6. Provenance of this validation
 
-Every result row is traceable to the pipeline git commit, the pipeline version, the
-reference build (`GRCh38.p14`) and the truth-set version (`GIAB-v4.2.1`) — captured
-automatically into `metrics.json` by `pipeline/bin/build_metrics.py` and stored in
-`run_provenance`.
+Every Phase 3 result row is traceable to the pipeline git commit, the pipeline version, the
+caller and its version, the reference build (`GRCh38.p14`) and the truth-set version
+(`GIAB-v4.2.1`) — captured automatically into `metrics.json` by
+`pipeline/bin/build_metrics.py` and stored in `run_provenance`. The headline run's stamp:
 
-`input_checksums` covers the MarkDuplicates metrics, the `hap.py` summary, the reference
-FASTA (`params.reference`), the truth VCF (`params.truth_vcf`) and the high-confidence BED
-(`params.truth_bed`) — SHA-256 over each file, streamed rather than loaded whole into memory
-so the (multi-GB) reference doesn't blow up process memory. `JSON_METRICS`
-(`pipeline/modules/export/json_metrics.nf`) takes these three files as explicit process
-inputs, threaded from `main.nf`, so a result is now cryptographically bound to the exact
-reference and truth set it was benchmarked against, not just to its own derived artifacts.
-Raw reads are still **not** checksummed (tracked in [FIXES-TODO.md](FIXES-TODO.md)) —
-stated plainly because this section is the traceability claim itself.
+| Field | Value |
+|---|---|
+| `git_commit` | `7ef24a70ac4c9a8cfad693c100352198d385738d` (clean tree — no `-dirty` suffix) |
+| `pipeline_version` | `1.0.0` |
+| `caller` / `caller_version` | `gatk` / `gatk4 4.5.0.0` (reported by the HaplotypeCaller process itself) |
+| `reference_build` | `GRCh38.p14` |
+| `truth_version` | `GIAB-v4.2.1` |
+| `run_id` / `started_at` | `crazy_venter` / `2026-09-24T18:07:38+10:00` |
+
+`git_commit` is read from the checkout at launch (`git rev-parse HEAD`) when Nextflow has no
+`workflow.commitId`, with a `-dirty` suffix if the tree has uncommitted changes — the
+2026-07-15 historical run predates this and is stamped `local-dev`.
+
+`input_checksums` covers the **raw FASTQ reads**, the MarkDuplicates metrics, the `hap.py`
+summary, the reference FASTA (`params.reference`), the truth VCF (`params.truth_vcf`) and the
+high-confidence BED (`params.truth_bed`) — SHA-256 over each file, streamed rather than
+loaded whole into memory. `JSON_METRICS` (`pipeline/modules/export/json_metrics.nf`) takes
+the reads, reference and truth set as explicit process inputs, so a result is
+cryptographically bound to the exact inputs it was produced from and benchmarked against.
+The source BAM the reads were downsampled from is not itself checksummed; its name, the
+seed and the fraction are recorded in `*.downsample.tsv`.
 
 **Known gap in this stamp (tracked in [FIXES-TODO.md](FIXES-TODO.md)):**
 
 - **Container image digests are not captured.** Images are pinned by tag, not by
-  `@sha256:` digest, and no container identity or tool version reaches the provenance
-  block — tool versions are collated separately into
-  `pipeline_info/software_versions.yml`, which is not part of the result record.
+  `@sha256:` digest, and no container identity reaches the provenance block. Only the
+  *caller's* version is in the stamp; the other tools' versions are collated separately into
+  `pipeline_info/software_versions.yml` (committed beside each run's evidence, but not part
+  of the result record). `hap.py` also reports an empty version string there; the pinned
+  image tag is `hap.py:0.3.15--py27hcb73b3d_0`.
   [ADR-0009](adr/0009-docker-pinned-by-digest.md) sets digest pinning as the production
   target; it is not met today.
 
-The run artifacts backing §4 (`metrics.json`, `hap.py` `summary.csv`) are committed at
-[`docs/validation-evidence/HG002_chr20/`](validation-evidence/HG002_chr20/), so the table
-above is independently checkable from a clone without re-running anything. The full run
-directory they were copied from (BAM, VCF, logs) is not committed — it lives under the
-git-ignored `pipeline/results/` and is multi-GB. To reproduce the run end-to-end rather than
-just check its recorded output, see [RUNBOOK.md](RUNBOOK.md).
+The run artifacts backing §4 are committed under
+[`docs/validation-evidence/`](validation-evidence/), one directory per run, so the tables
+above are independently checkable from a clone without re-running anything. The full run
+directories they were copied from (BAM, VCF, logs) are not committed — they live under the
+git-ignored `pipeline/results/` and are multi-GB. To reproduce a run end-to-end, stage the
+reference and truth set with `scripts/fetch_testdata.sh`, download the source BAM, run
+`scripts/downsample_giab_bam.sh`, then `nextflow run main.nf -profile validation,docker`
+(see [`pipeline/conf/validation.config`](../pipeline/conf/validation.config) and
+[RUNBOOK.md](RUNBOOK.md)).
 
 ## 7. Change control
 
@@ -124,7 +193,7 @@ concrete counterpart in this repository:
 
 | GxP concept | What it verifies | Existing mechanism here |
 |---|---|---|
-| **IQ** — is the system installed as specified? | The right software, at the right version, is what actually runs. | Docker images pinned by SHA-256 digest, not floating tags ([ADR-0009](adr/0009-docker-pinned-by-digest.md)); every run's exact tool/container identity is captured in `run_provenance` (§6). CDK guardrail tests (`infra/test/stacks.test.ts`) assert infrastructure invariants — bucket versioning, public-access block, TLS-only, IAM deny-delete — before any environment is considered correctly installed. |
+| **IQ** — is the system installed as specified? | The right software, at the right version, is what actually runs. | Docker images pinned by tag, with digest pinning the target but not yet met ([ADR-0009](adr/0009-docker-pinned-by-digest.md)); the caller's version and the checksums of every input are captured in `run_provenance`, container identity is not (§6). CDK guardrail tests (`infra/test/stacks.test.ts`) assert infrastructure invariants — bucket versioning, public-access block, TLS-only, IAM deny-delete — before any environment is considered correctly installed. |
 | **OQ** — does the system operate correctly across its intended range? | The pipeline runs end-to-end and produces the expected artifacts under normal and stub conditions. | The Nextflow `-stub` profile (`pipeline/main.nf`) exercises every process's structure without real compute; `pytest` covers the provenance/guardrail logic deterministically (`tests/test_build_metrics.py` and this repo's other `tests/test_*.py` files); CI (`.github/workflows/`) runs both on every change. |
 | **PQ** — does the system perform correctly against real-world data and acceptance criteria? | The actual analytical result meets a defined, justified threshold. | The `hap.py`-vs-GIAB benchmark in §4 of this document, against the SNV F1 ≥ 0.99 acceptance criterion in §3, run on real GIAB HG002 reads (not synthetic/stub data) — the result recorded per run as `validation_pass` in `metrics.json` and enforced insert-only in `db/schema.sql`. |
 

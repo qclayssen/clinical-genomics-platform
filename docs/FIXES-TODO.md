@@ -2,7 +2,8 @@
 
 **Status: the 2026-07-30 and 2026-09-10 audits below are closed as of 2026-09-15.** Kept as
 a record of what was found and what was done about it, in the same append-only spirit as the
-ADRs. Two genuine engineering gaps remain open — see the bottom section.
+ADRs. The Phase 3 validation run (2026-09-24) closed the read-checksum gap and surfaced three
+latent pipeline bugs, now fixed; the open items are in the bottom section.
 
 Severity: [P1] fix first · [P2] worth fixing · [P3] nice-to-have.
 
@@ -36,16 +37,39 @@ Severity: [P1] fix first · [P2] worth fixing · [P3] nice-to-have.
 
 ---
 
+## Closed — 2026-09-24 Phase 3 validation run
+
+The first full-chr20 real run exercised code paths `-stub` never executes.
+
+| # | Item | Resolution |
+|---|---|---|
+| 14 | [P1] Raw FASTQ reads not checksummed (the other half of item 8) | **Fixed.** `JSON_METRICS` takes the sample's reads as an input (joined by sample in `main.nf`) and `build_metrics.py` checksums them into `input_checksums`. Covered by `tests/test_build_metrics.py`. |
+| 15 | [P1] Local runs stamped `git_commit: "local-dev"` | **Fixed.** `main.nf` reads `git rev-parse HEAD` from the checkout when there is no `workflow.commitId`, with a `-dirty` suffix for uncommitted changes. |
+| 16 | [P1] `qc_evaluate.py` not executable — every real run failed at `QC_EVALUATE` | **Fixed.** Mode set to 100755; `tests/test_pipeline_bin_executable.py` fails if any `pipeline/bin` script a module invokes loses its executable bit. |
+| 17 | [P1] `QC_EVALUATE` container lacked PyYAML | **Fixed.** Uses the already-pinned MultiQC image (Python 3.11 + PyYAML) instead of bare `python:3.11`. |
+| 18 | [P2] `samtools sort` in `BWAMEM2_ALIGN` OOM-killed (exit 137) at full-chr20 scale | **Fixed.** Sort memory capped at ~40% of the task's memory, split across threads; it spills to temp files instead. |
+
+---
+
 ## Open
 
 - **[P1] No images are digest-pinned, and container identity is not in the provenance stamp.**
   `git grep '@sha256:'` returns nothing; all 12 module containers are tag-pinned.
   [ADR-0009](adr/0009-docker-pinned-by-digest.md) treats digest pinning as the production
-  target — it is not yet met. The provenance map in `pipeline/main.nf` records no container
-  and no tool versions (those reach `pipeline_info/software_versions.yml` only). Needs a
-  registry digest lookup per image (no local Docker daemon available in the environment this
-  was last worked from) — see `docs/ROADMAP.md` P1-1 for the related nf-core lint/nf-test work.
+  target — it is not yet met. Since 2026-09-24 the stamp carries the *caller's* self-reported
+  version (`provenance.caller_version`), but no container identity and no other tool's
+  version (those reach `pipeline_info/software_versions.yml` only). Needs a registry digest
+  lookup per image — see `docs/ROADMAP.md` P1-1 for the related nf-core lint/nf-test work.
 
-- **[P1] Raw FASTQ reads are still not checksummed** (the other half of item 8 above).
-  Only the reference and truth set were added to `input_checksums` in #78; the input reads
-  themselves aren't yet, so a result still can't be fully tied back to its raw input data.
+- **[P2] The QC layer and the acceptance criterion disagree.** `docs/VALIDATION.md` §3 accepts
+  a run on SNV F1 ≥ 0.99; `pipeline/conf/qc_thresholds.yaml` ([ADR-0013](adr/0013-qc-warnings-adaptive-thresholds-self-healing.md))
+  also *fails* a run whose SNV precision or recall alone is below 0.99. The 1 Mb / 33.9× run
+  passes the first (F1 0.9934) and fails the second (recall 0.9878); the historical 255.8× run
+  (recall 0.9894) would too. Needs a decision recorded as an ADR — align the thresholds, or
+  state that a QC `fail` withholds a run that `validation_pass` accepts. Neither threshold
+  has been changed.
+
+- **[P3] `hap.py` reports an empty version string.** `HAPPY_BENCHMARK`'s `versions.yml`
+  records `hap.py: Hap.py ` — the pinned image's `hap.py --version` prints no number, so
+  the collated versions file can't show which hap.py ran. The image tag
+  (`hap.py:0.3.15--py27hcb73b3d_0`) is the only record today.

@@ -1,0 +1,55 @@
+{
+  "evaluated_at": "2026-09-24T08:07:09.608672+00:00",
+  "failures": [
+    "snp_recall"
+  ],
+  "metrics": {
+    "percent_duplication": {
+      "direction": "higher_is_worse",
+      "fail_threshold": 0.4,
+      "status": "pass",
+      "value": 0.002434,
+      "warn_threshold": 0.2
+    },
+    "q30_rate": {
+      "direction": "lower_is_worse",
+      "fail_threshold": 0.7,
+      "status": "pass",
+      "value": 0.917404,
+      "warn_threshold": 0.8
+    },
+    "reads_filtered_percent": {
+      "direction": "higher_is_worse",
+      "fail_threshold": 0.5,
+      "status": "pass",
+      "value": 0.039477,
+      "warn_threshold": 0.3
+    },
+    "snp_f1": {
+      "direction": "lower_is_worse",
+      "fail_threshold": 0.99,
+      "status": "warn",
+      "value": 0.993437,
+      "warn_threshold": 0.995
+    },
+    "snp_precision": {
+      "direction": "lower_is_worse",
+      "fail_threshold": 0.99,
+      "status": "pass",
+      "value": 0.999175,
+      "warn_threshold": 0.995
+    },
+    "snp_recall": {
+      "direction": "lower_is_worse",
+      "fail_threshold": 0.99,
+      "status": "fail",
+      "value": 0.987765,
+      "warn_threshold": 0.995
+    }
+  },
+  "overall_status": "fail",
+  "sample": "HG002_chr20_window_35x",
+  "warnings": [
+    "snp_f1"
+  ]
+}
