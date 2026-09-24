@@ -63,6 +63,17 @@ class TestRuleBasedClassify:
         result = rule_based_classify("Process failed with exit code 42")
         assert result["action"] == "retry_stricter"
 
+    def test_hard_fail_wins_over_memory_substrings(self):
+        """A hard QC failure must be quarantined, never retried, even when the
+        message happens to contain a memory-ish substring (here "137" inside a
+        chr20 coordinate)."""
+        result = rule_based_classify("exit code 43: qc_hard_fail, file corruption at chr20:1370021")
+        assert result["action"] == "quarantine_hard"
+
+    def test_137_matches_only_as_a_whole_number(self):
+        assert rule_based_classify("Process exited with status 137")["action"] == "retry_more_memory"
+        assert rule_based_classify("variant at chr20:1370021 failed to parse")["action"] != "retry_more_memory"
+
     def test_exit_code_43(self):
         """Exit code 43 → quarantine_hard (QC hard fail)."""
         result = rule_based_classify("Process failed with exit code 43")

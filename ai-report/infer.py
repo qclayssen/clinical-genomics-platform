@@ -92,10 +92,14 @@ def render_with_rag(
     m: dict,
     index_dir: str,
     ollama_model: str = "phi3:mini",
-) -> str:
+    fallback: bool = True,
+) -> str | None:
     """Generate a report using RAG: embed query, retrieve context, call Ollama LLM.
 
-    Falls back to render_offline() on any Ollama failure (timeout, OOM, missing model).
+    On any Ollama failure (timeout, OOM, missing model, empty response) this
+    falls back to render_offline() — or, with ``fallback=False``, returns None
+    so a caller that records *how* the report was made (the report_generator
+    Lambda's audit trail) can tell the two apart.
     """
     import requests
     from rag import EmbeddingModel, FAISSRetriever
@@ -148,15 +152,15 @@ def render_with_rag(
         result = response.json()
         report_body = result.get("response", "").strip()
     except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as exc:
-        logger.warning("Ollama request failed (%s); falling back to offline renderer", exc)
-        return render_offline(m)
+        logger.warning("Ollama request failed (%s)", exc)
+        return render_offline(m) if fallback else None
     except Exception as exc:
-        logger.warning("Ollama unexpected error (%s); falling back to offline renderer", exc)
-        return render_offline(m)
+        logger.warning("Ollama unexpected error (%s)", exc)
+        return render_offline(m) if fallback else None
 
     if not report_body:
-        logger.warning("Ollama returned empty response; falling back to offline renderer")
-        return render_offline(m)
+        logger.warning("Ollama returned empty response")
+        return render_offline(m) if fallback else None
 
     # 6. Enforce word count bounds [120, 300]
     report_body = _enforce_word_count(report_body)
