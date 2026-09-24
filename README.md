@@ -63,7 +63,7 @@
 
 ### 🧬 Validated like a lab
 Benchmarked with `hap.py` against the **GIAB HG002 v4.2.1** truth set: **SNV F1 0.9914**,
-gated by a ≥ 0.99 acceptance criterion that must be re-met after any caller, reference or filter change.
+measured against a ≥ 0.99 acceptance criterion that must be re-met after any caller, reference or filter change.
 
 </td>
 <td width="33%" valign="top">
