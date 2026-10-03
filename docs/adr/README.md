@@ -61,9 +61,10 @@ Each ADR follows the same tiny structure:
 | [0035](0035-mlflow-local-tracking-model-registry.md) | Opt-in local MLflow tracking; registered version is the adapter's provenance reference | Accepted |
 | [0036](0036-llm-observability-agent-call-metrics.md) | LLM observability: per-call accounting, dated cost estimates, insert-only `agent_call_metrics` | Accepted |
 
+| [0037](0037-full-chr20-validation-at-representative-depth.md) | Validate full chr20 at a downsampled ~35× depth, not at the 300× source depth | Accepted |
 ---
 
-**Count: 36 ADRs** (0001–0036). ADRs 0004 and 0005 are superseded but retained for history.
+**Count: 37 ADRs** (0001–0037). ADRs 0004 and 0005 are superseded but retained for history.
 
 ## Conventions
 

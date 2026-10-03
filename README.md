@@ -1,8 +1,8 @@
 <!-- markdownlint-disable MD041 MD033 — custom badges and HTML layout require these exceptions.
      project: clinical-genomics-platform; author: Quentin Clayssen; scope: solo-built;
      stack: Nextflow DSL2, AWS CDK, DynamoDB + Postgres, Metabase, PyTorch QLoRA;
-     validation: hap.py vs GIAB HG002 truth set, SNV F1=0.9914, ISO 15189 patterns;
-     architecture: 31 ADRs, hand-written nf-core-style modules, not scaffolded from template.
+     validation: hap.py vs GIAB HG002 truth set, full chr20 at 33.7x, SNV F1=0.9927, ISO 15189 patterns;
+     architecture: 37 ADRs, hand-written nf-core-style modules, not scaffolded from template.
 
      No coverage badge here on purpose: publishing one needs a gist plus a GIST_TOKEN
      secret and a COVERAGE_GIST_ID variable (see .github/workflows/coverage.yml). Until
@@ -13,7 +13,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/media/banner-dark.svg">
-  <img src="docs/media/banner-light.svg" alt="Clinical Genomics Insight Platform: raw WGS reads to benchmarked variants, provenance and AI-drafted reports. SNV F1 0.9914 vs GIAB." width="100%">
+  <img src="docs/media/banner-light.svg" alt="Clinical Genomics Insight Platform: raw WGS reads to benchmarked variants, provenance and AI-drafted reports. SNV F1 0.9927 vs GIAB over all of chr20." width="100%">
 </picture>
 
 <br/><br/>
@@ -26,7 +26,7 @@
 
 [![CI — Pipeline](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/pipeline-ci.yml?label=Pipeline%20CI&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/pipeline-ci.yml)
 [![CI — Infra](https://img.shields.io/github/actions/workflow/status/qclayssen/clinical-genomics-platform/infra-ci.yml?label=Infra%20CI&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/qclayssen/clinical-genomics-platform/actions/workflows/infra-ci.yml)
-[![SNV F1](https://img.shields.io/badge/SNV%20F1-0.9914-22c55e?style=for-the-badge)](docs/VALIDATION.md)
+[![SNV F1](https://img.shields.io/badge/SNV%20F1-0.9927-22c55e?style=for-the-badge)](docs/VALIDATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -62,7 +62,7 @@
 <td width="33%" valign="top">
 
 ### 🧬 Validated like a lab
-Benchmarked with `hap.py` against the **GIAB HG002 v4.2.1** truth set: **SNV F1 0.9914**,
+Benchmarked with `hap.py` against the **GIAB HG002 v4.2.1** truth set: **SNV F1 0.9927** over all of chr20 at 33.7×,
 measured against a ≥ 0.99 acceptance criterion that must be re-met after any caller, reference or filter change.
 
 </td>
@@ -209,9 +209,12 @@ flowchart TD
 
 ## Validation Summary
 
-The pipeline is benchmarked on **GIAB HG002 / NA24385, chromosome 20** (1 Mb window,
-chr20:1,000,000-2,000,000, 300x depth) against the v4.2.1 high-confidence truth set
-using `hap.py`. Full methodology in [`docs/VALIDATION.md`](docs/VALIDATION.md).
+The pipeline is benchmarked on **GIAB HG002 / NA24385, all of chromosome 20**, at a
+measured **33.7× mean depth** (downsampled from GIAB's 300× data — see
+[ADR-0037](docs/adr/0037-full-chr20-validation-at-representative-depth.md)), against the
+v4.2.1 high-confidence truth set using `hap.py`. Full methodology, the depth comparison and
+the limitations in [`docs/VALIDATION.md`](docs/VALIDATION.md); the raw outputs are in
+[`docs/validation-evidence/HG002_chr20_35x/`](docs/validation-evidence/HG002_chr20_35x/).
 
 <br/>
 
@@ -219,17 +222,18 @@ using `hap.py`. Full methodology in [`docs/VALIDATION.md`](docs/VALIDATION.md).
 
 | Metric | GATK HaplotypeCaller | DeepVariant | Source |
 |:---|:---:|:---:|:---|
-| SNV Precision | 0.9934 | — | `hap.py` summary.csv |
-| SNV Recall | 0.9894 | — | `hap.py` summary.csv |
-| **SNV F1** | **0.9914** | — | `hap.py` summary.csv |
-| INDEL F1 | 0.9971 | — | `hap.py` summary.csv |
-| Ti/Tv | 2.07 | — | `bcftools stats` |
+| SNV Precision | 0.9903 | — | `hap.py` summary.csv |
+| SNV Recall | 0.9951 | — | `hap.py` summary.csv |
+| **SNV F1** | **0.9927** | — | `hap.py` summary.csv |
+| INDEL F1 | 0.9862 | — | `hap.py` summary.csv |
+| Truth SNVs benchmarked | 71,333 | — | `hap.py` summary.csv |
 
 </div>
 
 <br/>
 
-SNV F1 meets the >= 0.99 acceptance criterion. DeepVariant comparison is planned.
+SNV F1 meets the >= 0.99 acceptance criterion, with a narrow margin on precision (0.9903);
+the pipeline's stricter QC layer grades this run `warn`. DeepVariant comparison is planned.
 
 <br/>
 

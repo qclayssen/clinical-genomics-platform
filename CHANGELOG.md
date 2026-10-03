@@ -5,7 +5,25 @@ before tagging** — re-validation on change is a first-class rule, not an after
 (see `docs/VALIDATION.md` §7).
 
 ## [Unreleased]
+### Validation
+- **Full-chr20 GIAB re-validation (Phase 3, ADR-0037).** All of chr20 at a measured 33.7×
+  (downsampled from GIAB's 300× BAM, seed 42): SNV precision 0.9903, recall 0.9951,
+  **F1 0.9927** (passes ≥ 0.99), INDEL F1 0.9862; stamped with git commit `7ef24a7`. Replaces
+  the 1 Mb / 255.8× window as the headline result; evidence in
+  `docs/validation-evidence/HG002_chr20_35x/`. The QC layer grades it `warn` (SNV precision
+  and F1 below 0.995).
+
+### Added
+- `-profile validation` (`pipeline/conf/validation.config`) and
+  `scripts/downsample_giab_bam.sh` for reproducible full-chr20 runs at representative depth.
+- Provenance stamp now carries the raw FASTQ reads' SHA-256, the caller's self-reported
+  version (`caller_version`), and the real git commit for local runs (was `local-dev`).
+
 ### Fixed
+- Three failures only a real (non-stub) run could hit, found by the Phase 3 run:
+  `qc_evaluate.py` was not executable, `QC_EVALUATE`'s container lacked PyYAML, and
+  `samtools sort` in `BWAMEM2_ALIGN` could be OOM-killed at full-chromosome scale. None
+  changes calling, filtering or the reference; the validation above ran with all three fixed.
 - `qc_warnings` is now actually populated by a real pipeline run: `QC_EVALUATE.out.warnings`
   was a dangling channel in `pipeline/main.nf` (nothing downstream consumed it), so the table
   and its dashboard views were only ever populated by `db/seed_demo.sql`. `DB_INGEST` now

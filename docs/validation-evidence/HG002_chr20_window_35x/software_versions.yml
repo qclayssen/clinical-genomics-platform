@@ -1,0 +1,21 @@
+"FASTQC":
+    fastqc: 0.12.1
+"JSON_METRICS":
+    python: 3.11.10
+"MARKDUPLICATES":
+    gatk4: 4.5.0.0
+"MULTIQC":
+    multiqc: 1.21
+"PARQUET_EXPORT":
+    pyarrow: 4.0.1
+"HAPPY_BENCHMARK":
+    hap.py: Hap.py 
+"HAPLOTYPECALLER":
+    gatk4: 4.5.0.0
+"FASTP":
+    fastp: 0.23.4
+"QC_EVALUATE":
+    python: 3.11.8
+"BWAMEM2_ALIGN":
+    bwa-mem2: 2.2.1
+    samtools: 1.16.1

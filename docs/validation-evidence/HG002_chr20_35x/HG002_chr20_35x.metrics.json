@@ -1,0 +1,43 @@
+{
+  "provenance": {
+    "caller": "gatk",
+    "caller_version": {
+      "gatk4": "4.5.0.0"
+    },
+    "exported_at": "2026-09-24T09:20:39.077021+00:00",
+    "git_commit": "7ef24a70ac4c9a8cfad693c100352198d385738d",
+    "input_checksums": {
+      "GRCh38_chr20.fa": "0ff3eab72be69fad01973c2261b965e1e4bd6bc49b77bb858d603ffbe11456d7",
+      "HG002_GRCh38_chr20_v4.2.1.bed": "52d9c15a5c5e4552da1b9111fbcb5514a8d65b4ed5ad95542f22ffdcdd16a3f3",
+      "HG002_GRCh38_chr20_v4.2.1.vcf.gz": "bb843fb0fd1cc02fc8dd63e6e7393271bfbda670698e42e3b43522d3930c025b",
+      "HG002_chr20_35x.happy.summary.csv": "1c86d38c939bf553ad92440f24b15b86fe4dc3a24ad32bfa825c6bd4bb6f4759",
+      "HG002_chr20_35x.markdup.metrics": "0d12fa60e4c4fc8087c394d5b73f84d74862830fef5a578a97403d0bd1e2933f",
+      "HG002_chr20_35x_R1.fastq.gz": "b50a18ebbe3c2f69a6c6c4cc700d872c64ae319b7e55560339214644dceda4c7",
+      "HG002_chr20_35x_R2.fastq.gz": "b14c41ce1236b8f50ecf0aac0732cac3b268c457bd7caf5b0367e6e70dd44351"
+    },
+    "pipeline_version": "1.0.0",
+    "reference_build": "GRCh38.p14",
+    "run_id": "crazy_venter",
+    "sample": "HG002_chr20_35x",
+    "started_at": "2026-09-24T18:07:38.364365+10:00",
+    "truth_version": "GIAB-v4.2.1"
+  },
+  "qc": {
+    "percent_duplication": 0.00245
+  },
+  "sample": "HG002_chr20_35x",
+  "schema_version": "1.0",
+  "validation": {
+    "indel": {
+      "f1": 0.986246,
+      "precision": 0.989391,
+      "recall": 0.9831200000000001
+    },
+    "snp": {
+      "f1": 0.99266,
+      "precision": 0.990252,
+      "recall": 0.995079
+    }
+  },
+  "validation_pass": true
+}

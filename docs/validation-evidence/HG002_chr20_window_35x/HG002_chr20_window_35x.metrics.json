@@ -1,0 +1,43 @@
+{
+  "provenance": {
+    "caller": "gatk",
+    "caller_version": {
+      "gatk4": "4.5.0.0"
+    },
+    "exported_at": "2026-09-24T08:07:09.574745+00:00",
+    "git_commit": "7ef24a70ac4c9a8cfad693c100352198d385738d",
+    "input_checksums": {
+      "GRCh38_chr20.fa": "0ff3eab72be69fad01973c2261b965e1e4bd6bc49b77bb858d603ffbe11456d7",
+      "HG002_GRCh38_chr20_v4.2.1.vcf.gz": "bb843fb0fd1cc02fc8dd63e6e7393271bfbda670698e42e3b43522d3930c025b",
+      "HG002_GRCh38_chr20_v4.2.1_window.bed": "fbe9ab2df15ec3fa60e386998d53ecc4bed45d09ebeb6fc424141783188e5142",
+      "HG002_chr20_window_35x.happy.summary.csv": "08b51c3be663f03331fa5c65752f58327100d9eb7ba8fa57c85021b1a8447404",
+      "HG002_chr20_window_35x.markdup.metrics": "b05b7978398913a9f974df65ac87ba0aa0c6efe92e93c44820b69436de24c8f1",
+      "HG002_chr20_window_35x_R1.fastq.gz": "1292ca4cd5b165b577287baf7b21b829b3c3d903e9919f246ca501e182430579",
+      "HG002_chr20_window_35x_R2.fastq.gz": "acc4648955b6e6a39e04e83ab695aae5eabb142162a03877e47916887ee8ecb2"
+    },
+    "pipeline_version": "1.0.0",
+    "reference_build": "GRCh38.p14",
+    "run_id": "sad_engelbart",
+    "sample": "HG002_chr20_window_35x",
+    "started_at": "2026-09-24T18:05:17.048356+10:00",
+    "truth_version": "GIAB-v4.2.1"
+  },
+  "qc": {
+    "percent_duplication": 0.002434
+  },
+  "sample": "HG002_chr20_window_35x",
+  "schema_version": "1.0",
+  "validation": {
+    "indel": {
+      "f1": 0.996942,
+      "precision": 1.0,
+      "recall": 0.9939020000000001
+    },
+    "snp": {
+      "f1": 0.9934370000000001,
+      "precision": 0.999175,
+      "recall": 0.987765
+    }
+  },
+  "validation_pass": true
+}

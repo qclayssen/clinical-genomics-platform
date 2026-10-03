@@ -1,7 +1,8 @@
 # Runbook — running the pipeline for real (to get real validation numbers)
 
 Goal: (re-)measure precision/recall/F1 by running the pipeline end-to-end on GIAB HG002
-chr20. `docs/VALIDATION.md` §4 already carries a measured run (2026-07-15, SNV F1 0.9914);
+chr20. `docs/VALIDATION.md` §4 already carries a measured run (2026-09-24, all of chr20 at 33.7×, SNV F1 0.9927 — run with
+`-profile validation,docker` after `scripts/downsample_giab_bam.sh`);
 follow this procedure to reproduce it, or to re-validate after any change to the reference,
 caller, or filtering — which the re-validation rule requires before tagging. This runs on **your machine** (not CI);
 it needs Nextflow + Docker + the staged data.

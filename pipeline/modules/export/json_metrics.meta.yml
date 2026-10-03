@@ -27,11 +27,21 @@ input:
         type: file
         description: hap.py summary CSV
         pattern: "*.happy.summary.csv"
+    - reads:
+        type: file
+        description: Raw input FASTQ files for the sample — SHA-256 checksummed into the provenance stamp
+        pattern: "*.fastq.gz"
   - - provenance:
         type: map
         description: >
           Groovy Map (a value channel input) with run provenance — pipeline_version, git_commit,
           run_id, started_at, reference_build, truth_version — serialised into the JSON.
+  - - caller_versions:
+        type: file
+        description: >
+          The variant caller's own versions.yml, staged as caller_versions.yml; parsed into
+          provenance.caller_version so the stamp names the tool version that actually ran.
+        pattern: "versions.yml"
 output:
   - json:
       - - meta:

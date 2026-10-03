@@ -144,6 +144,55 @@ def test_main_checksums_reference_and_truth_set_inputs(tmp_path, monkeypatch):
     assert checksums["truth.bed"] == bm.sha256(str(truth_bed))
 
 
+def test_parse_tool_versions_reads_nfcore_versions_yml(tmp_path):
+    """The caller's own versions.yml (nf-core shape) is the source of caller_version."""
+    versions = tmp_path / "caller_versions.yml"
+    versions.write_text('"HAPLOTYPECALLER":\n    gatk4: 4.5.0.0\n')
+    assert bm.parse_tool_versions(str(versions)) == {"gatk4": "4.5.0.0"}
+
+
+def test_parse_tool_versions_empty_file_yields_empty_map(tmp_path):
+    versions = tmp_path / "caller_versions.yml"
+    versions.write_text("")
+    assert bm.parse_tool_versions(str(versions)) == {}
+
+
+def test_main_stamps_caller_version_and_checksums_reads(tmp_path, monkeypatch):
+    """Closes two provenance gaps from docs/FIXES-TODO.md: the stamp names the caller
+    version the caller itself reported, and the raw FASTQ reads are checksummed."""
+    dup = tmp_path / "dup.metrics"
+    dup.write_text("LIBRARY\tPERCENT_DUPLICATION\ns\t0.05\n")
+    happy = tmp_path / "happy.csv"
+    happy.write_text(
+        "Type,METRIC.Precision,METRIC.Recall,METRIC.F1_Score\nSNP,0.995,0.994,0.9945\n"
+    )
+    r1 = tmp_path / "S_R1.fastq.gz"
+    r1.write_bytes(b"read-one")
+    r2 = tmp_path / "S_R2.fastq.gz"
+    r2.write_bytes(b"read-two")
+    versions = tmp_path / "caller_versions.yml"
+    versions.write_text('"HAPLOTYPECALLER":\n    gatk4: 4.5.0.0\n')
+    output = tmp_path / "out.metrics.json"
+
+    argv = [
+        "build_metrics.py",
+        "--sample", "S",
+        "--dup-metrics", str(dup),
+        "--happy-summary", str(happy),
+        "--provenance", json.dumps({"git_commit": "abc1234"}),
+        "--inputs", f"{dup},{happy},{r1},{r2}",
+        "--caller-versions", str(versions),
+        "--output", str(output),
+    ]
+    monkeypatch.setattr("sys.argv", argv)
+    assert bm.main() == 0
+
+    prov = json.loads(output.read_text())["provenance"]
+    assert prov["caller_version"] == {"gatk4": "4.5.0.0"}
+    assert prov["input_checksums"]["S_R1.fastq.gz"] == bm.sha256(str(r1))
+    assert prov["input_checksums"]["S_R2.fastq.gz"] == bm.sha256(str(r2))
+
+
 def test_guardrails_reinsert_banner_if_model_drops_it():
     metrics = {"provenance": {"git_commit": "deadbee", "truth_version": "GIAB-v4.2.1"}}
     hostile = "Sample looks great. We recommend treatment with drug X."
